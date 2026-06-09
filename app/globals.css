@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Roboto:ital,wght@0,400;0,500;1,400&display=swap');
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: 'Montserrat', sans-serif;
+  --font-body: 'Roboto', sans-serif;
+  --font-mono: monospace;
+
+  /* ── App palette ──────────────────────────────────────────────────────────── */
+  --color-page:            #ECEEF1;
+  --color-surface:         #FFFFFF;
+  --color-subtle:          #F7F8FA;
+  --color-border:          #E4E6EA;
+  --color-divider:         #F0F1F3;
+  --color-text:            #111827;
+  --color-text-secondary:  #6B7280;
+  --color-muted:           #9CA3AF;
+  --color-accent:          #F97316;
+  --color-accent-hover:    #EA6C0A;
+  --color-warning-bg:      #FFF7ED;
+  --color-warning-border:  #FED7AA;
+  --color-warning-text:    #C2410C;
+  --color-danger:          #EF4444;
+
+  --radius-input:   8px;
+  --radius-card:    12px;
+  --radius-panel:   16px;
+
+  --shadow-card:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-preview: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+
+  /* ── shadcn/ui semantic tokens (Tailwind v4 — bg-primary, text-foreground …) */
+  --color-background:            #FFFFFF;
+  --color-foreground:            #111827;
+  --color-card:                  #FFFFFF;
+  --color-card-foreground:       #111827;
+  --color-popover:               #FFFFFF;
+  --color-popover-foreground:    #111827;
+  --color-primary:               #F97316;
+  --color-primary-foreground:    #FFFFFF;
+  --color-secondary:             #F7F8FA;
+  --color-secondary-foreground:  #111827;
+  --color-muted-bg:              #F7F8FA;
+  --color-muted-fg:              #6B7280;
+  --color-accent-bg:             #FFF7ED;
+  --color-accent-fg:             #111827;
+  --color-destructive:           #EF4444;
+  --color-destructive-foreground:#FFFFFF;
+  --color-input:                 #E4E6EA;
+  --color-ring:                  #F97316;
+
+  /* radius used by shadcn components */
+  --radius: 0.5rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--color-page);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Invoice preview - exact A4 proportions */
+.invoice-a4 {
+  width: 794px;
+  min-height: 1123px;
+  background: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  .invoice-a4 {
+    width: 210mm;
+    min-height: 297mm;
+  }
+}
