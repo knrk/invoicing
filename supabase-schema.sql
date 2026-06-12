@@ -72,3 +72,25 @@ grant execute on function increment_invoice_sequence() to anon;
 
 -- Migration: add reverse_charge column (run if table already exists)
 alter table invoices add column if not exists reverse_charge boolean not null default false;
+
+-- Tabulka odběratelů (saved customers)
+create table if not exists customers (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  ico text not null default '',
+  dic text not null default '',
+  street text not null default '',
+  zip text not null default '',
+  city text not null default '',
+  country text not null default 'CZ',
+  language text not null check (language in ('cs', 'en')) default 'cs',
+  currency text not null check (currency in ('CZK', 'EUR')) default 'CZK',
+  payment_method text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists customers_name_idx on customers (name);
+
+alter table customers enable row level security;
+create policy "anon full access customers" on customers for all to anon using (true) with check (true);

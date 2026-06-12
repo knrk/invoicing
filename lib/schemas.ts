@@ -72,6 +72,7 @@ export const InvoiceLineSchema = z.object({
   id: z.string(),
   description: z.string().min(1, "Popis položky je povinný"),
   sub_description: z.string().default(""),
+  is_advance: z.boolean().default(false),
   quantity: z.number().positive("Množství musí být kladné"),
   unit: z.string().min(1, "Jednotka je povinná"),
   unit_price: z.number().min(0, "Cena nesmí být záporná"),
@@ -97,9 +98,35 @@ export const InvoiceSchema = InvoiceFormDataSchema.extend({
   updated_at: z.string(),
 })
 
+// ── Customer record (saved customers DB table) ────────────────────────────────
+
+export const CustomerRecordSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1, "Název odběratele je povinný"),
+  ico: z.string().default(""),
+  dic: z.string().default(""),
+  street: z.string().default(""),
+  zip: z.string().default(""),
+  city: z.string().default(""),
+  country: z.string().default("CZ"),
+  language: LanguageSchema,
+  currency: CurrencySchema,
+  payment_method: z.string().default(""),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+})
+
+export const CustomerRecordFormSchema = CustomerRecordSchema.omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+})
+
 export type Language = z.infer<typeof LanguageSchema>
 export type Currency = z.infer<typeof CurrencySchema>
 export type Customer = z.infer<typeof CustomerSchema>
+export type CustomerRecord = z.infer<typeof CustomerRecordSchema>
+export type CustomerRecordForm = z.infer<typeof CustomerRecordFormSchema>
 export type InvoiceLine = z.infer<typeof InvoiceLineSchema>
 export type InvoiceFormData = z.infer<typeof InvoiceFormDataSchema>
 export type Invoice = z.infer<typeof InvoiceSchema>

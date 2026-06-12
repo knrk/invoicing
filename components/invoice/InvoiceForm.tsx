@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import type { AppConfig, Invoice, InvoiceFormData, InvoiceLine, Language } from "@/types"
+import type { AppConfig, Invoice, InvoiceFormData, InvoiceLine, Language, CustomerRecord } from "@/types"
 import {
   getCurrency,
   getDueDays,
@@ -12,6 +12,7 @@ import {
   today,
   addDays,
   LABELS,
+  fmtNum,
 } from "@/lib/invoice"
 import { createInvoice, updateInvoice } from "@/lib/actions"
 import { exportToPDF } from "@/lib/pdf"
@@ -28,10 +29,11 @@ import { cn } from "@/lib/utils"
 interface Props {
   config: AppConfig
   existing?: Invoice
+  customers?: CustomerRecord[]
 }
 
 function emptyLine(): InvoiceLine {
-  return { id: generateId(), description: "", sub_description: "", quantity: 1, unit: "h", unit_price: 0, total: 0 }
+  return { id: generateId(), description: "", sub_description: "", is_advance: false, quantity: 1, unit: "h", unit_price: 0, total: 0 }
 }
 
 function initForm(config: AppConfig, existing?: Invoice): InvoiceFormData {
@@ -58,7 +60,12 @@ function initForm(config: AppConfig, existing?: Invoice): InvoiceFormData {
   }
 }
 
-export default function InvoiceForm({ config, existing }: Props) {
+/** Zobrazí "Kč" místo interního kódu "CZK" */
+function displayCurrency(c: string): string {
+  return c === "CZK" ? "Kč" : c
+}
+
+export default function InvoiceForm({ config, existing, customers = [] }: Props) {
   const router = useRouter()
   const [form, setForm] = useState<InvoiceFormData>(() => initForm(config, existing))
   const [saving, setSaving] = useState(false)
@@ -104,7 +111,8 @@ export default function InvoiceForm({ config, existing }: Props) {
       lines: f.lines.map((l) => {
         if (l.id !== id) return l
         const updated = { ...l, [key]: value }
-        updated.total = updated.quantity * updated.unit_price
+        const sign = updated.is_advance ? -1 : 1
+        updated.total = sign * updated.quantity * updated.unit_price
         return updated
       }),
     }))
@@ -145,16 +153,35 @@ export default function InvoiceForm({ config, existing }: Props) {
     }
   }
 
+  function applyCustomer(c: CustomerRecord) {
+    setForm((f) => ({
+      ...f,
+      language: c.language,
+      currency: c.currency,
+      payment_method: c.payment_method || (c.language === "cs" ? "Převodem" : "Bank transfer"),
+      customer: {
+        name: c.name,
+        ico: c.ico,
+        dic: c.dic,
+        street: c.street,
+        zip: c.zip,
+        city: c.city,
+        country: c.country,
+      },
+    }))
+  }
+
   const isCz = form.language === "cs"
+  // Formulář je vždy v češtině — nezávisle na jazyku faktury
   const L = {
-    ...LABELS[form.language].form,
-    save: existing ? LABELS[form.language].form.save : LABELS[form.language].form.saveNew,
+    ...LABELS.cs.form,
+    save: existing ? LABELS.cs.form.save : LABELS.cs.form.saveNew,
   }
 
   return (
     <div className="flex h-[calc(100vh-56px)] overflow-hidden">
 
-      {/* ── LEFT: Form (scrollable, 38%) ── */}
+      {/* ── LEFT: Formulář (scrollable, 38%) ── */}
       <div className="w-[38%] flex-shrink-0 flex flex-col border-r border-border bg-surface">
         <div className="px-6 pt-6 pb-4 space-y-6 flex-1 overflow-y-auto">
 
@@ -164,7 +191,15 @@ export default function InvoiceForm({ config, existing }: Props) {
             </Alert>
           )}
 
-          {/* ── Invoice Details ── */}
+          {/* ── Picker odběratele ── */}
+          {customers.length > 0 && (
+            <CustomerPicker
+              customers={customers}
+              onSelect={applyCustomer}
+            />
+          )}
+
+          {/* ── Detaily faktury ── */}
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-[16px] font-bold text-text">{L.detailsSection}</h2>
@@ -180,7 +215,7 @@ export default function InvoiceForm({ config, existing }: Props) {
             </div>
             <div className="space-y-4">
 
-              {/* Bill To */}
+              {/* Odběratel */}
               <Field label={L.customerSection} htmlFor="f-customer-name">
                 <Input
                   id="f-customer-name"
@@ -198,13 +233,13 @@ export default function InvoiceForm({ config, existing }: Props) {
                 </Field>
               </div>
 
-              {/* Address */}
-              <Field label={isCz ? "Adresa" : "Address"} htmlFor="f-customer-street">
+              {/* Adresa */}
+              <Field label="Adresa" htmlFor="f-customer-street">
                 <Input
                   id="f-customer-street"
                   value={form.customer.street}
                   onChange={(e) => setCustomerField("street", e.target.value)}
-                  placeholder={isCz ? "Ulice a číslo popisné" : "Street and number"}
+                  placeholder="Ulice a číslo popisné"
                 />
               </Field>
               <div className="grid grid-cols-2 gap-3">
@@ -226,7 +261,7 @@ export default function InvoiceForm({ config, existing }: Props) {
                 </Field>
               )}
 
-              {/* Invoice Number + Payment method */}
+              {/* Číslo faktury + způsob platby */}
               <div className="grid grid-cols-2 gap-3">
                 <Field label={L.invoiceNumber} htmlFor="f-invoice-number">
                   {editInvoiceNumber ? (
@@ -257,7 +292,7 @@ export default function InvoiceForm({ config, existing }: Props) {
                 </Field>
               </div>
 
-              {/* Issue Date + Due Date */}
+              {/* Datum vystavení + splatnosti */}
               <div className="grid grid-cols-2 gap-3">
                 <Field label={L.issueDate}>
                   <DatePicker value={form.issue_date} language={form.language} onChange={(v) => setField("issue_date", v)} />
@@ -267,7 +302,7 @@ export default function InvoiceForm({ config, existing }: Props) {
                 </Field>
               </div>
 
-              {/* Reverse Charge — EN only */}
+              {/* Přenesená daňová povinnost — pouze EN */}
               {!isCz && (
                 <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
                   <div>
@@ -284,14 +319,14 @@ export default function InvoiceForm({ config, existing }: Props) {
             </div>
           </section>
 
-          {/* ── Items ── */}
+          {/* ── Položky ── */}
           <section>
             <h2 className="text-[16px] font-bold text-text mb-4">{L.linesSection}</h2>
 
             <div className="space-y-3">
               {form.lines.map((line, idx) => (
                 <div key={line.id} className="rounded-xl bg-[#F7F8FA] border border-border overflow-hidden">
-                  {/* Card header */}
+                  {/* Hlavička karty */}
                   <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
                     <span className="text-xs font-semibold text-text-secondary">#{String(idx + 1).padStart(2, "0")}</span>
                     {form.lines.length > 1 && (
@@ -305,10 +340,10 @@ export default function InvoiceForm({ config, existing }: Props) {
                       </button>
                     )}
                   </div>
-                  {/* Card body */}
+                  {/* Tělo karty */}
                   <div className="px-4 py-3 space-y-3">
                     <div>
-                      <Label className="mb-1.5 block text-xs">{isCz ? "Popis" : "Description"}</Label>
+                      <Label className="mb-1.5 block text-xs">Popis</Label>
                       <Input
                         value={line.description}
                         onChange={(e) => updateLine(line.id, "description", e.target.value)}
@@ -318,11 +353,11 @@ export default function InvoiceForm({ config, existing }: Props) {
                       />
                     </div>
                     <div>
-                      <Label className="mb-1.5 block text-xs">{isCz ? "Doplňkový popis" : "Sub-description"}</Label>
+                      <Label className="mb-1.5 block text-xs">Doplňkový popis</Label>
                       <Input
                         value={line.sub_description ?? ""}
                         onChange={(e) => updateLine(line.id, "sub_description", e.target.value)}
-                        placeholder={isCz ? "Volitelný doplňkový popis…" : "Optional sub-description…"}
+                        placeholder="Volitelný doplňkový popis…"
                         className="bg-white"
                       />
                     </div>
@@ -338,7 +373,7 @@ export default function InvoiceForm({ config, existing }: Props) {
                         />
                       </div>
                       <div>
-                        <Label className="mb-1.5 block text-xs">{isCz ? "Jedn." : "Unit"}</Label>
+                        <Label className="mb-1.5 block text-xs">Jedn.</Label>
                         <Input
                           value={line.unit}
                           onChange={(e) => updateLine(line.id, "unit", e.target.value)}
@@ -356,8 +391,21 @@ export default function InvoiceForm({ config, existing }: Props) {
                         />
                       </div>
                     </div>
-                    <div className="text-right text-xs text-text-secondary">
-                      {L.total}: <span className="font-semibold text-text">{line.total.toLocaleString(isCz ? "cs-CZ" : "en-GB")} {form.currency}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          size="sm"
+                          checked={line.is_advance}
+                          onCheckedChange={(v) => updateLine(line.id, "is_advance", v)}
+                        />
+                        <span className="text-xs text-text-secondary">Záloha</span>
+                      </div>
+                      <div className="text-xs text-text-secondary">
+                        {L.total}:{" "}
+                        <span className={line.is_advance ? "font-semibold text-danger" : "font-semibold text-text"}>
+                          {line.is_advance ? "−" : ""}{fmtNum(Math.abs(line.total))} {displayCurrency(form.currency)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -374,26 +422,14 @@ export default function InvoiceForm({ config, existing }: Props) {
             <div className="mt-4 pt-4 border-t border-border flex justify-between items-center">
               <span className="text-sm font-semibold text-text">{L.total}</span>
               <span className="text-[20px] font-bold text-text tabular-nums">
-                {total.toLocaleString(isCz ? "cs-CZ" : "en-GB")} {form.currency}
+                {fmtNum(total)} {displayCurrency(form.currency)}
               </span>
             </div>
           </section>
 
-          {/* ── Warning banner ── */}
-          <div className="flex items-start gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-primary flex-shrink-0 mt-0.5" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            <p className="text-xs text-orange-700 flex-1 leading-relaxed">
-              {isCz
-                ? "Po uložení faktury doporučujeme zkontrolovat náhled před exportem do PDF."
-                : "After saving, review the preview before exporting to PDF."}
-            </p>
-          </div>
-
         </div>
 
-        {/* ── Bottom action bar ── */}
+        {/* ── Spodní akční lišta ── */}
         <div className="border-t border-border bg-surface px-6 py-4 flex items-center justify-between flex-shrink-0">
           <Button variant="link" asChild>
             <Link href="/">{L.cancel}</Link>
@@ -404,10 +440,10 @@ export default function InvoiceForm({ config, existing }: Props) {
         </div>
       </div>
 
-      {/* ── RIGHT: Preview (60%) ── */}
+      {/* ── RIGHT: Náhled (60%) ── */}
       <div className="flex-1 flex flex-col bg-page overflow-hidden">
         <div className="flex items-center justify-between px-8 py-4 bg-surface border-b border-border">
-          <span className="text-[15px] font-semibold text-text">Preview</span>
+          <span className="text-[15px] font-semibold text-text">Náhled</span>
           <Button variant="outline" onClick={handleExportPDF} disabled={exporting}>
             {exporting ? (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin">
@@ -434,7 +470,7 @@ export default function InvoiceForm({ config, existing }: Props) {
   )
 }
 
-// ── Local helpers ─────────────────────────────────────────────────────────────
+// ── Lokální pomocné komponenty ─────────────────────────────────────────────────
 
 function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
   return (
@@ -460,5 +496,68 @@ function ReadonlyField({ value, onEdit, mono }: { value: string; onEdit: () => v
         </svg>
       </button>
     </div>
+  )
+}
+
+function CustomerPicker({
+  customers,
+  onSelect,
+}: {
+  customers: CustomerRecord[]
+  onSelect: (c: CustomerRecord) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onPointerDown(e: PointerEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("pointerdown", onPointerDown)
+    return () => document.removeEventListener("pointerdown", onPointerDown)
+  }, [])
+
+  return (
+    <section ref={ref} className="relative">
+      <Label className="mb-1.5 block">Odběratel</Label>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          "w-full flex items-center justify-between gap-2",
+          "h-10 px-3 rounded-md border text-sm bg-background",
+          "transition-colors",
+          open
+            ? "border-ring ring-2 ring-ring/30 text-foreground"
+            : "border-input text-text-secondary hover:border-ring/60 hover:text-foreground",
+        )}
+      >
+        <span>Vybrat odběratele…</span>
+        <svg
+          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          className={cn("shrink-0 transition-transform", open && "rotate-180")}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute z-50 top-full mt-1 w-full bg-background border border-border rounded-lg shadow-lg overflow-hidden py-1">
+          {customers.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => { onSelect(c); setOpen(false) }}
+              className="w-full text-left px-3 py-2 text-sm text-text hover:bg-subtle transition-colors flex items-center gap-2"
+            >
+              <span className="flex-1 truncate font-medium">{c.name}</span>
+              <span className="shrink-0 text-xs text-text-secondary uppercase tracking-wide">
+                {c.language === "cs" ? "CZ" : "EN"}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }

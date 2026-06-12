@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import type { Invoice } from "@/types"
-import { formatDate } from "@/lib/invoice"
+import { formatDate, fmtNum } from "@/lib/invoice"
 import { deleteInvoice, duplicateInvoice } from "@/lib/actions"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -120,7 +120,7 @@ export default function InvoiceListClient({ invoices }: Props) {
                   {formatDate(inv.due_date, inv.language)}
                 </TableCell>
                 <TableCell className="font-medium tabular-nums text-text">
-                  {inv.total.toLocaleString(inv.language === "cs" ? "cs-CZ" : "en-GB")}{" "}
+                  {fmtNum(inv.total)}{" "}
                   {inv.currency}
                 </TableCell>
                 <TableCell>

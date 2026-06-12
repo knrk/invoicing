@@ -1,4 +1,4 @@
-import { getConfig, getInvoice } from "@/lib/actions"
+import { getConfig, getInvoice, getCustomers } from "@/lib/actions"
 import Nav from "@/components/ui/Nav"
 import InvoiceForm from "@/components/invoice/InvoiceForm"
 import { notFound } from "next/navigation"
@@ -9,7 +9,7 @@ interface Props {
 
 export default async function InvoiceDetailPage({ params }: Props) {
   const { id } = await params
-  const [config, invoice] = await Promise.all([getConfig(), getInvoice(id)])
+  const [config, invoice, customers] = await Promise.all([getConfig(), getInvoice(id), getCustomers()])
 
   if (!config || !invoice) notFound()
 
@@ -17,7 +17,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
     <>
       <Nav />
       <main>
-        <InvoiceForm config={config} existing={invoice} />
+        <InvoiceForm config={config} existing={invoice} customers={customers} />
       </main>
     </>
   )

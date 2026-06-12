@@ -1,17 +1,17 @@
-import { getConfig } from "@/lib/actions"
+import { getConfig, getCustomers } from "@/lib/actions"
 import Nav from "@/components/ui/Nav"
 import InvoiceForm from "@/components/invoice/InvoiceForm"
 import { redirect } from "next/navigation"
 
 export default async function NewInvoicePage() {
-  const config = await getConfig()
+  const [config, customers] = await Promise.all([getConfig(), getCustomers()])
   if (!config) redirect("/settings")
 
   return (
     <>
       <Nav />
       <main>
-        <InvoiceForm config={config} />
+        <InvoiceForm config={config} customers={customers} />
       </main>
     </>
   )

@@ -6,10 +6,14 @@ import {
   AppConfigSchema,
   InvoiceFormDataSchema,
   InvoiceSchema,
+  CustomerRecordSchema,
+  CustomerRecordFormSchema,
   formatZodError,
   type AppConfig,
   type Invoice,
   type InvoiceFormData,
+  type CustomerRecord,
+  type CustomerRecordForm,
 } from "@/lib/schemas"
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -134,6 +138,71 @@ export async function deleteInvoice(id: string): Promise<{ error?: string }> {
   revalidatePath("/")
   return {}
 }
+
+// ── Customers ─────────────────────────────────────────────────────────────────
+
+export async function getCustomers(): Promise<CustomerRecord[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("customers")
+    .select("*")
+    .order("name", { ascending: true })
+  if (error || !data) return []
+  return data.flatMap((row) => {
+    const parsed = CustomerRecordSchema.safeParse(row)
+    return parsed.success ? [parsed.data] : []
+  })
+}
+
+export async function createCustomer(
+  form: CustomerRecordForm
+): Promise<{ data?: CustomerRecord; error?: string }> {
+  const parsed = CustomerRecordFormSchema.safeParse(form)
+  if (!parsed.success) return { error: formatZodError(parsed.error) }
+
+  const supabase = await createClient()
+  const now = new Date().toISOString()
+  const { data, error } = await supabase
+    .from("customers")
+    .insert({ ...parsed.data, created_at: now, updated_at: now })
+    .select()
+    .single()
+
+  if (error) return { error: error.message }
+  const result = CustomerRecordSchema.safeParse(data)
+  if (!result.success) return { error: "Unexpected response from database" }
+
+  revalidatePath("/customers")
+  return { data: result.data }
+}
+
+export async function updateCustomer(
+  id: string,
+  form: CustomerRecordForm
+): Promise<{ error?: string }> {
+  const parsed = CustomerRecordFormSchema.safeParse(form)
+  if (!parsed.success) return { error: formatZodError(parsed.error) }
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from("customers")
+    .update({ ...parsed.data, updated_at: new Date().toISOString() })
+    .eq("id", id)
+
+  if (error) return { error: error.message }
+  revalidatePath("/customers")
+  return {}
+}
+
+export async function deleteCustomer(id: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { error } = await supabase.from("customers").delete().eq("id", id)
+  if (error) return { error: error.message }
+  revalidatePath("/customers")
+  return {}
+}
+
+// ── Invoices ──────────────────────────────────────────────────────────────────
 
 export async function duplicateInvoice(
   id: string

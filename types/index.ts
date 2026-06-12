@@ -8,6 +8,8 @@ export type {
   InvoiceConfig,
   FooterConfig,
   Customer,
+  CustomerRecord,
+  CustomerRecordForm,
   InvoiceLine,
   InvoiceFormData,
   Invoice,

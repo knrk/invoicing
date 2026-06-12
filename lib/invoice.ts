@@ -57,6 +57,12 @@ export function generateId(): string {
   return crypto.randomUUID()
 }
 
+/** Formats a number with space as thousands separator (e.g. 1 234 567).
+ *  Uses cs-CZ locale which standardly separates thousands with a non-breaking space. */
+export function fmtNum(n: number): string {
+  return new Intl.NumberFormat("cs-CZ").format(n)
+}
+
 /**
  * Converts a Czech IBAN (CZ + 2 check digits + 4-digit bank code +
  * 6-digit prefix + 10-digit account number) to the domestic display format:
@@ -138,7 +144,7 @@ export const LABELS = {
     thanks: "Děkuji za důvěru.",
     // ── Invoice form ──────────────────────────────────────────────────────────
     form: {
-      detailsSection: "Invoice Details",
+      detailsSection: "Detaily faktury",
       language: "Jazyk",
       invoiceNumber: "Číslo faktury",
       issueDate: "Datum vystavení",

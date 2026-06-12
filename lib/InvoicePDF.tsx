@@ -11,7 +11,7 @@ import {
   Path,
 } from "@react-pdf/renderer"
 import type { InvoiceFormData, AppConfig } from "@/types"
-import { LABELS, formatDate, getPaymentParts, ibanToCzDomestic } from "@/lib/invoice"
+import { LABELS, formatDate, getPaymentParts, ibanToCzDomestic, fmtNum } from "@/lib/invoice"
 
 Font.register({
   family: "Roboto",
@@ -274,12 +274,15 @@ function PartyBlock({
   name,
   identifier,
   address,
+  vatId,
 }: {
   role: string
   name: string
-  /** Already formatted, e.g. "IČ: 12345678" or "VAT ID: CZ12345678" */
+  /** CZ only: e.g. "IČ: 12345678" — shown before address */
   identifier?: string
   address?: string
+  /** EN only: shown below address with muted label */
+  vatId?: string
 }) {
   return (
     <View style={S.partyBlock}>
@@ -290,6 +293,12 @@ function PartyBlock({
       <Text style={S.partyName}>{name}</Text>
       {identifier ? <Text style={S.partyInfo}>{identifier}</Text> : null}
       {address ? <Text style={S.partyInfo}>{address}</Text> : null}
+      {vatId ? (
+        <Text style={S.partyInfo}>
+          <Text style={{ color: "rgba(90,90,90,0.5)" }}>VAT ID: </Text>
+          <Text style={{ color: "#5a5a5a" }}>{vatId}</Text>
+        </Text>
+      ) : null}
     </View>
   )
 }
@@ -312,12 +321,21 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
     : config.banking.account_eur_iban
   const vs = invoice.invoice_number.replace(/^[A-Za-z]+/, "")
   const total = invoice.total
-  const totalStr = `${total.toLocaleString(locale)} ${kc}`
+  const totalStr = `${fmtNum(total)} ${kc}`
+
+  const localCity = lang !== "cs"
+    ? (invoice.customer.city ?? "").replace(/^Praha$/i, "Prague")
+    : (invoice.customer.city ?? "")
+  const localCountry = lang !== "cs"
+    ? (invoice.customer.country === "CZ" || invoice.customer.country === "Česká republika"
+        ? "Czech Republic"
+        : invoice.customer.country ?? "")
+    : ""
 
   const customerAddress = [
     invoice.customer.street,
-    [invoice.customer.zip, invoice.customer.city].filter(Boolean).join(" "),
-    lang !== "cs" && invoice.customer.country ? invoice.customer.country : "",
+    [invoice.customer.zip, localCity].filter(Boolean).join(" "),
+    lang !== "cs" ? localCountry : "",
   ]
     .filter(Boolean)
     .join(", ")
@@ -339,8 +357,9 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
             <MetaField label={L.issueDate} value={formatDate(invoice.issue_date, lang)} />
             <MetaField label={L.dueDate}   value={formatDate(invoice.due_date, lang)} />
             <MetaField label={L.payment}   value={invoice.payment_method} />
-            <MetaField label={L.account}   value={account} />
-            <MetaField label={L.variableSymbol} value={vs} />
+            {lang === "cs" && <MetaField label={L.account}       value={account} />}
+            {lang === "cs" && <MetaField label={L.variableSymbol} value={vs} />}
+            {lang !== "cs" && invoice.reverse_charge && <MetaField label="MODE" value="Reverse Charge" />}
 
             {/* Spacer — pushes footnote to the bottom */}
             <View style={{ flexGrow: 1 }} />
@@ -370,9 +389,14 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
                 role={L.customer}
                 name={invoice.customer.name || "—"}
                 identifier={
-                  lang === "cs"
-                    ? invoice.customer.ico ? `IČ: ${invoice.customer.ico}` : undefined
-                    : invoice.customer.dic ? `VAT ID: ${invoice.customer.dic}` : undefined
+                  lang === "cs" && invoice.customer.ico
+                    ? `IČ: ${invoice.customer.ico}`
+                    : undefined
+                }
+                vatId={
+                  lang !== "cs" && invoice.customer.dic
+                    ? invoice.customer.dic
+                    : undefined
                 }
                 address={customerAddress || undefined}
               />
@@ -407,10 +431,12 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
                   <Text style={S.cellText}>{`${line.quantity} ${line.unit}`}</Text>
                 </View>
                 <View style={S.colPrice}>
-                  <Text style={S.cellText}>{`${line.unit_price.toLocaleString(locale)} ${kc}`}</Text>
+                  <Text style={S.cellText}>{`${fmtNum(line.unit_price)} ${kc}`}</Text>
                 </View>
                 <View style={S.colTotal}>
-                  <Text style={S.cellText}>{`${line.total.toLocaleString(locale)} ${kc}`}</Text>
+                  <Text style={[S.cellText, line.is_advance ? { color: "rgba(0,0,0,0.45)" } : {}]}>
+                    {`${line.is_advance ? "−" : ""}${fmtNum(Math.abs(line.total))} ${kc}`}
+                  </Text>
                 </View>
               </View>
             ))}
@@ -423,10 +449,6 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
               </View>
             </View>
 
-            {/* Reverse charge note — EN invoices only */}
-            {invoice.reverse_charge && lang !== "cs" && (
-              <Text style={[S.paymentText, { marginTop: 6 }]}>{L.reverseChargeNote}</Text>
-            )}
 
             {/* Spacer — pushes payment + footer to the bottom */}
             <View style={{ flexGrow: 1 }} />
