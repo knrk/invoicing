@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import ThemeToggle from "@/components/ui/ThemeToggle"
 import { cn } from "@/lib/utils"
 import { FileText, Settings, Plus, Users } from "lucide-react"
 
@@ -11,7 +12,7 @@ export default function Nav() {
 
   return (
     <header className="bg-surface border-b border-border">
-      <div className="max-w-7xl mx-auto px-10 h-14 flex items-center justify-between">
+      <div className="px-6 h-14 flex items-center justify-between">
         <Button size="sm" variant="dark" asChild>
           <Link href="/invoice/new">
             <Plus className="h-4 w-4" />
@@ -40,6 +41,7 @@ export default function Nav() {
               </Link>
             </Button>
           ))}
+          <ThemeToggle />
         </nav>
       </div>
     </header>

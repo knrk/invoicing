@@ -15,11 +15,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import CustomerForm from "./CustomerForm"
-import { Pencil, Trash2, Plus, Globe, Building2 } from "lucide-react"
+import { MoreVertical, Pencil, Trash2, Plus, Globe, Building2 } from "lucide-react"
 
 interface Props {
   customers: CustomerRecord[]
 }
+
 
 export default function CustomerListClient({ customers }: Props) {
   const router = useRouter()
@@ -39,6 +40,19 @@ export default function CustomerListClient({ customers }: Props) {
     else router.refresh()
   }
 
+  function hideMenu(id: string) {
+    ;(document.getElementById(`ctx-${id}`) as HTMLElement & { hidePopover(): void })?.hidePopover()
+  }
+
+  function positionMenu(id: string) {
+    const trigger = document.getElementById(`trigger-${id}`)
+    const menu = document.getElementById(`ctx-${id}`)
+    if (!trigger || !menu) return
+    const r = trigger.getBoundingClientRect()
+    menu.style.top = `${r.bottom + 4}px`
+    menu.style.right = `${window.innerWidth - r.right}px`
+  }
+
   const editingCustomer = customers.find((c) => c.id === editingId)
 
   return (
@@ -49,70 +63,85 @@ export default function CustomerListClient({ customers }: Props) {
         </Alert>
       )}
 
-      {/* Add button */}
-      <div className="flex justify-end mb-4">
-        <Button variant="dark" size="sm" onClick={() => setAddOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Přidat odběratele
-        </Button>
+      <div className="grid grid-cols-4 gap-3">
+
+        {/* Přidat odběratele — první karta s čárkovaným borderem */}
+        <button
+          onClick={() => setAddOpen(true)}
+          className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-transparent px-4 py-8 text-text-secondary hover:border-ring/50 hover:text-text hover:bg-subtle transition-colors cursor-pointer min-h-[110px]"
+        >
+          <Plus className="h-5 w-5" />
+          <span className="text-xs font-medium">Přidat odběratele</span>
+        </button>
+
+        {customers.map((c) => (
+          <div
+            key={c.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => setEditingId(c.id)}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setEditingId(c.id)}
+            onMouseLeave={() => hideMenu(c.id)}
+            className="group relative flex flex-col gap-3 rounded-xl border border-border bg-surface px-4 py-4 cursor-pointer hover:border-ring/50 hover:bg-subtle transition-colors"
+          >
+            {/* Horní řada: ikona + ⋮ menu */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-subtle group-hover:bg-background text-text-secondary transition-colors shrink-0">
+                {c.language === "en"
+                  ? <Globe className="h-4 w-4" />
+                  : <Building2 className="h-4 w-4" />
+                }
+              </div>
+
+              {/* Trigger tlačítko s anchor-name */}
+              <button
+                id={`trigger-${c.id}`}
+                {...{ popovertarget: `ctx-${c.id}` }}
+                onClick={(e) => { e.stopPropagation(); positionMenu(c.id) }}
+                className="p-1 rounded text-text-secondary hover:text-text hover:bg-border transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+              >
+                <MoreVertical className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {/* Název + meta */}
+            <div>
+              <p className="text-sm font-semibold text-text leading-snug">{c.name}</p>
+              <p className="text-xs text-text-secondary mt-0.5">
+                {[c.ico && `IČ ${c.ico}`, c.city, c.country !== "CZ" && c.country]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            </div>
+
+            {/* Popover kontextové menu — v top layer, CSS Anchor Positioning */}
+            <div
+              id={`ctx-${c.id}`}
+              {...{ popover: "auto" }}
+              data-ctx-menu
+              onClick={(e) => e.stopPropagation()}
+              className="rounded-lg border border-border bg-popover text-popover-foreground shadow-lg py-1 min-w-[148px]"
+            >
+              <button
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-text hover:bg-subtle transition-colors"
+                onClick={() => { hideMenu(c.id); setEditingId(c.id) }}
+              >
+                <Pencil className="h-3.5 w-3.5 text-text-secondary shrink-0" />
+                Upravit
+              </button>
+              <button
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-danger hover:bg-subtle transition-colors"
+                onClick={() => { hideMenu(c.id); setConfirmDelete(c.id) }}
+              >
+                <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                Smazat
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* List */}
-      {customers.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <Building2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">Zatím žádní odběratelé. Přidejte prvního.</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {customers.map((c) => (
-            <div
-              key={c.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => setEditingId(c.id)}
-              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setEditingId(c.id)}
-              className="group flex items-center justify-between rounded-xl border border-border bg-surface px-5 py-4 cursor-pointer hover:border-ring/50 hover:bg-subtle transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-subtle group-hover:bg-background text-text-secondary transition-colors">
-                  {c.language === "en"
-                    ? <Globe className="h-4 w-4" />
-                    : <Building2 className="h-4 w-4" />
-                  }
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-text">{c.name}</p>
-                  <p className="text-xs text-text-secondary">
-                    {[c.ico && `IČ ${c.ico}`, c.city, c.country !== "CZ" && c.country]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => { e.stopPropagation(); setEditingId(c.id) }}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-danger hover:text-danger"
-                  onClick={(e) => { e.stopPropagation(); setConfirmDelete(c.id) }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Add dialog */}
+      {/* Dialog — přidat */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent>
           <DialogHeader>
@@ -122,7 +151,7 @@ export default function CustomerListClient({ customers }: Props) {
         </DialogContent>
       </Dialog>
 
-      {/* Edit dialog */}
+      {/* Dialog — upravit */}
       <Dialog open={!!editingId} onOpenChange={(o) => !o && setEditingId(null)}>
         <DialogContent>
           <DialogHeader>
@@ -137,7 +166,7 @@ export default function CustomerListClient({ customers }: Props) {
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirm */}
+      {/* Dialog — smazat */}
       <Dialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <DialogContent>
           <DialogHeader>

@@ -7,21 +7,22 @@
   --font-body: 'Roboto', sans-serif;
   --font-mono: monospace;
 
-  /* ── App palette ──────────────────────────────────────────────────────────── */
-  --color-page:            #ECEEF1;
-  --color-surface:         #FFFFFF;
-  --color-subtle:          #F7F8FA;
-  --color-border:          #E4E6EA;
-  --color-divider:         #F0F1F3;
-  --color-text:            #111827;
-  --color-text-secondary:  #6B7280;
-  --color-muted:           #9CA3AF;
-  --color-accent:          #F97316;
-  --color-accent-hover:    #EA6C0A;
-  --color-warning-bg:      #FFF7ED;
-  --color-warning-border:  #FED7AA;
-  --color-warning-text:    #C2410C;
-  --color-danger:          #EF4444;
+  /* ── App palette — light-dark(light, dark) ──────────────────────────────── */
+  /*   Dark values inspired by Claude's warm dark UI                           */
+  --color-page:            light-dark(#ECEEF1,  #1a1915);
+  --color-surface:         light-dark(#FFFFFF,  #212019);
+  --color-subtle:          light-dark(#F7F8FA,  #282623);
+  --color-border:          light-dark(#E4E6EA,  #302f2c);
+  --color-divider:         light-dark(#F0F1F3,  #252321);
+  --color-text:            light-dark(#111827,  #ece8e1);
+  --color-text-secondary:  light-dark(#6B7280,  #908d88);
+  --color-muted:           light-dark(#9CA3AF,  #6b6864);
+  --color-accent:          light-dark(#F97316,  #F97316);
+  --color-accent-hover:    light-dark(#EA6C0A,  #EA6C0A);
+  --color-warning-bg:      light-dark(#FFF7ED,  #2a1e0c);
+  --color-warning-border:  light-dark(#FED7AA,  #6b3f12);
+  --color-warning-text:    light-dark(#C2410C,  #fb923c);
+  --color-danger:          light-dark(#EF4444,  #f87171);
 
   --radius-input:   8px;
   --radius-card:    12px;
@@ -30,29 +31,37 @@
   --shadow-card:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-preview: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
 
-  /* ── shadcn/ui semantic tokens (Tailwind v4 — bg-primary, text-foreground …) */
-  --color-background:            #FFFFFF;
-  --color-foreground:            #111827;
-  --color-card:                  #FFFFFF;
-  --color-card-foreground:       #111827;
-  --color-popover:               #FFFFFF;
-  --color-popover-foreground:    #111827;
-  --color-primary:               #F97316;
-  --color-primary-foreground:    #FFFFFF;
-  --color-secondary:             #F7F8FA;
-  --color-secondary-foreground:  #111827;
-  --color-muted-bg:              #F7F8FA;
-  --color-muted-fg:              #6B7280;
-  --color-accent-bg:             #FFF7ED;
-  --color-accent-fg:             #111827;
-  --color-destructive:           #EF4444;
-  --color-destructive-foreground:#FFFFFF;
-  --color-input:                 #E4E6EA;
-  --color-ring:                  #F97316;
+  /* ── shadcn/ui semantic tokens ─────────────────────────────────────────── */
+  --color-background:            light-dark(#FFFFFF,  #212019);
+  --color-foreground:            light-dark(#111827,  #ece8e1);
+  --color-card:                  light-dark(#FFFFFF,  #212019);
+  --color-card-foreground:       light-dark(#111827,  #ece8e1);
+  --color-popover:               light-dark(#FFFFFF,  #2a2926);
+  --color-popover-foreground:    light-dark(#111827,  #ece8e1);
+  --color-primary:               light-dark(#F97316,  #F97316);
+  --color-primary-foreground:    light-dark(#FFFFFF,  #FFFFFF);
+  --color-secondary:             light-dark(#F7F8FA,  #282623);
+  --color-secondary-foreground:  light-dark(#111827,  #ece8e1);
+  --color-muted-bg:              light-dark(#F7F8FA,  #282623);
+  --color-muted-fg:              light-dark(#6B7280,  #908d88);
+  --color-accent-bg:             light-dark(#FFF7ED,  #2a1e0c);
+  --color-accent-fg:             light-dark(#111827,  #ece8e1);
+  --color-destructive:           light-dark(#EF4444,  #f87171);
+  --color-destructive-foreground:light-dark(#FFFFFF,  #1a0505);
+  --color-input:                 light-dark(#E4E6EA,  #302f2c);
+  --color-ring:                  light-dark(#F97316,  #F97316);
 
   /* radius used by shadcn components */
   --radius: 0.5rem;
 }
+
+:root {
+  color-scheme: light dark;
+}
+
+/* Manual override — set via data-theme attribute on <html> */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"]  { color-scheme: dark; }
 
 * {
   box-sizing: border-box;
@@ -65,11 +74,21 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Invoice preview - exact A4 proportions */
+/* Context menu popover */
+[data-ctx-menu] {
+  position: fixed;
+  inset: auto;
+  border: none;
+  padding: 0;
+}
+
+/* Invoice preview - exact A4 proportions (always light — it's a paper document) */
 .invoice-a4 {
   width: 794px;
   min-height: 1123px;
   background: #fff;
+  color: #000;
+  color-scheme: light;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 

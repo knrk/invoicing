@@ -325,7 +325,7 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
 
             <div className="space-y-3">
               {form.lines.map((line, idx) => (
-                <div key={line.id} className="rounded-xl bg-[#F7F8FA] border border-border overflow-hidden">
+                <div key={line.id} className="rounded-xl bg-subtle border border-border overflow-hidden">
                   {/* Hlavička karty */}
                   <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
                     <span className="text-xs font-semibold text-text-secondary">#{String(idx + 1).padStart(2, "0")}</span>

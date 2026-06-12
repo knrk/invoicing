@@ -121,7 +121,7 @@ export default function InvoiceListClient({ invoices }: Props) {
                 </TableCell>
                 <TableCell className="font-medium tabular-nums text-text">
                   {fmtNum(inv.total)}{" "}
-                  {inv.currency}
+                  {inv.currency === "CZK" ? "Kč" : inv.currency}
                 </TableCell>
                 <TableCell>
                   <Badge variant={inv.language === "cs" ? "blue" : "green"}>
@@ -142,7 +142,7 @@ export default function InvoiceListClient({ invoices }: Props) {
                       variant="ghost"
                       size="sm"
                       onClick={() => setConfirmDelete(inv.id)}
-                      className="text-danger hover:text-danger hover:bg-red-50"
+                      className="text-danger hover:text-danger hover:bg-danger/10"
                     >
                       Smazat
                     </Button>

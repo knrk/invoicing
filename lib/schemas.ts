@@ -76,7 +76,7 @@ export const InvoiceLineSchema = z.object({
   quantity: z.number().positive("Množství musí být kladné"),
   unit: z.string().min(1, "Jednotka je povinná"),
   unit_price: z.number().min(0, "Cena nesmí být záporná"),
-  total: z.number().min(0),
+  total: z.number(), // zálohy mají záporný total — bez min()
 })
 
 export const InvoiceFormDataSchema = z.object({
@@ -89,7 +89,7 @@ export const InvoiceFormDataSchema = z.object({
   reverse_charge: z.boolean().default(false),
   customer: CustomerSchema,
   lines: z.array(InvoiceLineSchema).min(1, "Faktura musí mít alespoň jednu položku"),
-  total: z.number().min(0),
+  total: z.number(), // může být záporné při faktuře složené pouze ze záloh
 })
 
 export const InvoiceSchema = InvoiceFormDataSchema.extend({

@@ -13,7 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="cs">
-      <body suppressHydrationWarning className="min-h-screen" style={{ background: "var(--color-bg)" }}>
+      <body suppressHydrationWarning className="min-h-screen">
         {children}
       </body>
     </html>

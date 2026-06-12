@@ -15,6 +15,7 @@ import {
   type CustomerRecord,
   type CustomerRecordForm,
 } from "@/lib/schemas"
+import { today, addDays } from "@/lib/invoice"
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -240,17 +241,12 @@ export async function duplicateInvoice(
   const year = new Date().getFullYear()
   const newNumber = `${prefix}${year}${String(newSeq).padStart(2, "0")}`
 
-  // Use local-date helpers to avoid UTC off-by-one
-  const today = new Date()
-  const pad = (n: number) => String(n).padStart(2, "0")
-  const issueDate = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
+  const issueDate = today()
   const dueDays =
     original.language === "cs"
       ? configData?.invoice?.default_due_days_czk ?? 7
       : configData?.invoice?.default_due_days_eur ?? 14
-
-  const due = new Date(today.getFullYear(), today.getMonth(), today.getDate() + dueDays)
-  const dueDate = `${due.getFullYear()}-${pad(due.getMonth() + 1)}-${pad(due.getDate())}`
+  const dueDate = addDays(issueDate, dueDays)
 
   const now = new Date().toISOString()
   const { data, error } = await supabase
