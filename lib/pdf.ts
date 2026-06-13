@@ -33,7 +33,8 @@ export async function exportToPDF(
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
-  a.download = `faktura-${invoice.invoice_number}.pdf`
+  const vs = invoice.invoice_number.replace(/^[A-Za-z]+/, "")
+  a.download = `${vs}.pdf`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)

@@ -7,14 +7,13 @@ import type { AppConfig, Invoice, InvoiceFormData, InvoiceLine, Language, Custom
 import {
   getCurrency,
   getDueDays,
-  getPrefix,
   generateId,
   today,
   addDays,
   LABELS,
   fmtNum,
 } from "@/lib/invoice"
-import { createInvoice, updateInvoice } from "@/lib/actions"
+import { createInvoice, updateInvoice, getNextInvoiceSequence } from "@/lib/actions"
 import { exportToPDF } from "@/lib/pdf"
 import InvoicePreview from "./InvoicePreview"
 import DatePicker from "@/components/ui/DatePicker"
@@ -40,10 +39,8 @@ function initForm(config: AppConfig, existing?: Invoice): InvoiceFormData {
   if (existing) return { ...existing }
 
   const lang: Language = "cs"
-  const seq = (config.invoice.last_sequence ?? 0) + 1
-  const prefix = getPrefix(lang, config)
   const year = new Date().getFullYear()
-  const invoiceNumber = `${prefix}${year}${String(seq).padStart(2, "0")}`
+  const invoiceNumber = `${year}01` // placeholder — corrected by useEffect
   const t = today()
 
   return {
@@ -53,6 +50,7 @@ function initForm(config: AppConfig, existing?: Invoice): InvoiceFormData {
     issue_date: t,
     due_date: addDays(t, getDueDays(lang, config)),
     payment_method: "Převodem",
+    variable_symbol: invoiceNumber,
     reverse_charge: false,
     customer: { name: "", ico: "", dic: "", street: "", zip: "", city: "", country: "CZ" },
     lines: [emptyLine()],
@@ -73,9 +71,25 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
   const [exporting, setExporting] = useState(false)
   const [editInvoiceNumber, setEditInvoiceNumber] = useState(false)
   const [editPaymentMethod, setEditPaymentMethod] = useState(false)
+  const [editVariableSymbol, setEditVariableSymbol] = useState(false)
 
   const total = useMemo(() => form.lines.reduce((s, l) => s + l.total, 0), [form.lines])
   const formWithTotal = useMemo(() => ({ ...form, total }), [form, total])
+
+  // On mount (new invoice only) — correct the invoice number from actual DB state
+  useEffect(() => {
+    if (existing) return
+    const year = new Date().getFullYear()
+    getNextInvoiceSequence().then((seq) => {
+      const num = `${year}${String(seq).padStart(2, "0")}`
+      setForm((f) => ({
+        ...f,
+        invoice_number: num,
+        variable_symbol: num,
+      }))
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function setField<K extends keyof InvoiceFormData>(key: K, value: InvoiceFormData[K]) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -85,15 +99,16 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
     setForm((f) => ({ ...f, customer: { ...f.customer, [key]: value } }))
   }
 
-  function setLanguage(lang: Language) {
+  async function setLanguage(lang: Language) {
     const currency = getCurrency(lang)
     const dueDays = getDueDays(lang, config)
-    const prefix = getPrefix(lang, config)
-    const seq = (config.invoice.last_sequence ?? 0) + (existing ? 0 : 1)
     const year = new Date().getFullYear()
-    const invoiceNumber = existing
-      ? form.invoice_number
-      : `${prefix}${year}${String(seq).padStart(2, "0")}`
+
+    let invoiceNumber = form.invoice_number
+    if (!existing) {
+      const seq = await getNextInvoiceSequence()
+      invoiceNumber = `${year}${String(seq).padStart(2, "0")}`
+    }
 
     setForm((f) => ({
       ...f,
@@ -291,6 +306,26 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
                   )}
                 </Field>
               </div>
+
+              {/* Variabilní symbol — pouze CZ */}
+              {isCz && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Variabilní symbol" htmlFor="f-variable-symbol">
+                    {editVariableSymbol ? (
+                      <Input
+                        id="f-variable-symbol"
+                        autoFocus
+                        value={form.variable_symbol}
+                        onChange={(e) => setField("variable_symbol", e.target.value)}
+                        onBlur={() => setEditVariableSymbol(false)}
+                        mono
+                      />
+                    ) : (
+                      <ReadonlyField value={form.variable_symbol} onEdit={() => setEditVariableSymbol(true)} mono />
+                    )}
+                  </Field>
+                </div>
+              )}
 
               {/* Datum vystavení + splatnosti */}
               <div className="grid grid-cols-2 gap-3">

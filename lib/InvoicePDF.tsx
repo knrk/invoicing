@@ -316,10 +316,11 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
   const L = LABELS[lang]
   const locale = lang === "cs" ? "cs-CZ" : "en-GB"
   const kc = lang === "cs" ? "Kč" : invoice.currency
+  const showQtyCol = lang === "cs" || invoice.lines.some((l) => l.quantity && l.unit)
   const account = lang === "cs"
     ? ibanToCzDomestic(config.banking.account_czk)
     : config.banking.account_eur_iban
-  const vs = invoice.invoice_number.replace(/^[A-Za-z]+/, "")
+  const vs = invoice.variable_symbol || invoice.invoice_number.replace(/^[A-Za-z]+/, "")
   const total = invoice.total
   const totalStr = `${fmtNum(total)} ${kc}`
 
@@ -338,9 +339,16 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
     lang !== "cs" ? localCountry : "",
   ]
     .filter(Boolean)
-    .join(", ")
+    .join(lang !== "cs" ? "\n" : ", ")
 
-  const supplierAddress = `${config.supplier.street}, ${config.supplier.zip} ${config.supplier.city}`
+  const supplierCity = lang !== "cs"
+    ? config.supplier.city.replace(/^Praha$/i, "Prague")
+    : config.supplier.city
+  const supplierAddress = [
+    config.supplier.street,
+    `${config.supplier.zip} ${supplierCity}`,
+    lang !== "cs" ? "Czech Republic" : "",
+  ].filter(Boolean).join(lang !== "cs" ? "\n" : ", ")
 
   return (
     <Document>
@@ -353,7 +361,7 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
             <View style={S.titleBar} />
             <Text style={S.titleText}>{L.invoice}</Text>
 
-            <MetaField label={L.invoiceNumber} value={invoice.invoice_number} />
+            <MetaField label={L.invoiceNumber} value={invoice.invoice_number.replace(/^[A-Za-z]+/, "")} />
             <MetaField label={L.issueDate} value={formatDate(invoice.issue_date, lang)} />
             <MetaField label={L.dueDate}   value={formatDate(invoice.due_date, lang)} />
             <MetaField label={L.payment}   value={invoice.payment_method} />
@@ -404,7 +412,8 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
               <PartyBlock
                 role={L.supplier}
                 name={config.supplier.name}
-                identifier={config.supplier.ico ? `${L.partyIcoLabel}: ${config.supplier.ico}` : undefined}
+                identifier={lang === "cs" && config.supplier.ico ? `${L.partyIcoLabel}: ${config.supplier.ico}` : undefined}
+                vatId={lang !== "cs" && config.supplier.dic ? config.supplier.dic : undefined}
                 address={supplierAddress}
               />
             </View>
@@ -414,7 +423,7 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
 
             <View style={S.tableHeaderRow}>
               <View style={S.colDesc}><Text style={S.headerText}>{L.description}</Text></View>
-              <View style={S.colQty}><Text style={S.headerText}>{L.quantity}</Text></View>
+              <View style={S.colQty}><Text style={S.headerText}>{showQtyCol ? L.quantity : ""}</Text></View>
               <View style={S.colPrice}><Text style={S.headerText}>{L.unitPrice}</Text></View>
               <View style={S.colTotal}><Text style={S.headerText}>{L.total}</Text></View>
             </View>
@@ -428,7 +437,7 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
                   ) : null}
                 </View>
                 <View style={S.colQty}>
-                  <Text style={S.cellText}>{`${line.quantity} ${line.unit}`}</Text>
+                  <Text style={S.cellText}>{lang === "cs" || (line.quantity && line.unit) ? `${line.quantity} ${line.unit}` : ""}</Text>
                 </View>
                 <View style={S.colPrice}>
                   <Text style={S.cellText}>{`${fmtNum(line.unit_price)} ${kc}`}</Text>

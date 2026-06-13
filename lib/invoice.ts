@@ -1,9 +1,5 @@
 import type { AppConfig, Language, Currency } from "@/types"
 
-export function getPrefix(language: Language, config: AppConfig): string {
-  return language === "cs" ? config.invoice.prefix_czk : config.invoice.prefix_eur
-}
-
 export function getCurrency(language: Language): Currency {
   return language === "cs" ? "CZK" : "EUR"
 }
@@ -14,12 +10,9 @@ export function getDueDays(language: Language, config: AppConfig): number {
     : config.invoice.default_due_days_eur
 }
 
-export function buildInvoiceNumber(
-  prefix: string,
-  sequence: number
-): string {
+export function buildInvoiceNumber(sequence: number): string {
   const year = new Date().getFullYear()
-  return `${prefix}${year}${String(sequence).padStart(2, "0")}`
+  return `${year}${String(sequence).padStart(2, "0")}`
 }
 
 export function formatDate(dateStr: string, language: Language): string {

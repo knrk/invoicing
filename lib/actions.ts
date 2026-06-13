@@ -82,6 +82,32 @@ export async function getInvoice(id: string): Promise<Invoice | null> {
   return parsed.success ? parsed.data : null
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Returns the next available sequence number for the current year. */
+async function nextSeq(
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<number> {
+  const year = new Date().getFullYear()
+  const { data } = await supabase
+    .from("invoices")
+    .select("invoice_number")
+    .like("invoice_number", `${year}%`)
+    .order("invoice_number", { ascending: false })
+    .limit(1)
+
+  if (!data || data.length === 0) return 1
+  const seqStr = data[0].invoice_number.slice(4) // skip 4-digit year
+  const seq = parseInt(seqStr, 10)
+  return isNaN(seq) ? 1 : seq + 1
+}
+
+/** Exported so InvoiceForm can call it to preview the next number. */
+export async function getNextInvoiceSequence(): Promise<number> {
+  const supabase = await createClient()
+  return nextSeq(supabase)
+}
+
 export async function createInvoice(
   formData: InvoiceFormData
 ): Promise<{ data?: Invoice; error?: string }> {
@@ -91,9 +117,6 @@ export async function createInvoice(
   }
 
   const supabase = await createClient()
-
-  // Atomically increment sequence via RPC
-  await supabase.rpc("increment_invoice_sequence")
 
   const now = new Date().toISOString()
   const { data, error } = await supabase
@@ -203,6 +226,7 @@ export async function deleteCustomer(id: string): Promise<{ error?: string }> {
   return {}
 }
 
+
 // ── Invoices ──────────────────────────────────────────────────────────────────
 
 export async function duplicateInvoice(
@@ -222,24 +246,16 @@ export async function duplicateInvoice(
   if (!originalParsed.success) return { error: "Invalid invoice data" }
   const original = originalParsed.data
 
-  // Step 1: atomically increment and get the new sequence directly from RPC
-  // (avoids a separate SELECT that could race with another concurrent call)
-  const { data: newSeq, error: rpcError } = await supabase.rpc("increment_invoice_sequence")
-  if (rpcError || newSeq == null) return { error: rpcError?.message ?? "Failed to increment sequence" }
-
-  // Step 2: fetch config for prefix and due-days (no race concern here)
+  // Fetch config for due-days
   const { data: configData } = await supabase
     .from("config")
     .select("invoice")
     .eq("id", 1)
     .single()
 
-  const prefix =
-    original.language === "cs"
-      ? configData?.invoice?.prefix_czk ?? "FV"
-      : configData?.invoice?.prefix_eur ?? "IN"
   const year = new Date().getFullYear()
-  const newNumber = `${prefix}${year}${String(newSeq).padStart(2, "0")}`
+  const newSeq = await nextSeq(supabase)
+  const newNumber = `${year}${String(newSeq).padStart(2, "0")}`
 
   const issueDate = today()
   const dueDays =
@@ -255,6 +271,7 @@ export async function duplicateInvoice(
       ...original,
       id: undefined,
       invoice_number: newNumber,
+      variable_symbol: newNumber,
       issue_date: issueDate,
       due_date: dueDate,
       created_at: now,

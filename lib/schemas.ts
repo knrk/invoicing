@@ -10,6 +10,7 @@ export const CurrencySchema = z.enum(["CZK", "EUR"])
 export const SupplierConfigSchema = z.object({
   name: z.string().min(1, "Jméno dodavatele je povinné"),
   ico: z.string().min(1, "IČ je povinné"),
+  dic: z.string().default(""),
   street: z.string().min(1, "Ulice je povinná"),
   zip: z.string().min(1, "PSČ je povinné"),
   city: z.string().min(1, "Město je povinné"),
@@ -27,9 +28,6 @@ export const BankingConfigSchema = z.object({
 })
 
 export const InvoiceConfigSchema = z.object({
-  prefix_czk: z.string().min(1, "Prefix CZK je povinný"),
-  prefix_eur: z.string().min(1, "Prefix EUR je povinný"),
-  last_sequence: z.number().int().min(0).default(0),
   default_due_days_czk: z.number().int().min(1).max(365).default(7),
   default_due_days_eur: z.number().int().min(1).max(365).default(14),
 })
@@ -73,8 +71,8 @@ export const InvoiceLineSchema = z.object({
   description: z.string().min(1, "Popis položky je povinný"),
   sub_description: z.string().default(""),
   is_advance: z.boolean().default(false),
-  quantity: z.number().positive("Množství musí být kladné"),
-  unit: z.string().min(1, "Jednotka je povinná"),
+  quantity: z.number().min(0).default(0),
+  unit: z.string().default(""),
   unit_price: z.number().min(0, "Cena nesmí být záporná"),
   total: z.number(), // zálohy mají záporný total — bez min()
 })
@@ -86,6 +84,7 @@ export const InvoiceFormDataSchema = z.object({
   issue_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Neplatné datum"),
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Neplatné datum"),
   payment_method: z.string().min(1, "Způsob platby je povinný"),
+  variable_symbol: z.string().default(""),
   reverse_charge: z.boolean().default(false),
   customer: CustomerSchema,
   lines: z.array(InvoiceLineSchema).min(1, "Faktura musí mít alespoň jednu položku"),

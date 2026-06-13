@@ -108,7 +108,7 @@ export default function InvoiceListClient({ invoices }: Props) {
                 }}
               >
                 <TableCell className="font-mono font-medium text-text">
-                  {inv.invoice_number}
+                  {inv.invoice_number.replace(/^[A-Za-z]+/, "")}
                 </TableCell>
                 <TableCell className="text-text">
                   {inv.customer.name || "—"}

@@ -15,6 +15,7 @@ const DEFAULT_CONFIG: Omit<AppConfig, "id" | "updated_at"> = {
   supplier: {
     name: "",
     ico: "",
+    dic: "",
     street: "",
     zip: "",
     city: "",
@@ -30,9 +31,6 @@ const DEFAULT_CONFIG: Omit<AppConfig, "id" | "updated_at"> = {
     constant_symbol: "0308",
   },
   invoice: {
-    prefix_czk: "FV",
-    prefix_eur: "IN",
-    last_sequence: 0,
     default_due_days_czk: 7,
     default_due_days_eur: 14,
   },
@@ -94,6 +92,13 @@ export default function SettingsForm({ config }: { config: AppConfig | null }) {
             </Field>
             <Field label="IČ">
               <Input value={form.supplier.ico} onChange={(e) => setNested("supplier", "ico", e.target.value)} />
+            </Field>
+            <Field label="DIČ (VAT ID, volitelný)" hint="Zobrazí se pouze na anglických fakturách">
+              <Input
+                value={form.supplier.dic}
+                onChange={(e) => setNested("supplier", "dic", e.target.value)}
+                placeholder="CZ12345678"
+              />
             </Field>
             <Field label="Ulice">
               <Input value={form.supplier.street} onChange={(e) => setNested("supplier", "street", e.target.value)} />
@@ -166,27 +171,6 @@ export default function SettingsForm({ config }: { config: AppConfig | null }) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Prefix CZ faktur">
-              <Input
-                value={form.invoice.prefix_czk}
-                onChange={(e) => setNested("invoice", "prefix_czk", e.target.value)}
-                mono
-              />
-            </Field>
-            <Field label="Prefix EN faktur">
-              <Input
-                value={form.invoice.prefix_eur}
-                onChange={(e) => setNested("invoice", "prefix_eur", e.target.value)}
-                mono
-              />
-            </Field>
-            <Field label="Poslední pořadové číslo">
-              <Input
-                type="number"
-                value={String(form.invoice.last_sequence)}
-                onChange={(e) => setNested("invoice", "last_sequence", parseInt(e.target.value) || 0)}
-              />
-            </Field>
             <Field label="Splatnost CZK (dny)">
               <Input
                 type="number"

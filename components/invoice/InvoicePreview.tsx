@@ -20,6 +20,7 @@ export default function InvoicePreview({ invoice, config }: Props) {
   const invoiceNumber = invoice.invoice_number ?? ""
   const locale = lang === "cs" ? "cs-CZ" : "en-GB"
   const kc = lang === "cs" ? "Kč" : currency
+  const showQtyCol = lang === "cs" || (invoice.lines ?? []).some((l) => l.quantity && l.unit)
 
   // Narrow dependencies to only the banking fields that affect QR generation
   const { account_czk, account_eur_iban, account_eur_bic, constant_symbol } = config.banking
@@ -36,7 +37,7 @@ export default function InvoicePreview({ invoice, config }: Props) {
     ? ibanToCzDomestic(config.banking.account_czk)
     : config.banking.account_eur_iban
   const totalFormatted = fmtNum(total) + " " + kc
-  const vs = invoiceNumber.replace(/^[A-Za-z]+/, "")
+  const vs = invoice.variable_symbol || invoiceNumber.replace(/^[A-Za-z]+/, "")
 
   return (
     <div id="invoice-preview" className={`invoice-a4 ${s.invoice} flex text-black bg-white`}>
@@ -49,10 +50,10 @@ export default function InvoicePreview({ invoice, config }: Props) {
 
           <div className="flex flex-col gap-[10px]">
             <div className={`${s["invoice__title-bar"]} bg-black`} />
-            <p className={s["invoice__title"]}>FAKTURA</p>
+            <p className={s["invoice__title"]}>{L.invoice}</p>
           </div>
 
-          <MetaField label={lang === "cs" ? "ČÍSLO FAKTURY"     : "INVOICE NUMBER"} value={invoiceNumber} />
+          <MetaField label={lang === "cs" ? "ČÍSLO FAKTURY"     : "INVOICE NUMBER"} value={invoiceNumber.replace(/^[A-Za-z]+/, "")} />
           <MetaField label={lang === "cs" ? "DATUM VYSTAVENÍ"   : "ISSUE DATE"}     value={invoice.issue_date ? formatDate(invoice.issue_date, lang) : ""} />
           <MetaField label={lang === "cs" ? "DATUM SPLATNOSTI"  : "DUE DATE"}       value={invoice.due_date  ? formatDate(invoice.due_date,  lang) : ""} />
           <MetaField label={lang === "cs" ? "PLATBA"            : "PAYMENT"}        value={invoice.payment_method ?? L.payByTransfer} />
@@ -115,13 +116,18 @@ export default function InvoicePreview({ invoice, config }: Props) {
               lang !== "cs"
                 ? localizeCzCountry(invoice.customer?.country ?? "", lang)
                 : "",
-            ].filter(Boolean).join(", ")}
+            ].filter(Boolean).join(lang !== "cs" ? "\n" : ", ")}
           />
           <Party
             role={L.supplier}
             name={config.supplier.name}
-            identifier={`${L.partyIcoLabel}: ${config.supplier.ico}`}
-            address={`${config.supplier.street}, ${config.supplier.zip} ${config.supplier.city}`}
+            identifier={lang === "cs" ? `${L.partyIcoLabel}: ${config.supplier.ico}` : undefined}
+            vatId={lang !== "cs" && config.supplier.dic ? config.supplier.dic : undefined}
+            address={[
+              config.supplier.street,
+              `${config.supplier.zip} ${localizeCzCity(config.supplier.city, lang)}`,
+              lang !== "cs" ? "Czech Republic" : "",
+            ].filter(Boolean).join(lang !== "cs" ? "\n" : ", ")}
           />
         </div>
 
@@ -133,7 +139,7 @@ export default function InvoicePreview({ invoice, config }: Props) {
                 {L.description}
               </th>
               <th className={`${s["invoice__th"]} ${s["invoice__th--center"]} text-center border-t-[3px] border-b-[3px] border-black`}>
-                {L.quantity}
+                {showQtyCol ? L.quantity : ""}
               </th>
               <th className={`${s["invoice__th"]} ${s["invoice__th--right"]} text-right border-t-[3px] border-b-[3px] border-black`}>
                 {L.unitPrice}
@@ -152,7 +158,9 @@ export default function InvoicePreview({ invoice, config }: Props) {
                     <span className="block" style={{ fontFamily: "Roboto, sans-serif", fontSize: "10px", fontWeight: 400, color: "rgba(0,0,0,0.5)" }}>{line.sub_description}</span>
                   )}
                 </td>
-                <td className={`${s["invoice__td"]} pt-3 text-center`}>{line.quantity} {line.unit}</td>
+                <td className={`${s["invoice__td"]} pt-3 text-center`}>
+                  {lang === "cs" || (line.quantity && line.unit) ? `${line.quantity} ${line.unit}` : ""}
+                </td>
                 <td className={`${s["invoice__td"]} pt-3 text-right`}>{fmtNum(line.unit_price)} {kc}</td>
                 <td className={`${s["invoice__td"]} pt-3 text-right${line.is_advance ? " text-[rgba(0,0,0,0.45)]" : ""}`}>
                   {line.is_advance ? "−" : ""}{fmtNum(Math.abs(line.total))} {kc}
@@ -241,7 +249,7 @@ function Party({
       <div className="flex flex-col gap-1">
         <p className={s["invoice__party-name"]}>{name}</p>
         {identifier && <p className={s["invoice__party-meta"]}>{identifier}</p>}
-        <p className={s["invoice__party-meta"]}>{address}</p>
+        <p className={s["invoice__party-meta"]} style={{ whiteSpace: "pre-line" }}>{address}</p>
         {vatId && (
           <p className={s["invoice__party-meta"]}>
             <span style={{ color: "rgba(90,90,90,0.5)" }}>VAT ID: </span>
