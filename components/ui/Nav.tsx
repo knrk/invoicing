@@ -11,7 +11,7 @@ export default function Nav() {
   const path = usePathname()
 
   return (
-    <header className="bg-surface border-b border-border">
+    <header className="sticky top-0 z-40 bg-surface border-b border-border">
       <div className="px-6 h-14 flex items-center justify-between">
         <Button size="sm" variant="dark" asChild>
           <Link href="/invoice/new">

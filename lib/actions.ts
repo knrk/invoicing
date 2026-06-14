@@ -163,6 +163,20 @@ export async function deleteInvoice(id: string): Promise<{ error?: string }> {
   return {}
 }
 
+export async function setInvoicePaidAt(
+  id: string,
+  paidAt: string | null
+): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from("invoices")
+    .update({ paid_at: paidAt, updated_at: new Date().toISOString() })
+    .eq("id", id)
+  if (error) return { error: error.message }
+  revalidatePath("/")
+  return {}
+}
+
 // ── Customers ─────────────────────────────────────────────────────────────────
 
 export async function getCustomers(): Promise<CustomerRecord[]> {

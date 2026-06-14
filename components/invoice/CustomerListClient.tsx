@@ -96,7 +96,7 @@ export default function CustomerListClient({ customers }: Props) {
               {/* Trigger tlačítko s anchor-name */}
               <button
                 id={`trigger-${c.id}`}
-                {...{ popovertarget: `ctx-${c.id}` }}
+                {...{ popoverTarget: `ctx-${c.id}` }}
                 onClick={(e) => { e.stopPropagation(); positionMenu(c.id) }}
                 className="p-1 rounded text-text-secondary hover:text-text hover:bg-border transition-colors opacity-0 group-hover:opacity-100 shrink-0"
               >

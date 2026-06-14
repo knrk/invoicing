@@ -115,10 +115,21 @@ export async function generateQRCode(
   const blob = await qr.getRawData("png")
   if (!blob) throw new Error("QR generation failed")
 
+  // Normalise to exactly 300×300 px regardless of devicePixelRatio so that
+  // both CZ (SPAYD) and EN (EPC) QR codes render at an identical physical size
+  // in both the HTML preview and the PDF export.
   return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onloadend = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(blob)
+    const url = URL.createObjectURL(blob)
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement("canvas")
+      canvas.width = 300
+      canvas.height = 300
+      canvas.getContext("2d")!.drawImage(img, 0, 0, 300, 300)
+      URL.revokeObjectURL(url)
+      resolve(canvas.toDataURL("image/png"))
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("QR normalise failed")) }
+    img.src = url
   })
 }

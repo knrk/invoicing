@@ -95,6 +95,7 @@ export const InvoiceSchema = InvoiceFormDataSchema.extend({
   id: z.string().uuid(),
   created_at: z.string(),
   updated_at: z.string(),
+  paid_at: z.string().nullable().default(null),
 })
 
 // ── Customer record (saved customers DB table) ────────────────────────────────
