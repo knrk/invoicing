@@ -24,6 +24,7 @@ function emptyForm(): CustomerRecordForm {
     zip: "",
     city: "",
     country: "CZ",
+    email: "",
     language: "cs",
     currency: "CZK",
     payment_method: "Převodem",
@@ -41,6 +42,7 @@ export default function CustomerForm({ existing, onDone }: Props) {
           zip: existing.zip,
           city: existing.city,
           country: existing.country,
+          email: existing.email ?? "",
           language: existing.language,
           currency: existing.currency,
           payment_method: existing.payment_method,
@@ -195,6 +197,20 @@ export default function CustomerForm({ existing, onDone }: Props) {
           id="cf-payment"
           value={form.payment_method}
           onChange={(e) => set("payment_method", e.target.value)}
+        />
+      </div>
+
+      {/* Email */}
+      <div>
+        <Label htmlFor="cf-email">
+          {isCz ? "E-mail pro zasílání faktur" : "Invoice email"}
+        </Label>
+        <Input
+          id="cf-email"
+          type="email"
+          value={form.email}
+          onChange={(e) => set("email", e.target.value)}
+          placeholder={isCz ? "fakturace@firma.cz" : "invoices@company.com"}
         />
       </div>
 

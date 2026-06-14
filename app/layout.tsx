@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import "./globals.css"
+import Sidebar from "@/components/ui/Sidebar"
 
 export const metadata: Metadata = {
   title: "Fakturace",
@@ -13,8 +14,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="cs">
-      <body suppressHydrationWarning className="min-h-screen">
-        {children}
+      <body suppressHydrationWarning className="flex h-screen overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 overflow-auto">
+          {children}
+        </div>
       </body>
     </html>
   )

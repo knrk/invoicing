@@ -194,7 +194,7 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
   }
 
   return (
-    <div className="flex h-[calc(100vh-56px)] overflow-hidden">
+    <div className="flex h-screen overflow-hidden">
 
       {/* ── LEFT: Formulář (scrollable, 38%) ── */}
       <div className="w-[38%] flex-shrink-0 flex flex-col border-r border-border bg-surface">

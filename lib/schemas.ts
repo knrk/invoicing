@@ -109,6 +109,7 @@ export const CustomerRecordSchema = z.object({
   zip: z.string().default(""),
   city: z.string().default(""),
   country: z.string().default("CZ"),
+  email: z.string().email("Neplatný e-mail").or(z.literal("")).default(""),
   language: LanguageSchema,
   currency: CurrencySchema,
   payment_method: z.string().default(""),

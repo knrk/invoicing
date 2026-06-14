@@ -18,10 +18,10 @@ export interface CalendarProps {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
+  "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec",
 ]
-const DAY_NAMES = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+const DAY_NAMES = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"]
 
 function pad(n: number) {
   return String(n).padStart(2, "0")
