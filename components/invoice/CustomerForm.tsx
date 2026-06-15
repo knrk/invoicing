@@ -133,39 +133,43 @@ export default function CustomerForm({ existing, onDone }: Props) {
 
       {/* Name */}
       <div>
-        <Label htmlFor="cf-name">{isCz ? "Název" : "Company name"}</Label>
+        <Label htmlFor="cf-name">Název</Label>
         <Input
           id="cf-name"
           value={form.name}
           onChange={(e) => set("name", e.target.value)}
-          placeholder={isCz ? "Název společnosti" : "Company name"}
+          placeholder="Název společnosti"
         />
       </div>
 
       {/* IČ / DIČ */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label htmlFor="cf-ico">{isCz ? "IČ" : "Reg. No."}</Label>
+          <Label htmlFor="cf-ico">IČ</Label>
           <Input id="cf-ico" value={form.ico} onChange={(e) => set("ico", e.target.value)} />
-          <button
-            type="button"
-            onClick={handleAresLookup}
-            disabled={aresLoading || !form.ico}
-            className="mt-1 text-xs text-primary underline underline-offset-2 hover:opacity-70 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {aresLoading ? "Načítám…" : "Vyhledat v ARESu"}
-          </button>
-          {aresError && <p className="mt-1 text-xs text-danger">{aresError}</p>}
+          {isCz && (
+            <>
+              <button
+                type="button"
+                onClick={handleAresLookup}
+                disabled={aresLoading || !form.ico}
+                className="mt-1 text-xs text-primary underline underline-offset-2 hover:opacity-70 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {aresLoading ? "Načítám…" : "Vyhledat v ARESu"}
+              </button>
+              {aresError && <p className="mt-1 text-xs text-danger">{aresError}</p>}
+            </>
+          )}
         </div>
         <div>
-          <Label htmlFor="cf-dic">{isCz ? "DIČ" : "VAT ID"}</Label>
+          <Label htmlFor="cf-dic">DIČ</Label>
           <Input id="cf-dic" value={form.dic} onChange={(e) => set("dic", e.target.value)} />
         </div>
       </div>
 
       {/* Address */}
       <div>
-        <Label htmlFor="cf-street">{isCz ? "Ulice" : "Street"}</Label>
+        <Label htmlFor="cf-street">Ulice</Label>
         <Input id="cf-street" value={form.street} onChange={(e) => set("street", e.target.value)} />
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -174,13 +178,13 @@ export default function CustomerForm({ existing, onDone }: Props) {
           <Input id="cf-zip" value={form.zip} onChange={(e) => set("zip", e.target.value)} />
         </div>
         <div>
-          <Label htmlFor="cf-city">{isCz ? "Město" : "City"}</Label>
+          <Label htmlFor="cf-city">Město</Label>
           <Input id="cf-city" value={form.city} onChange={(e) => set("city", e.target.value)} />
         </div>
       </div>
       {!isCz && (
         <div>
-          <Label htmlFor="cf-country">Country</Label>
+          <Label htmlFor="cf-country">Země</Label>
           <Input
             id="cf-country"
             value={form.country}
@@ -192,7 +196,7 @@ export default function CustomerForm({ existing, onDone }: Props) {
 
       {/* Payment method */}
       <div>
-        <Label htmlFor="cf-payment">{isCz ? "Způsob platby" : "Payment method"}</Label>
+        <Label htmlFor="cf-payment">Způsob platby</Label>
         <Input
           id="cf-payment"
           value={form.payment_method}
@@ -202,15 +206,13 @@ export default function CustomerForm({ existing, onDone }: Props) {
 
       {/* Email */}
       <div>
-        <Label htmlFor="cf-email">
-          {isCz ? "E-mail pro zasílání faktur" : "Invoice email"}
-        </Label>
+        <Label htmlFor="cf-email">E-mail pro zasílání faktur</Label>
         <Input
           id="cf-email"
           type="email"
           value={form.email}
           onChange={(e) => set("email", e.target.value)}
-          placeholder={isCz ? "fakturace@firma.cz" : "invoices@company.com"}
+          placeholder="fakturace@firma.cz"
         />
       </div>
 

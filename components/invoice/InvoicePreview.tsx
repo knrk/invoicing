@@ -20,7 +20,7 @@ export default function InvoicePreview({ invoice, config }: Props) {
   const invoiceNumber = invoice.invoice_number ?? ""
   const locale = lang === "cs" ? "cs-CZ" : "en-GB"
   const kc = lang === "cs" ? "Kč" : currency
-  const showQtyCol = lang === "cs" || (invoice.lines ?? []).some((l) => l.quantity && l.unit)
+  const showQtyPrice = (invoice.lines ?? []).some((l) => l.quantity > 1)
 
   // Narrow dependencies to only the banking fields that affect QR generation
   const { account_czk, account_eur_iban, account_eur_bic, constant_symbol } = config.banking
@@ -138,12 +138,16 @@ export default function InvoicePreview({ invoice, config }: Props) {
               <th className={`${s["invoice__th"]} text-left border-t-[3px] border-b-[3px] border-black`}>
                 {L.description}
               </th>
-              <th className={`${s["invoice__th"]} ${s["invoice__th--center"]} text-center border-t-[3px] border-b-[3px] border-black`}>
-                {showQtyCol ? L.quantity : ""}
-              </th>
-              <th className={`${s["invoice__th"]} ${s["invoice__th--right"]} text-right border-t-[3px] border-b-[3px] border-black`}>
-                {L.unitPrice}
-              </th>
+              {showQtyPrice && (
+                <th className={`${s["invoice__th"]} ${s["invoice__th--center"]} text-center border-t-[3px] border-b-[3px] border-black`}>
+                  {L.quantity}
+                </th>
+              )}
+              {showQtyPrice && (
+                <th className={`${s["invoice__th"]} ${s["invoice__th--right"]} text-right border-t-[3px] border-b-[3px] border-black`}>
+                  {L.unitPrice}
+                </th>
+              )}
               <th className={`${s["invoice__th"]} ${s["invoice__th--right"]} text-right border-t-[3px] border-b-[3px] border-black`}>
                 {L.total}
               </th>
@@ -158,10 +162,14 @@ export default function InvoicePreview({ invoice, config }: Props) {
                     <span className="block" style={{ fontFamily: "Roboto, sans-serif", fontSize: "10px", fontWeight: 400, color: "rgba(0,0,0,0.5)" }}>{line.sub_description}</span>
                   )}
                 </td>
-                <td className={`${s["invoice__td"]} pt-3 text-center`}>
-                  {lang === "cs" || (line.quantity && line.unit) ? `${line.quantity} ${line.unit}` : ""}
-                </td>
-                <td className={`${s["invoice__td"]} pt-3 text-right`}>{fmtNum(line.unit_price)} {kc}</td>
+                {showQtyPrice && (
+                  <td className={`${s["invoice__td"]} pt-3 text-center`}>
+                    {line.quantity > 0 || line.unit ? `${line.quantity} ${line.unit}` : ""}
+                  </td>
+                )}
+                {showQtyPrice && (
+                  <td className={`${s["invoice__td"]} pt-3 text-right`}>{fmtNum(line.unit_price)} {kc}</td>
+                )}
                 <td className={`${s["invoice__td"]} pt-3 text-right${line.is_advance ? " text-[rgba(0,0,0,0.45)]" : ""}`}>
                   {line.is_advance ? "−" : ""}{fmtNum(Math.abs(line.total))} {kc}
                 </td>
@@ -170,10 +178,17 @@ export default function InvoicePreview({ invoice, config }: Props) {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={2} className="border-t-[3px] border-black py-[6px]" />
-              <td className={`${s["invoice__tfoot-label"]} text-right border-t-[3px] border-black py-[6px] pr-2`}>
-                {L.totalLabel}
-              </td>
+              {showQtyPrice
+                ? <>
+                    <td colSpan={2} className="border-t-[3px] border-black py-[6px]" />
+                    <td className={`${s["invoice__tfoot-label"]} text-right border-t-[3px] border-black pr-2`}>
+                      {L.totalLabel}
+                    </td>
+                  </>
+                : <td className={`${s["invoice__tfoot-label"]} text-right border-t-[3px] border-black pr-2`}>
+                    {L.totalLabel}
+                  </td>
+              }
               <td className="border-t-[3px] border-black text-right">
                 <span className={`${s["invoice__total-badge"]} bg-black text-white`}>
                   {fmtNum(total)}&nbsp;{kc}
@@ -188,7 +203,7 @@ export default function InvoicePreview({ invoice, config }: Props) {
         <div className="flex-1" />
 
         {/* Payment instruction + QR code */}
-        <div className="flex items-start gap-4 mb-[90px]">
+        <div className="flex items-start gap-4 mb-[120px]">
           <p className={`${s["invoice__payment-text"]} flex-1`}>
             {getPaymentParts(lang, totalFormatted, account, vs, config.banking.constant_symbol).map((part, i) =>
               part.bold

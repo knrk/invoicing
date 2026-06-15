@@ -316,7 +316,7 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
   const L = LABELS[lang]
   const locale = lang === "cs" ? "cs-CZ" : "en-GB"
   const kc = lang === "cs" ? "Kč" : invoice.currency
-  const showQtyCol = lang === "cs" || invoice.lines.some((l) => l.quantity && l.unit)
+  const showQtyPrice = invoice.lines.some((l) => l.quantity > 1)
   const account = lang === "cs"
     ? ibanToCzDomestic(config.banking.account_czk)
     : config.banking.account_eur_iban
@@ -423,8 +423,8 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
 
             <View style={S.tableHeaderRow}>
               <View style={S.colDesc}><Text style={S.headerText}>{L.description}</Text></View>
-              <View style={S.colQty}><Text style={S.headerText}>{showQtyCol ? L.quantity : ""}</Text></View>
-              <View style={S.colPrice}><Text style={S.headerText}>{L.unitPrice}</Text></View>
+              {showQtyPrice && <View style={S.colQty}><Text style={S.headerText}>{L.quantity}</Text></View>}
+              {showQtyPrice && <View style={S.colPrice}><Text style={S.headerText}>{L.unitPrice}</Text></View>}
               <View style={S.colTotal}><Text style={S.headerText}>{L.total}</Text></View>
             </View>
 
@@ -436,12 +436,16 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
                     <Text style={[S.cellText, { fontFamily: "Roboto", fontWeight: 400, fontSize: 10, color: "rgba(0,0,0,0.5)", marginTop: 2 }]}>{line.sub_description}</Text>
                   ) : null}
                 </View>
-                <View style={S.colQty}>
-                  <Text style={S.cellText}>{lang === "cs" || (line.quantity && line.unit) ? `${line.quantity} ${line.unit}` : ""}</Text>
-                </View>
-                <View style={S.colPrice}>
-                  <Text style={S.cellText}>{`${fmtNum(line.unit_price)} ${kc}`}</Text>
-                </View>
+                {showQtyPrice && (
+                  <View style={S.colQty}>
+                    <Text style={S.cellText}>{line.quantity > 0 || line.unit ? `${line.quantity} ${line.unit}` : ""}</Text>
+                  </View>
+                )}
+                {showQtyPrice && (
+                  <View style={S.colPrice}>
+                    <Text style={S.cellText}>{`${fmtNum(line.unit_price)} ${kc}`}</Text>
+                  </View>
+                )}
                 <View style={S.colTotal}>
                   <Text style={[S.cellText, line.is_advance ? { color: "rgba(0,0,0,0.45)" } : {}]}>
                     {`${line.is_advance ? "−" : ""}${fmtNum(Math.abs(line.total))} ${kc}`}
