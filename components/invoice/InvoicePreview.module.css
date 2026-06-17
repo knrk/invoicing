@@ -1,139 +1,132 @@
 @reference "tailwindcss";
 
 .invoice {
-  font-family: "Roboto", sans-serif;
+  font-family: var(--font-body);
 }
 
 .invoice__left {
-  width: 180px;
+  @apply w-[180px] bg-[rgba(216,216,216,0.75)];
 }
 .invoice__title_bar {
-  width: 140px;
-  height: 4px;
+  @apply w-[140px] h-1;
+}
+.invoice__title_section {
+  @apply flex flex-col gap-[10px];
 }
 
 .invoice__title {
-  font-family: "Montserrat", sans-serif;
-  font-size: 16px;
-  letter-spacing: 2px;
-  color: rgba(0, 0, 0, 0.85);
-  line-height: 1;
-  margin: 0;
-  @apply font-bold;
+  font-family: var(--font-heading);
+  @apply text-base tracking-[2px] text-black/85 leading-none m-0 font-bold;
 }
 
 .invoice__notice {
-  width: 112px;
+  @apply w-[112px];
 }
 .invoice__notice_text {
-  font-size: 8px;
-  color: rgba(0, 0, 0, 0.6);
-  line-height: 1.6;
-  margin: 0;
-  @apply italic whitespace-pre-line;
+  @apply text-[8px] text-black/60 leading-[1.6] m-0 italic whitespace-pre-line;
+}
+
+.invoice__left_bottom {
+  @apply flex flex-col gap-[80px];
 }
 
 .invoice__thanks_text {
-  font-size: 11px;
-  line-height: 1;
+  @apply text-[11px] leading-none;
 }
 
 .invoice__meta_bar {
-  width: 40px;
-  height: 2px;
-  background: #d8d8d8;
+  @apply w-10 h-0.5 bg-[#d8d8d8];
 }
 .invoice__meta_label {
-  font-family: "Montserrat", sans-serif;
-  font-size: 10px;
-  color: rgba(0, 0, 0, 0.3);
-  margin: 20px 0 3px 0;
+  font-family: var(--font-heading);
+  @apply text-[10px] text-black/30 mt-5 mb-[3px];
 }
 .invoice__meta_value {
-  font-size: 13px;
-  line-height: 1.3;
-  margin: 0;
-  @apply font-bold;
+  @apply text-[13px] leading-[1.3] m-0 font-bold;
+}
+
+.invoice__parties {
+  @apply flex gap-4 mb-[100px];
 }
 
 .invoice__party_bar {
-  width: 22px;
-  height: 4px;
+  @apply w-[22px] h-1;
 }
 .invoice__party_role {
-  font-family: "Montserrat", sans-serif;
-  font-size: 8px;
-  letter-spacing: 1px;
-  margin: 0;
+  font-family: var(--font-heading);
+  @apply text-[8px] tracking-[1px] m-0;
 }
 .invoice__party_name {
-  font-family: "Montserrat", sans-serif;
-  font-size: 16px;
-  line-height: 1.2;
-  margin: 0;
-  @apply font-bold;
+  font-family: var(--font-heading);
+  @apply text-base leading-[1.2] m-0 font-bold;
 }
 .invoice__party_meta {
-  font-size: 12px;
-  color: #5a5a5a;
-  margin: 0;
+  @apply text-xs text-[#5a5a5a] m-0;
+}
+.invoice__party_address {
+  @apply whitespace-pre-line;
+}
+.invoice__vat_label {
+  color: rgba(90, 90, 90, 0.5);
 }
 
 .invoice__th {
-  font-size: 12px;
+  @apply text-xs;
 }
 .invoice__th_center {
-  width: 55px;
+  @apply w-[55px];
 }
 .invoice__th_right {
-  width: 80px;
+  @apply w-20;
+}
+.invoice__th_line {
+  @apply border-t-[3px] border-b-[3px] border-black;
 }
 
 .invoice__td {
-  font-size: 12px;
-  padding-top: 1rem;
-  padding-bottom: 1rem;
+  @apply text-xs py-4;
+}
+.invoice__td_subdesc {
+  font-family: var(--font-body);
+  @apply block text-[10px] font-normal text-black/50;
+}
+.invoice__td_advance {
+  @apply text-black/45;
+}
+.invoice__tr_divider {
+  @apply border-b-2 border-[#d8d8d8];
 }
 
+.invoice__tfoot_spacer {
+  @apply border-t-[3px] border-black py-[6px];
+}
+.invoice__tfoot_border {
+  @apply border-t-[3px] border-black;
+}
 .invoice__tfoot_label {
-  font-family: "Montserrat", sans-serif;
-  font-size: 14px;
-  @apply font-semibold;
+  font-family: var(--font-heading);
+  @apply text-sm font-semibold;
 }
 .invoice__total_badge {
-  display: flex;
-  justify-content: center;
-  font-size: 14px;
-  font-family: "Montserrat", sans-serif;
-  padding: 3px 10px;
-  margin-top: -3px;
-  @apply font-bold whitespace-nowrap;
+  font-family: var(--font-heading);
+  @apply flex justify-center text-sm font-bold whitespace-nowrap py-[3px] px-[10px] -mt-[3px];
 }
 
+.invoice__payment_section {
+  @apply flex items-start gap-4 mb-[120px];
+}
 .invoice__payment_text {
-  font-size: 8px;
-  color: rgba(0, 0, 0, 0.6);
-  line-height: 1.6;
-  margin: 0;
-  @apply italic;
+  @apply text-[8px] text-black/60 leading-[1.6] m-0 flex-1 italic;
 }
 .invoice__payment_bold {
   @apply font-bold not-italic;
 }
 
 .invoice__footer_label {
-  font-family: "Montserrat", sans-serif;
-  font-size: 10px;
-  color: #2f2f2f;
-  letter-spacing: 0.5px;
-  margin: 0 0 9px 0;
-  @apply font-medium uppercase;
+  font-family: var(--font-heading);
+  @apply text-[10px] text-[#2f2f2f] tracking-[0.5px] m-0 mb-[9px] font-medium uppercase;
 }
 .invoice__footer_line {
-  font-family: "Montserrat", sans-serif;
-  font-size: 9px;
-  color: #5a5a5a;
-  line-height: 1.6;
-  margin: 0;
-  @apply font-medium;
+  font-family: var(--font-heading);
+  @apply text-[9px] text-[#5a5a5a] leading-[1.6] m-0 font-medium;
 }

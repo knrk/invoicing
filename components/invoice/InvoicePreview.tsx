@@ -37,11 +37,9 @@ export default function InvoicePreview({ invoice, config }: Props) {
 
   return (
     <div id="invoice-preview" className={`invoice-a4 ${s.invoice} flex text-black bg-white`}>
-      <div
-        className={`${s.invoice__left} shrink-0 flex flex-col justify-between py-10 pr-5 pl-10 bg-[rgba(216,216,216,0.75)]`}
-      >
+      <div className={`${s.invoice__left} shrink-0 flex flex-col justify-between py-10 pr-5 pl-10`}>
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-[10px]">
+          <div className={s.invoice__title_section}>
             <div className={`${s.invoice__title_bar} bg-black`} />
             <p className={s.invoice__title}>{L.invoice}</p>
           </div>
@@ -69,7 +67,7 @@ export default function InvoicePreview({ invoice, config }: Props) {
           )}
         </div>
 
-        <div className="flex flex-col gap-[80px]">
+        <div className={s.invoice__left_bottom}>
           <div className={s.invoice__notice}>
             <p className={s.invoice__notice_text}>
               {lang === "cs" ? config.footer.penalty_cs : config.footer.penalty_en}
@@ -100,7 +98,7 @@ export default function InvoicePreview({ invoice, config }: Props) {
       </div>
 
       <div className="flex-1 flex flex-col px-10 pt-9">
-        <div className="flex gap-4 mb-[100px]">
+        <div className={s.invoice__parties}>
           <Party
             role={L.customer}
             name={invoice.customer?.name || "—"}
@@ -136,52 +134,31 @@ export default function InvoicePreview({ invoice, config }: Props) {
         <table className="w-full border-collapse mb-6">
           <thead>
             <tr>
-              <th
-                className={`${s.invoice__th} text-left border-t-[3px] border-b-[3px] border-black`}
-              >
+              <th className={`${s.invoice__th} ${s.invoice__th_line} text-left`}>
                 {L.description}
               </th>
               {showQtyPrice && (
-                <th
-                  className={`${s.invoice__th} ${s.invoice__th_center} text-center border-t-[3px] border-b-[3px] border-black`}
-                >
+                <th className={`${s.invoice__th} ${s.invoice__th_center} ${s.invoice__th_line} text-center`}>
                   {L.quantity}
                 </th>
               )}
               {showQtyPrice && (
-                <th
-                  className={`${s.invoice__th} ${s.invoice__th_right} text-right border-t-[3px] border-b-[3px] border-black`}
-                >
+                <th className={`${s.invoice__th} ${s.invoice__th_right} ${s.invoice__th_line} text-right`}>
                   {L.unitPrice}
                 </th>
               )}
-              <th
-                className={`${s.invoice__th} ${s.invoice__th_right} text-right border-t-[3px] border-b-[3px] border-black`}
-              >
+              <th className={`${s.invoice__th} ${s.invoice__th_right} ${s.invoice__th_line} text-right`}>
                 {L.total}
               </th>
             </tr>
           </thead>
           <tbody>
             {(invoice.lines ?? []).map((line, idx, arr) => (
-              <tr
-                key={line.id}
-                style={idx < arr.length - 1 ? { borderBottom: "2px solid #D8D8D8" } : undefined}
-              >
-                <td className={`${s.invoice__td}`}>
+              <tr key={line.id} className={idx < arr.length - 1 ? s.invoice__tr_divider : undefined}>
+                <td className={s.invoice__td}>
                   {line.description}
                   {line.sub_description && (
-                    <span
-                      className="block"
-                      style={{
-                        fontFamily: "Roboto, sans-serif",
-                        fontSize: "10px",
-                        fontWeight: 400,
-                        color: "rgba(0,0,0,0.5)",
-                      }}
-                    >
-                      {line.sub_description}
-                    </span>
+                    <span className={s.invoice__td_subdesc}>{line.sub_description}</span>
                   )}
                 </td>
                 {showQtyPrice && (
@@ -195,7 +172,7 @@ export default function InvoicePreview({ invoice, config }: Props) {
                   </td>
                 )}
                 <td
-                  className={`${s.invoice__td} pt-3 text-right${line.is_advance ? " text-[rgba(0,0,0,0.45)]" : ""}`}
+                  className={`${s.invoice__td} pt-3 text-right${line.is_advance ? ` ${s.invoice__td_advance}` : ""}`}
                 >
                   {line.is_advance ? "−" : ""}
                   {fmtNum(Math.abs(line.total))} {kc}
@@ -207,21 +184,17 @@ export default function InvoicePreview({ invoice, config }: Props) {
             <tr>
               {showQtyPrice ? (
                 <>
-                  <td colSpan={2} className="border-t-[3px] border-black py-[6px]" />
-                  <td
-                    className={`${s.invoice__tfoot_label} text-right border-t-[3px] border-black pr-2`}
-                  >
+                  <td colSpan={2} className={s.invoice__tfoot_spacer} />
+                  <td className={`${s.invoice__tfoot_label} ${s.invoice__tfoot_border} text-right pr-2`}>
                     {L.totalLabel}
                   </td>
                 </>
               ) : (
-                <td
-                  className={`${s.invoice__tfoot_label} text-right border-t-[3px] border-black pr-2`}
-                >
+                <td className={`${s.invoice__tfoot_label} ${s.invoice__tfoot_border} text-right pr-2`}>
                   {L.totalLabel}
                 </td>
               )}
-              <td className="border-t-[3px] border-black text-right">
+              <td className={`${s.invoice__tfoot_border} text-right`}>
                 <span className={`${s.invoice__total_badge} bg-black text-white`}>
                   {fmtNum(total)}&nbsp;{kc}
                 </span>
@@ -232,8 +205,8 @@ export default function InvoicePreview({ invoice, config }: Props) {
 
         <div className="flex-1" />
 
-        <div className="flex items-start gap-4 mb-[120px]">
-          <p className={`${s.invoice__payment_text} flex-1`}>
+        <div className={s.invoice__payment_section}>
+          <p className={s.invoice__payment_text}>
             {getPaymentParts(lang, totalFormatted, account, vs, config.banking.constant_symbol).map(
               (part) =>
                 part.bold ? (
@@ -298,13 +271,11 @@ function Party({
       <div className="flex flex-col gap-1">
         <p className={s.invoice__party_name}>{name}</p>
         {identifier && <p className={s.invoice__party_meta}>{identifier}</p>}
-        <p className={s.invoice__party_meta} style={{ whiteSpace: "pre-line" }}>
-          {address}
-        </p>
+        <p className={`${s.invoice__party_meta} ${s.invoice__party_address}`}>{address}</p>
         {vatId && (
           <p className={s.invoice__party_meta}>
-            <span style={{ color: "rgba(90,90,90,0.5)" }}>VAT ID: </span>
-            <span style={{ color: "#5a5a5a" }}>{vatId}</span>
+            <span className={s.invoice__vat_label}>VAT ID: </span>
+            <span>{vatId}</span>
           </p>
         )}
       </div>
