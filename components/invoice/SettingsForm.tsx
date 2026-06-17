@@ -244,8 +244,6 @@ export default function SettingsForm({ config }: { config: AppConfig | null }) {
   )
 }
 
-// ── Local helpers ─────────────────────────────────────────────────────────────
-
 function Field({
   label,
   hint,

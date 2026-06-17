@@ -5,17 +5,11 @@ import { cn } from "@/lib/utils"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 export interface CalendarProps {
-  /** Selected date as YYYY-MM-DD string */
   selected?: string
-  /** Called with YYYY-MM-DD when user picks a day */
   onSelect: (date: string) => void
   className?: string
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const MONTH_NAMES = [
   "Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
@@ -36,7 +30,6 @@ function todayStr(): string {
   return toStr(d.getFullYear(), d.getMonth(), d.getDate())
 }
 
-// Returns 0-indexed weekday where Monday=0, Sunday=6
 function weekday(year: number, month: number, day: number): number {
   return (new Date(year, month, day).getDay() + 6) % 7
 }
@@ -45,16 +38,13 @@ function daysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate()
 }
 
-// ── Calendar ──────────────────────────────────────────────────────────────────
-
 export function Calendar({ selected, onSelect, className }: CalendarProps) {
   const today = todayStr()
 
-  // Initialise view to selected date or today
   const init = selected ?? today
   const [initY, initM] = init.split("-").map(Number)
   const [viewYear, setViewYear] = useState(initY)
-  const [viewMonth, setViewMonth] = useState(initM - 1) // 0-indexed
+  const [viewMonth, setViewMonth] = useState(initM - 1)
 
   function prevMonth() {
     if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11) }
@@ -66,9 +56,8 @@ export function Calendar({ selected, onSelect, className }: CalendarProps) {
     else setViewMonth(m => m + 1)
   }
 
-  const firstWeekday = weekday(viewYear, viewMonth, 1) // 0=Mon offset
+  const firstWeekday = weekday(viewYear, viewMonth, 1)
   const totalDays = daysInMonth(viewYear, viewMonth)
-  // Fill grid: leading empty cells + day cells, padded to complete weeks
   const cells: (number | null)[] = [
     ...Array(firstWeekday).fill(null),
     ...Array.from({ length: totalDays }, (_, i) => i + 1),
@@ -77,7 +66,6 @@ export function Calendar({ selected, onSelect, className }: CalendarProps) {
 
   return (
     <div className={cn("p-3 select-none", className)}>
-      {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <button
           type="button"
@@ -102,7 +90,6 @@ export function Calendar({ selected, onSelect, className }: CalendarProps) {
         </button>
       </div>
 
-      {/* Day-name headers */}
       <div className="grid grid-cols-7 mb-1">
         {DAY_NAMES.map((d) => (
           <div key={d} className="text-muted-foreground text-[0.8rem] font-normal text-center h-8 flex items-center justify-center">
@@ -111,7 +98,6 @@ export function Calendar({ selected, onSelect, className }: CalendarProps) {
         ))}
       </div>
 
-      {/* Day grid */}
       <div className="grid grid-cols-7">
         {cells.map((day, i) => {
           if (day === null) return <div key={`empty-${i}`} />

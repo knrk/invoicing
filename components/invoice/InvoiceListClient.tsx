@@ -146,7 +146,6 @@ export default function InvoiceListClient({ invoices, config }: Props) {
 
   return (
     <>
-      {/* ── Header ── */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-2.5">
           <h1 className="text-[22px] font-bold text-text">Faktury</h1>
@@ -172,7 +171,6 @@ export default function InvoiceListClient({ invoices, config }: Props) {
         </Alert>
       )}
 
-      {/* ── Agregace ── */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard
           label={`Fakturace ${currentYear} — CZK`}
@@ -263,7 +261,6 @@ export default function InvoiceListClient({ invoices, config }: Props) {
         </Table>
       </div>
 
-      {/* Delete confirm dialog */}
       <Dialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
         <DialogContent>
           <DialogHeader>
@@ -288,8 +285,6 @@ export default function InvoiceListClient({ invoices, config }: Props) {
   )
 }
 
-// ── StatCard ──────────────────────────────────────────────────────────────────
-
 function StatCard({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
   return (
     <div className="bg-surface rounded-xl border border-border px-5 py-4">
@@ -300,8 +295,6 @@ function StatCard({ label, value, danger }: { label: string; value: string; dang
     </div>
   )
 }
-
-// ── DuePaidCell ───────────────────────────────────────────────────────────────
 
 function DuePaidCell({ invoice }: { invoice: Invoice }) {
   const router = useRouter()
@@ -337,7 +330,6 @@ function DuePaidCell({ invoice }: { invoice: Invoice }) {
     return <span className="text-sm text-text-secondary">...</span>
   }
 
-  // Paid — show paid date in green, click to clear
   if (invoice.paid_at) {
     return (
       <button
@@ -350,7 +342,6 @@ function DuePaidCell({ invoice }: { invoice: Invoice }) {
     )
   }
 
-  // Unpaid — show due date + link to mark as paid
   const overdue = isOverdue14(invoice.due_date)
 
   return (

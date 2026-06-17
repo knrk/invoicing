@@ -121,7 +121,6 @@ export default function CustomerForm({ existing, onDone }: Props) {
         </Alert>
       )}
 
-      {/* Language toggle */}
       <div className="flex items-center justify-between">
         <Label>Typ odběratele</Label>
         <div className="flex items-center gap-2">
@@ -131,7 +130,6 @@ export default function CustomerForm({ existing, onDone }: Props) {
         </div>
       </div>
 
-      {/* Name */}
       <div>
         <Label htmlFor="cf-name">Název</Label>
         <Input
@@ -142,7 +140,6 @@ export default function CustomerForm({ existing, onDone }: Props) {
         />
       </div>
 
-      {/* IČ / DIČ */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label htmlFor="cf-ico">IČ</Label>
@@ -167,7 +164,6 @@ export default function CustomerForm({ existing, onDone }: Props) {
         </div>
       </div>
 
-      {/* Address */}
       <div>
         <Label htmlFor="cf-street">Ulice</Label>
         <Input id="cf-street" value={form.street} onChange={(e) => set("street", e.target.value)} />
@@ -194,7 +190,6 @@ export default function CustomerForm({ existing, onDone }: Props) {
         </div>
       )}
 
-      {/* Payment method */}
       <div>
         <Label htmlFor="cf-payment">Způsob platby</Label>
         <Input
@@ -204,7 +199,6 @@ export default function CustomerForm({ existing, onDone }: Props) {
         />
       </div>
 
-      {/* Email */}
       <div>
         <Label htmlFor="cf-email">E-mail pro zasílání faktur</Label>
         <Input
@@ -216,7 +210,6 @@ export default function CustomerForm({ existing, onDone }: Props) {
         />
       </div>
 
-      {/* Actions */}
       <div className="flex justify-end gap-2 pt-2">
         <Button variant="outline" onClick={onDone}>Zrušit</Button>
         <Button variant="dark" onClick={handleSave} disabled={saving}>

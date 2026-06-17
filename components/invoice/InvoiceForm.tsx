@@ -40,7 +40,7 @@ function initForm(config: AppConfig, existing?: Invoice): InvoiceFormData {
 
   const lang: Language = "cs"
   const year = new Date().getFullYear()
-  const invoiceNumber = `${year}01` // placeholder — corrected by useEffect
+  const invoiceNumber = `${year}01`
   const t = today()
 
   return {
@@ -58,7 +58,6 @@ function initForm(config: AppConfig, existing?: Invoice): InvoiceFormData {
   }
 }
 
-/** Zobrazí "Kč" místo interního kódu "CZK" */
 function displayCurrency(c: string): string {
   return c === "CZK" ? "Kč" : c
 }
@@ -76,7 +75,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
   const total = useMemo(() => form.lines.reduce((s, l) => s + l.total, 0), [form.lines])
   const formWithTotal = useMemo(() => ({ ...form, total }), [form, total])
 
-  // On mount (new invoice only) — correct the invoice number from actual DB state
   useEffect(() => {
     if (existing) return
     const year = new Date().getFullYear()
@@ -187,7 +185,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
   }
 
   const isCz = form.language === "cs"
-  // Formulář je vždy v češtině — nezávisle na jazyku faktury
   const L = {
     ...LABELS.cs.form,
     save: existing ? LABELS.cs.form.save : LABELS.cs.form.saveNew,
@@ -196,7 +193,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
   return (
     <div className="flex h-screen overflow-hidden">
 
-      {/* ── LEFT: Formulář (scrollable, 38%) ── */}
       <div className="w-[38%] flex-shrink-0 flex flex-col border-r border-border bg-surface">
         <div className="px-6 pt-6 pb-4 space-y-6 flex-1 overflow-y-auto">
 
@@ -206,7 +202,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
             </Alert>
           )}
 
-          {/* ── Picker odběratele ── */}
           {customers.length > 0 && (
             <CustomerPicker
               customers={customers}
@@ -214,7 +209,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
             />
           )}
 
-          {/* ── Detaily faktury ── */}
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-[16px] font-bold text-text">{L.detailsSection}</h2>
@@ -230,7 +224,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
             </div>
             <div className="space-y-4">
 
-              {/* Odběratel */}
               <Field label={L.customerSection} htmlFor="f-customer-name">
                 <Input
                   id="f-customer-name"
@@ -248,7 +241,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
                 </Field>
               </div>
 
-              {/* Adresa */}
               <Field label="Adresa" htmlFor="f-customer-street">
                 <Input
                   id="f-customer-street"
@@ -276,7 +268,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
                 </Field>
               )}
 
-              {/* Číslo faktury + způsob platby */}
               <div className="grid grid-cols-2 gap-3">
                 <Field label={L.invoiceNumber} htmlFor="f-invoice-number">
                   {editInvoiceNumber ? (
@@ -307,7 +298,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
                 </Field>
               </div>
 
-              {/* Variabilní symbol — pouze CZ */}
               {isCz && (
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Variabilní symbol" htmlFor="f-variable-symbol">
@@ -327,7 +317,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
                 </div>
               )}
 
-              {/* Datum vystavení + splatnosti */}
               <div className="grid grid-cols-2 gap-3">
                 <Field label={L.issueDate}>
                   <DatePicker value={form.issue_date} language={form.language} onChange={(v) => setField("issue_date", v)} />
@@ -337,7 +326,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
                 </Field>
               </div>
 
-              {/* Přenesená daňová povinnost — pouze EN */}
               {!isCz && (
                 <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
                   <div>
@@ -354,14 +342,12 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
             </div>
           </section>
 
-          {/* ── Položky ── */}
           <section>
             <h2 className="text-[16px] font-bold text-text mb-4">{L.linesSection}</h2>
 
             <div className="space-y-3">
               {form.lines.map((line, idx) => (
                 <div key={line.id} className="rounded-xl bg-subtle border border-border overflow-hidden">
-                  {/* Hlavička karty */}
                   <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
                     <span className="text-xs font-semibold text-text-secondary">#{String(idx + 1).padStart(2, "0")}</span>
                     {form.lines.length > 1 && (
@@ -375,7 +361,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
                       </button>
                     )}
                   </div>
-                  {/* Tělo karty */}
                   <div className="px-4 py-3 space-y-3">
                     <div>
                       <Label className="mb-1.5 block text-xs">Popis</Label>
@@ -464,7 +449,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
 
         </div>
 
-        {/* ── Spodní akční lišta ── */}
         <div className="border-t border-border bg-surface px-6 py-4 flex items-center justify-between flex-shrink-0">
           <Button variant="link" asChild>
             <Link href="/">{L.cancel}</Link>
@@ -475,7 +459,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
         </div>
       </div>
 
-      {/* ── RIGHT: Náhled (60%) ── */}
       <div className="flex-1 flex flex-col bg-page overflow-hidden">
         <div className="flex items-center justify-between px-8 py-4 bg-surface border-b border-border">
           <span className="text-[15px] font-semibold text-text">Náhled</span>
@@ -504,8 +487,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
     </div>
   )
 }
-
-// ── Lokální pomocné komponenty ─────────────────────────────────────────────────
 
 function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
   return (

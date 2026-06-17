@@ -16,13 +16,10 @@ export function buildInvoiceNumber(sequence: number): string {
 }
 
 export function formatDate(dateStr: string, language: Language): string {
-  // Parse parts manually — new Date("YYYY-MM-DD") creates UTC midnight,
-  // which shifts to the previous day in timezones west of UTC.
   const [y, m, d] = dateStr.split("-").map(Number)
   if (language === "cs") {
     return `${d}. ${m}. ${y}`
   }
-  // Use local date construction to avoid UTC shift
   return new Date(y, m - 1, d).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
@@ -31,7 +28,6 @@ export function formatDate(dateStr: string, language: Language): string {
 }
 
 export function addDays(dateStr: string, days: number): string {
-  // Parse manually to stay in local time (new Date("YYYY-MM-DD") is UTC midnight)
   const [y, m, d] = dateStr.split("-").map(Number)
   const date = new Date(y, m - 1, d)
   date.setDate(date.getDate() + days)
@@ -50,36 +46,20 @@ export function generateId(): string {
   return crypto.randomUUID()
 }
 
-/** Formats a number with space as thousands separator (e.g. 1 234 567).
- *  Uses cs-CZ locale which standardly separates thousands with a non-breaking space. */
 export function fmtNum(n: number): string {
   return new Intl.NumberFormat("cs-CZ").format(n)
 }
 
-/**
- * Converts a Czech IBAN (CZ + 2 check digits + 4-digit bank code +
- * 6-digit prefix + 10-digit account number) to the domestic display format:
- * "prefix-number/bankcode" (prefix omitted when zero).
- *
- * Non-Czech or unrecognised strings are returned as-is.
- *
- * Examples:
- *   "CZ6508000000192000145399" → "19-2000145399/0800"
- *   "CZ5503000000000123456789" → "123456789/0300"
- */
 export function ibanToCzDomestic(iban: string): string {
   const s = iban.trim().replace(/\s/g, "").toUpperCase()
   if (!/^CZ\d{22}$/.test(s)) return iban // not a Czech IBAN — return unchanged
   const bankcode = s.slice(4, 8)
-  const prefix   = String(parseInt(s.slice(8, 14), 10))   // strip leading zeros
-  const number   = String(parseInt(s.slice(14, 24), 10))  // strip leading zeros
+  const prefix   = String(parseInt(s.slice(8, 14), 10))
+  const number   = String(parseInt(s.slice(14, 24), 10))
   return prefix === "0"
     ? `${number}/${bankcode}`
     : `${prefix}-${number}/${bankcode}`
 }
-
-// ── Payment instruction segments ───────────────────────────────────────────────
-// Shared between InvoicePreview (HTML) and InvoicePDF — single source of truth.
 
 export type PaymentPart = { text: string; bold: boolean }
 
@@ -114,7 +94,6 @@ export function getPaymentParts(
 
 export const LABELS = {
   cs: {
-    // ── Invoice preview ───────────────────────────────────────────────────────
     invoice: "FAKTURA",
     invoiceNumber: "ČÍSLO FAKTURY",
     issueDate: "DATUM VYSTAVENÍ",
@@ -135,7 +114,6 @@ export const LABELS = {
     paymentInstruction: (amount: string, account: string, vs: string, ks: string) =>
       `Prosím, uhraďte částku ${amount} na účet ${account} s variabilním symbolem ${vs} a konstantním symbolem ${ks}. Pro rychlou platbu použijte QR kód.`,
     thanks: "Děkuji za důvěru.",
-    // ── Invoice form ──────────────────────────────────────────────────────────
     form: {
       detailsSection: "Detaily faktury",
       language: "Jazyk",
@@ -167,7 +145,6 @@ export const LABELS = {
     },
   },
   en: {
-    // ── Invoice preview ───────────────────────────────────────────────────────
     invoice: "INVOICE",
     invoiceNumber: "INVOICE NUMBER",
     issueDate: "ISSUE DATE",
@@ -188,7 +165,6 @@ export const LABELS = {
     paymentInstruction: (amount: string, account: string, vs: string, _ks: string) =>
       `Please transfer ${amount} to account ${account} with reference ${vs}. Use the QR code for quick payment.`,
     thanks: "Thank you for your trust.",
-    // ── Invoice form ──────────────────────────────────────────────────────────
     form: {
       detailsSection: "Invoice Details",
       language: "Language",

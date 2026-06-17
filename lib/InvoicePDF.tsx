@@ -33,12 +33,9 @@ Font.register({
 
 Font.registerHyphenationCallback((word) => [word])
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-// A4: 595.28 × 841.89 pt.  Left col = 48 mm = 48 * (595.28 / 210) ≈ 136 pt.
 const LEFT_W = 180
 const PAGE_H = 841.89
 
-// ── Styles ────────────────────────────────────────────────────────────────────
 const S = StyleSheet.create({
   page: {
     backgroundColor: "#FFFFFF",
@@ -47,13 +44,11 @@ const S = StyleSheet.create({
     color: "#000000",
   },
 
-  // Full-height row wrapper — needed so both columns fill the page height
   row: {
     flexDirection: "row",
     minHeight: PAGE_H,
   },
 
-  // ── Left column ─────────────────────────────────────────────────────────────
   leftCol: {
     width: LEFT_W,
     backgroundColor: "#DCDCDC",
@@ -110,7 +105,6 @@ const S = StyleSheet.create({
     fontSize: 9,
   },
 
-  // ── Right column ─────────────────────────────────────────────────────────────
   rightCol: {
     flex: 1,
     flexDirection: "column",
@@ -120,7 +114,6 @@ const S = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // Parties
   partiesRow: {
     flexDirection: "row",
     marginBottom: 85,
@@ -161,7 +154,6 @@ const S = StyleSheet.create({
     marginTop: 3,
   },
 
-  // Items table
   tableTopLine: {
     borderTopWidth: 2,
     borderTopStyle: "solid",
@@ -186,7 +178,6 @@ const S = StyleSheet.create({
   headerText: { fontSize: 10, color: "#444444" },
   cellText: { fontSize: 10 },
 
-  // Total row
   totalRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -217,7 +208,6 @@ const S = StyleSheet.create({
     textAlign: "center",
   },
 
-  // Payment + QR
   paymentRow: {
     flexDirection: "row",
     marginBottom: 90,
@@ -235,7 +225,6 @@ const S = StyleSheet.create({
     marginLeft: 6,
   },
 
-  // Footer
   footerRow: {
     flexDirection: "row",
   },
@@ -257,8 +246,6 @@ const S = StyleSheet.create({
   },
 })
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
 function MetaField({ label, value }: { label: string; value: string }) {
   return (
     <View style={S.metaWrapper}>
@@ -278,10 +265,8 @@ function PartyBlock({
 }: {
   role: string
   name: string
-  /** CZ only: e.g. "IČ: 12345678" — shown before address */
   identifier?: string
   address?: string
-  /** EN only: shown below address with muted label */
   vatId?: string
 }) {
   return (
@@ -302,8 +287,6 @@ function PartyBlock({
     </View>
   )
 }
-
-// ── Main component ────────────────────────────────────────────────────────────
 
 export interface InvoicePDFProps {
   invoice: InvoiceFormData
@@ -353,10 +336,8 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
   return (
     <Document>
       <Page size="A4" style={S.page}>
-        {/* Explicit row wrapper with minHeight to ensure both columns fill the page */}
         <View style={S.row}>
 
-          {/* ── Left column ── */}
           <View style={S.leftCol}>
             <View style={S.titleBar} />
             <Text style={S.titleText}>{L.invoice}</Text>
@@ -369,7 +350,6 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
             {lang === "cs" && <MetaField label={L.variableSymbol} value={vs} />}
             {lang !== "cs" && invoice.reverse_charge && <MetaField label="MODE" value="Reverse Charge" />}
 
-            {/* Spacer — pushes footnote to the bottom */}
             <View style={{ flexGrow: 1 }} />
 
             <Text style={S.leftFooterNote}>
@@ -388,10 +368,8 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
             </View>
           </View>
 
-          {/* ── Right column ── */}
           <View style={S.rightCol}>
 
-            {/* Parties */}
             <View style={S.partiesRow}>
               <PartyBlock
                 role={L.customer}
@@ -418,7 +396,6 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
               />
             </View>
 
-            {/* Table */}
             <View style={S.tableTopLine} />
 
             <View style={S.tableHeaderRow}>
@@ -454,7 +431,6 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
               </View>
             ))}
 
-            {/* Total */}
             <View style={S.totalRow}>
               <Text style={S.totalLabelText}>{L.totalLabel}</Text>
               <View style={S.totalBg}>
@@ -463,10 +439,8 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
             </View>
 
 
-            {/* Spacer — pushes payment + footer to the bottom */}
             <View style={{ flexGrow: 1 }} />
 
-            {/* Payment instruction + QR */}
             <View style={S.paymentRow}>
               <Text style={S.paymentText}>
                 {getPaymentParts(lang, totalStr, account, vs, config.banking.constant_symbol).map((part, i) =>
@@ -478,7 +452,6 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
               {qrImage ? <Image style={S.qrCode} src={qrImage} /> : null}
             </View>
 
-            {/* Footer */}
             <View style={S.footerRow}>
               <View style={S.footerSection}>
                 <Text style={S.footerHeading}>ADRESA</Text>

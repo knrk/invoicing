@@ -22,7 +22,6 @@ export default function InvoicePreview({ invoice, config }: Props) {
   const kc = lang === "cs" ? "Kč" : currency
   const showQtyPrice = (invoice.lines ?? []).some((l) => l.quantity > 1)
 
-  // Narrow dependencies to only the banking fields that affect QR generation
   const { account_czk, account_eur_iban, account_eur_bic, constant_symbol } = config.banking
   useEffect(() => {
     if (total > 0 && invoiceNumber) {
@@ -42,10 +41,8 @@ export default function InvoicePreview({ invoice, config }: Props) {
   return (
     <div id="invoice-preview" className={`invoice-a4 ${s.invoice} flex text-black bg-white`}>
 
-      {/* ── LEFT COLUMN ── */}
       <div className={`${s["invoice__left"]} shrink-0 flex flex-col justify-between py-10 pr-5 pl-10 bg-[rgba(216,216,216,0.75)]`}>
 
-        {/* Top: title + meta fields */}
         <div className="flex flex-col gap-4">
 
           <div className="flex flex-col gap-[10px]">
@@ -62,7 +59,6 @@ export default function InvoicePreview({ invoice, config }: Props) {
           {lang !== "cs" && invoice.reverse_charge && <MetaField label="MODE" value="Reverse Charge" />}
         </div>
 
-        {/* Bottom: penalty notice + thanks */}
         <div className="flex flex-col gap-[80px]">
           <div className={s["invoice__notice"]}>
             <p className={s["invoice__notice-text"]}>
@@ -90,10 +86,8 @@ export default function InvoicePreview({ invoice, config }: Props) {
         </div>
       </div>
 
-      {/* ── RIGHT COLUMN ── */}
       <div className="flex-1 flex flex-col px-10 pt-9">
 
-        {/* Parties: ODBĚRATEL / DODAVATEL */}
         <div className="flex gap-4 mb-[100px]">
           <Party
             role={L.customer}
@@ -131,7 +125,6 @@ export default function InvoicePreview({ invoice, config }: Props) {
           />
         </div>
 
-        {/* Line items table */}
         <table className="w-full border-collapse mb-6">
           <thead>
             <tr>
@@ -199,10 +192,8 @@ export default function InvoicePreview({ invoice, config }: Props) {
         </table>
 
 
-        {/* Flexible spacer — pushes payment block toward the bottom */}
         <div className="flex-1" />
 
-        {/* Payment instruction + QR code */}
         <div className="flex items-start gap-4 mb-[120px]">
           <p className={`${s["invoice__payment-text"]} flex-1`}>
             {getPaymentParts(lang, totalFormatted, account, vs, config.banking.constant_symbol).map((part, i) =>
@@ -212,12 +203,10 @@ export default function InvoicePreview({ invoice, config }: Props) {
             )}
           </p>
           {qrDataUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={qrDataUrl} alt="QR" width={70} height={70} className="shrink-0" />
           )}
         </div>
 
-        {/* Footer */}
         <div className="grid grid-cols-3 pb-10">
           <FooterCol label="ADRESA"  lines={[config.supplier.street, `${config.supplier.zip} ${config.supplier.city}`]} />
           <FooterCol label="KONTAKT" lines={[config.supplier.phone, config.supplier.email]} />
@@ -227,8 +216,6 @@ export default function InvoicePreview({ invoice, config }: Props) {
     </div>
   )
 }
-
-// ── Sub-components ────────────────────────────────────────────────────────────
 
 function MetaField({ label, value }: { label: string; value: string }) {
   return (
@@ -249,10 +236,8 @@ function Party({
 }: {
   role: string
   name: string
-  /** CZ only: e.g. "IČ: 12345678" — shown before address */
   identifier?: string
   address: string
-  /** EN only: shown below address with muted label */
   vatId?: string
 }) {
   return (

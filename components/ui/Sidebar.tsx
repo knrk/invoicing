@@ -69,7 +69,6 @@ export default function Sidebar() {
   const path = usePathname()
   const [collapsed, setCollapsed] = useState(false)
 
-  // Persist across navigations
   useEffect(() => {
     const saved = localStorage.getItem("sidebar-collapsed")
     if (saved === "true") setCollapsed(true)
@@ -90,7 +89,6 @@ export default function Sidebar() {
         collapsed ? "w-[56px]" : "w-[220px]"
       )}
     >
-      {/* ── Chevron toggle button ── */}
       <button
         onClick={toggleCollapse}
         aria-label={collapsed ? "Rozbalit sidebar" : "Sbalit sidebar"}
@@ -110,7 +108,6 @@ export default function Sidebar() {
         />
       </button>
 
-      {/* ── Logo ── */}
       <div
         className={cn(
           "flex items-center h-14 border-b border-border shrink-0 overflow-hidden",
@@ -127,7 +124,6 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* ── Nová faktura ── */}
       <div className={cn("pt-4 pb-2 shrink-0", collapsed ? "px-2" : "px-3")}>
         <Link
           href="/invoice/new"
@@ -142,7 +138,6 @@ export default function Sidebar() {
         </Link>
       </div>
 
-      {/* ── Navigace ── */}
       <nav className={cn("flex-1 py-2 overflow-y-auto overflow-x-hidden", collapsed ? "px-2" : "px-3")}>
         {!collapsed && (
           <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-widest px-2 mb-1">
@@ -176,7 +171,6 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      {/* ── Spodní sekce ── */}
       <div className={cn(
         "pb-4 border-t border-border pt-3 shrink-0 space-y-0.5",
         collapsed ? "px-2" : "px-3"

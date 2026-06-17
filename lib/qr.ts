@@ -1,28 +1,18 @@
 import type { AppConfig, Language } from "@/types"
 
-/**
- * Converts Czech domestic account format "prefix-number/bankcode" or
- * "number/bankcode" to IBAN (CZxx xxxx xxxx xxxx xxxx xxxx).
- * If the input already looks like an IBAN (starts with 2 uppercase letters),
- * it is returned as-is.
- */
 function toIBAN(account: string): string {
   const s = account.trim()
-  // Already IBAN
   if (/^[A-Z]{2}\d/.test(s)) return s
 
-  // Parse domestic: [prefix-]number/bankcode
   const match = s.match(/^(?:(\d+)-)?(\d+)\/(\d{4})$/)
-  if (!match) return s // unrecognised format — pass through
+  if (!match) return s
 
   const prefix = (match[1] ?? "0").padStart(6, "0")
   const number = match[2].padStart(10, "0")
   const bankcode = match[3]
 
-  const bban = bankcode + prefix + number // 20 digits
+  const bban = bankcode + prefix + number
 
-  // MOD-97 check digit: append numeric representation of "CZ00"
-  // C=12, Z=35 → "123500"
   const checkStr = bban + "123500"
   const mod = BigInt(checkStr) % 97n
   const checkDigits = String(98n - mod).padStart(2, "0")
@@ -82,7 +72,6 @@ export async function generateQRCode(
       ? buildSPAYD(amount, invoiceNumber, config)
       : buildEPC(amount, invoiceNumber, config)
 
-  // qr-code-styling is browser-only (DOM/Canvas); safe here — called only in useEffect
   const QRCodeStyling = (await import("qr-code-styling")).default
 
   const qr = new QRCodeStyling({
@@ -91,7 +80,6 @@ export async function generateQRCode(
     type: "canvas",
     data,
     margin: 4,
-    // High error correction is essential for styled (rounded) QR codes
     qrOptions: {
       errorCorrectionLevel: "H",
     },
@@ -115,9 +103,6 @@ export async function generateQRCode(
   const blob = await qr.getRawData("png")
   if (!blob) throw new Error("QR generation failed")
 
-  // Normalise to exactly 300×300 px regardless of devicePixelRatio so that
-  // both CZ (SPAYD) and EN (EPC) QR codes render at an identical physical size
-  // in both the HTML preview and the PDF export.
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob)
     const img = new Image()

@@ -1,11 +1,7 @@
 import { z } from "zod"
 
-// ── Primitives ────────────────────────────────────────────────────────────────
-
 export const LanguageSchema = z.enum(["cs", "en"])
 export const CurrencySchema = z.enum(["CZK", "EUR"])
-
-// ── Config ────────────────────────────────────────────────────────────────────
 
 export const SupplierConfigSchema = z.object({
   name: z.string().min(1, "Jméno dodavatele je povinné"),
@@ -54,8 +50,6 @@ export type BankingConfig = z.infer<typeof BankingConfigSchema>
 export type InvoiceConfig = z.infer<typeof InvoiceConfigSchema>
 export type FooterConfig = z.infer<typeof FooterConfigSchema>
 
-// ── Invoice ───────────────────────────────────────────────────────────────────
-
 export const CustomerSchema = z.object({
   name: z.string().min(1, "Název odběratele je povinný"),
   ico: z.string().default(""),
@@ -74,7 +68,7 @@ export const InvoiceLineSchema = z.object({
   quantity: z.number().min(0).default(0),
   unit: z.string().default(""),
   unit_price: z.number().min(0, "Cena nesmí být záporná"),
-  total: z.number(), // zálohy mají záporný total — bez min()
+  total: z.number(),
 })
 
 export const InvoiceFormDataSchema = z.object({
@@ -88,7 +82,7 @@ export const InvoiceFormDataSchema = z.object({
   reverse_charge: z.boolean().default(false),
   customer: CustomerSchema,
   lines: z.array(InvoiceLineSchema).min(1, "Faktura musí mít alespoň jednu položku"),
-  total: z.number(), // může být záporné při faktuře složené pouze ze záloh
+  total: z.number(),
 })
 
 export const InvoiceSchema = InvoiceFormDataSchema.extend({
@@ -97,8 +91,6 @@ export const InvoiceSchema = InvoiceFormDataSchema.extend({
   updated_at: z.string(),
   paid_at: z.string().nullable().default(null),
 })
-
-// ── Customer record (saved customers DB table) ────────────────────────────────
 
 export const CustomerRecordSchema = z.object({
   id: z.string().uuid(),
@@ -132,9 +124,6 @@ export type InvoiceLine = z.infer<typeof InvoiceLineSchema>
 export type InvoiceFormData = z.infer<typeof InvoiceFormDataSchema>
 export type Invoice = z.infer<typeof InvoiceSchema>
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/** Zformátuje Zod chyby do čitelného stringu */
 export function formatZodError(error: z.ZodError): string {
   return error.issues.map((issue) => issue.message).join(", ")
 }

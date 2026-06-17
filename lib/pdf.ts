@@ -4,18 +4,10 @@ import React from "react"
 import type { InvoiceFormData, AppConfig, Invoice } from "@/types"
 import { generateQRCode } from "@/lib/qr"
 
-/**
- * Generates a machine-readable PDF using @react-pdf/renderer (flexbox layout,
- * no bundler workarounds needed) and triggers a browser download.
- *
- * Both react-pdf and the InvoicePDF component are imported dynamically so they
- * are never included in the SSR bundle.
- */
 export async function exportToPDF(
   invoice: InvoiceFormData,
   config: AppConfig
 ): Promise<void> {
-  // Parallel: generate QR + load react-pdf + load component
   const [qrImage, { pdf }, { InvoicePDF }] = await Promise.all([
     generateQRCode(invoice.total, invoice.invoice_number, invoice.language, config).catch(
       () => null
@@ -24,8 +16,6 @@ export async function exportToPDF(
     import("./InvoicePDF"),
   ])
 
-  // Cast needed because React.createElement returns FunctionComponentElement<Props>
-  // while pdf() expects ReactElement<DocumentProps> — the runtime type is correct.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const element = React.createElement(InvoicePDF, { invoice, config, qrImage }) as any
   const blob = await pdf(element).toBlob()
@@ -41,10 +31,6 @@ export async function exportToPDF(
   URL.revokeObjectURL(url)
 }
 
-/**
- * Generates PDFs for all invoices and downloads them as a single ZIP archive.
- * onProgress(done, total) is called after each PDF is generated.
- */
 export async function exportAllToPDF(
   invoices: Invoice[],
   config: AppConfig,

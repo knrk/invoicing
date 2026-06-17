@@ -65,7 +65,6 @@ export default function CustomerListClient({ customers }: Props) {
 
       <div className="grid grid-cols-4 gap-3">
 
-        {/* Přidat odběratele — první karta s čárkovaným borderem */}
         <button
           onClick={() => setAddOpen(true)}
           className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-transparent px-4 py-8 text-text-secondary hover:border-ring/50 hover:text-text hover:bg-subtle transition-colors cursor-pointer min-h-[110px]"
@@ -84,7 +83,6 @@ export default function CustomerListClient({ customers }: Props) {
             onMouseLeave={() => hideMenu(c.id)}
             className="group relative flex flex-col gap-3 rounded-xl border border-border bg-surface px-4 py-4 cursor-pointer hover:border-ring/50 hover:bg-subtle transition-colors"
           >
-            {/* Horní řada: ikona + ⋮ menu */}
             <div className="flex items-start justify-between gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-subtle group-hover:bg-background text-text-secondary transition-colors shrink-0">
                 {c.language === "en"
@@ -93,7 +91,6 @@ export default function CustomerListClient({ customers }: Props) {
                 }
               </div>
 
-              {/* Trigger tlačítko s anchor-name */}
               <button
                 id={`trigger-${c.id}`}
                 {...{ popoverTarget: `ctx-${c.id}` }}
@@ -104,7 +101,6 @@ export default function CustomerListClient({ customers }: Props) {
               </button>
             </div>
 
-            {/* Název + meta */}
             <div>
               <p className="text-sm font-semibold text-text leading-snug">{c.name}</p>
               <p className="text-xs text-text-secondary mt-0.5">
@@ -114,7 +110,6 @@ export default function CustomerListClient({ customers }: Props) {
               </p>
             </div>
 
-            {/* Popover kontextové menu — v top layer, CSS Anchor Positioning */}
             <div
               id={`ctx-${c.id}`}
               {...{ popover: "auto" }}
@@ -141,7 +136,6 @@ export default function CustomerListClient({ customers }: Props) {
         ))}
       </div>
 
-      {/* Dialog — přidat */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent>
           <DialogHeader>
@@ -151,7 +145,6 @@ export default function CustomerListClient({ customers }: Props) {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog — upravit */}
       <Dialog open={!!editingId} onOpenChange={(o) => !o && setEditingId(null)}>
         <DialogContent>
           <DialogHeader>
@@ -166,7 +159,6 @@ export default function CustomerListClient({ customers }: Props) {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog — smazat */}
       <Dialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <DialogContent>
           <DialogHeader>

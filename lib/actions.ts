@@ -17,8 +17,6 @@ import {
 } from "@/lib/schemas"
 import { today, addDays } from "@/lib/invoice"
 
-// ── Config ────────────────────────────────────────────────────────────────────
-
 export async function getConfig(): Promise<AppConfig | null> {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -55,8 +53,6 @@ export async function saveConfig(
   return {}
 }
 
-// ── Invoices ──────────────────────────────────────────────────────────────────
-
 export async function getInvoices(): Promise<Invoice[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -82,9 +78,6 @@ export async function getInvoice(id: string): Promise<Invoice | null> {
   return parsed.success ? parsed.data : null
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/** Returns the next available sequence number for the current year. */
 async function nextSeq(
   supabase: Awaited<ReturnType<typeof createClient>>
 ): Promise<number> {
@@ -97,12 +90,11 @@ async function nextSeq(
     .limit(1)
 
   if (!data || data.length === 0) return 1
-  const seqStr = data[0].invoice_number.slice(4) // skip 4-digit year
+  const seqStr = data[0].invoice_number.slice(4)
   const seq = parseInt(seqStr, 10)
   return isNaN(seq) ? 1 : seq + 1
 }
 
-/** Exported so InvoiceForm can call it to preview the next number. */
 export async function getNextInvoiceSequence(): Promise<number> {
   const supabase = await createClient()
   return nextSeq(supabase)
@@ -177,8 +169,6 @@ export async function setInvoicePaidAt(
   return {}
 }
 
-// ── Customers ─────────────────────────────────────────────────────────────────
-
 export async function getCustomers(): Promise<CustomerRecord[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -241,8 +231,6 @@ export async function deleteCustomer(id: string): Promise<{ error?: string }> {
 }
 
 
-// ── Invoices ──────────────────────────────────────────────────────────────────
-
 export async function duplicateInvoice(
   id: string
 ): Promise<{ data?: Invoice; error?: string }> {
@@ -260,7 +248,6 @@ export async function duplicateInvoice(
   if (!originalParsed.success) return { error: "Invalid invoice data" }
   const original = originalParsed.data
 
-  // Fetch config for due-days
   const { data: configData } = await supabase
     .from("config")
     .select("invoice")

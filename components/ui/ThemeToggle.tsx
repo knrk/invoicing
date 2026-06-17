@@ -13,7 +13,6 @@ function getSystemTheme(): Theme {
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme | null>(null)
 
-  // On mount: read saved preference or fall back to system
   useEffect(() => {
     const saved = localStorage.getItem("theme") as Theme | null
     const resolved = saved ?? getSystemTheme()
@@ -28,7 +27,6 @@ export default function ThemeToggle() {
     localStorage.setItem("theme", next)
   }
 
-  // Render nothing until we know the theme (avoids flash)
   if (theme === null) return <div className="w-8 h-8" />
 
   return (
