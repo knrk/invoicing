@@ -1,24 +1,13 @@
-import React from "react"
-import {
-  Document,
-  Page,
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  Font,
-  Svg,
-  Path,
-} from "@react-pdf/renderer"
-import type { InvoiceFormData, AppConfig } from "@/types"
-import { LABELS, formatDate, getPaymentParts, ibanToCzDomestic, fmtNum } from "@/lib/invoice"
+import { LABELS, fmtNum, formatDate, getPaymentParts, ibanToCzDomestic } from "@/lib/invoice"
+import type { AppConfig, InvoiceFormData } from "@/types"
+import { Document, Font, Image, Page, Path, StyleSheet, Svg, Text, View } from "@react-pdf/renderer"
 
 Font.register({
   family: "Roboto",
   fonts: [
     { src: "/fonts/Roboto-Regular.woff", fontWeight: 400 },
-    { src: "/fonts/Roboto-Bold.woff",    fontWeight: 700 },
-    { src: "/fonts/Roboto-Italic.woff",  fontWeight: 400, fontStyle: "italic" },
+    { src: "/fonts/Roboto-Bold.woff", fontWeight: 700 },
+    { src: "/fonts/Roboto-Italic.woff", fontWeight: 400, fontStyle: "italic" },
   ],
 })
 
@@ -26,8 +15,8 @@ Font.register({
   family: "Montserrat",
   fonts: [
     { src: "/fonts/Montserrat_400Regular.ttf", fontWeight: 400 },
-    { src: "/fonts/Montserrat_500Medium.ttf",  fontWeight: 500 },
-    { src: "/fonts/Montserrat_700Bold.ttf",    fontWeight: 700 },
+    { src: "/fonts/Montserrat_500Medium.ttf", fontWeight: 500 },
+    { src: "/fonts/Montserrat_700Bold.ttf", fontWeight: 700 },
   ],
 })
 
@@ -297,24 +286,24 @@ export interface InvoicePDFProps {
 export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
   const lang = invoice.language
   const L = LABELS[lang]
-  const locale = lang === "cs" ? "cs-CZ" : "en-GB"
   const kc = lang === "cs" ? "Kč" : invoice.currency
   const showQtyPrice = invoice.lines.some((l) => l.quantity > 1)
-  const account = lang === "cs"
-    ? ibanToCzDomestic(config.banking.account_czk)
-    : config.banking.account_eur_iban
+  const account =
+    lang === "cs" ? ibanToCzDomestic(config.banking.account_czk) : config.banking.account_eur_iban
   const vs = invoice.variable_symbol || invoice.invoice_number.replace(/^[A-Za-z]+/, "")
   const total = invoice.total
   const totalStr = `${fmtNum(total)} ${kc}`
 
-  const localCity = lang !== "cs"
-    ? (invoice.customer.city ?? "").replace(/^Praha$/i, "Prague")
-    : (invoice.customer.city ?? "")
-  const localCountry = lang !== "cs"
-    ? (invoice.customer.country === "CZ" || invoice.customer.country === "Česká republika"
+  const localCity =
+    lang !== "cs"
+      ? (invoice.customer.city ?? "").replace(/^Praha$/i, "Prague")
+      : (invoice.customer.city ?? "")
+  const localCountry =
+    lang !== "cs"
+      ? invoice.customer.country === "CZ" || invoice.customer.country === "Česká republika"
         ? "Czech Republic"
-        : invoice.customer.country ?? "")
-    : ""
+        : (invoice.customer.country ?? "")
+      : ""
 
   const customerAddress = [
     invoice.customer.street,
@@ -324,31 +313,36 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
     .filter(Boolean)
     .join(lang !== "cs" ? "\n" : ", ")
 
-  const supplierCity = lang !== "cs"
-    ? config.supplier.city.replace(/^Praha$/i, "Prague")
-    : config.supplier.city
+  const supplierCity =
+    lang !== "cs" ? config.supplier.city.replace(/^Praha$/i, "Prague") : config.supplier.city
   const supplierAddress = [
     config.supplier.street,
     `${config.supplier.zip} ${supplierCity}`,
     lang !== "cs" ? "Czech Republic" : "",
-  ].filter(Boolean).join(lang !== "cs" ? "\n" : ", ")
+  ]
+    .filter(Boolean)
+    .join(lang !== "cs" ? "\n" : ", ")
 
   return (
     <Document>
       <Page size="A4" style={S.page}>
         <View style={S.row}>
-
           <View style={S.leftCol}>
             <View style={S.titleBar} />
             <Text style={S.titleText}>{L.invoice}</Text>
 
-            <MetaField label={L.invoiceNumber} value={invoice.invoice_number.replace(/^[A-Za-z]+/, "")} />
+            <MetaField
+              label={L.invoiceNumber}
+              value={invoice.invoice_number.replace(/^[A-Za-z]+/, "")}
+            />
             <MetaField label={L.issueDate} value={formatDate(invoice.issue_date, lang)} />
-            <MetaField label={L.dueDate}   value={formatDate(invoice.due_date, lang)} />
-            <MetaField label={L.payment}   value={invoice.payment_method} />
-            {lang === "cs" && <MetaField label={L.account}       value={account} />}
+            <MetaField label={L.dueDate} value={formatDate(invoice.due_date, lang)} />
+            <MetaField label={L.payment} value={invoice.payment_method} />
+            {lang === "cs" && <MetaField label={L.account} value={account} />}
             {lang === "cs" && <MetaField label={L.variableSymbol} value={vs} />}
-            {lang !== "cs" && invoice.reverse_charge && <MetaField label="MODE" value="Reverse Charge" />}
+            {lang !== "cs" && invoice.reverse_charge && (
+              <MetaField label="MODE" value="Reverse Charge" />
+            )}
 
             <View style={{ flexGrow: 1 }} />
 
@@ -369,28 +363,25 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
           </View>
 
           <View style={S.rightCol}>
-
             <View style={S.partiesRow}>
               <PartyBlock
                 role={L.customer}
                 name={invoice.customer.name || "—"}
                 identifier={
-                  lang === "cs" && invoice.customer.ico
-                    ? `IČ: ${invoice.customer.ico}`
-                    : undefined
+                  lang === "cs" && invoice.customer.ico ? `IČ: ${invoice.customer.ico}` : undefined
                 }
-                vatId={
-                  lang !== "cs" && invoice.customer.dic
-                    ? invoice.customer.dic
-                    : undefined
-                }
+                vatId={lang !== "cs" && invoice.customer.dic ? invoice.customer.dic : undefined}
                 address={customerAddress || undefined}
               />
               <View style={S.partySpacer} />
               <PartyBlock
                 role={L.supplier}
                 name={config.supplier.name}
-                identifier={lang === "cs" && config.supplier.ico ? `${L.partyIcoLabel}: ${config.supplier.ico}` : undefined}
+                identifier={
+                  lang === "cs" && config.supplier.ico
+                    ? `${L.partyIcoLabel}: ${config.supplier.ico}`
+                    : undefined
+                }
                 vatId={lang !== "cs" && config.supplier.dic ? config.supplier.dic : undefined}
                 address={supplierAddress}
               />
@@ -399,23 +390,56 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
             <View style={S.tableTopLine} />
 
             <View style={S.tableHeaderRow}>
-              <View style={S.colDesc}><Text style={S.headerText}>{L.description}</Text></View>
-              {showQtyPrice && <View style={S.colQty}><Text style={S.headerText}>{L.quantity}</Text></View>}
-              {showQtyPrice && <View style={S.colPrice}><Text style={S.headerText}>{L.unitPrice}</Text></View>}
-              <View style={S.colTotal}><Text style={S.headerText}>{L.total}</Text></View>
+              <View style={S.colDesc}>
+                <Text style={S.headerText}>{L.description}</Text>
+              </View>
+              {showQtyPrice && (
+                <View style={S.colQty}>
+                  <Text style={S.headerText}>{L.quantity}</Text>
+                </View>
+              )}
+              {showQtyPrice && (
+                <View style={S.colPrice}>
+                  <Text style={S.headerText}>{L.unitPrice}</Text>
+                </View>
+              )}
+              <View style={S.colTotal}>
+                <Text style={S.headerText}>{L.total}</Text>
+              </View>
             </View>
 
             {invoice.lines.map((line, idx, arr) => (
-              <View key={line.id} style={[S.tableRow, idx < arr.length - 1 ? { borderBottom: "2px solid #D8D8D8" } : {}]}>
+              <View
+                key={line.id}
+                style={[
+                  S.tableRow,
+                  idx < arr.length - 1 ? { borderBottom: "2px solid #D8D8D8" } : {},
+                ]}
+              >
                 <View style={S.colDesc}>
                   <Text style={S.cellText}>{line.description}</Text>
                   {line.sub_description ? (
-                    <Text style={[S.cellText, { fontFamily: "Roboto", fontWeight: 400, fontSize: 10, color: "rgba(0,0,0,0.5)", marginTop: 2 }]}>{line.sub_description}</Text>
+                    <Text
+                      style={[
+                        S.cellText,
+                        {
+                          fontFamily: "Roboto",
+                          fontWeight: 400,
+                          fontSize: 10,
+                          color: "rgba(0,0,0,0.5)",
+                          marginTop: 2,
+                        },
+                      ]}
+                    >
+                      {line.sub_description}
+                    </Text>
                   ) : null}
                 </View>
                 {showQtyPrice && (
                   <View style={S.colQty}>
-                    <Text style={S.cellText}>{line.quantity > 0 || line.unit ? `${line.quantity} ${line.unit}` : ""}</Text>
+                    <Text style={S.cellText}>
+                      {line.quantity > 0 || line.unit ? `${line.quantity} ${line.unit}` : ""}
+                    </Text>
                   </View>
                 )}
                 {showQtyPrice && (
@@ -438,15 +462,19 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
               </View>
             </View>
 
-
             <View style={{ flexGrow: 1 }} />
 
             <View style={S.paymentRow}>
               <Text style={S.paymentText}>
-                {getPaymentParts(lang, totalStr, account, vs, config.banking.constant_symbol).map((part, i) =>
-                  part.bold
-                    ? <Text key={i} style={{ fontWeight: 700 }}>{part.text}</Text>
-                    : part.text
+                {getPaymentParts(lang, totalStr, account, vs, config.banking.constant_symbol).map(
+                  (part) =>
+                    part.bold ? (
+                      <Text key={part.text} style={{ fontWeight: 700 }}>
+                        {part.text}
+                      </Text>
+                    ) : (
+                      part.text
+                    )
                 )}
               </Text>
               {qrImage ? <Image style={S.qrCode} src={qrImage} /> : null}
@@ -460,18 +488,21 @@ export function InvoicePDF({ invoice, config, qrImage }: InvoicePDFProps) {
               </View>
               <View style={S.footerSection}>
                 <Text style={S.footerHeading}>KONTAKT</Text>
-                {[config.supplier.phone, config.supplier.email]
-                  .filter(Boolean)
-                  .map((v, i) => <Text key={i} style={S.footerLine}>{v}</Text>)}
+                {[config.supplier.phone, config.supplier.email].filter(Boolean).map((v) => (
+                  <Text key={v} style={S.footerLine}>
+                    {v}
+                  </Text>
+                ))}
               </View>
               <View style={S.footerSection}>
                 <Text style={S.footerHeading}>WEB</Text>
-                {[config.supplier.web1, config.supplier.web2]
-                  .filter(Boolean)
-                  .map((v, i) => <Text key={i} style={S.footerLine}>{v}</Text>)}
+                {[config.supplier.web1, config.supplier.web2].filter(Boolean).map((v) => (
+                  <Text key={v} style={S.footerLine}>
+                    {v}
+                  </Text>
+                ))}
               </View>
             </View>
-
           </View>
         </View>
       </Page>

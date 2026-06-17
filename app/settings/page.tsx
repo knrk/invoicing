@@ -1,5 +1,5 @@
-import { getConfig } from "@/lib/actions"
 import SettingsForm from "@/components/invoice/SettingsForm"
+import { getConfig } from "@/lib/actions"
 
 export default async function SettingsPage() {
   const config = await getConfig()

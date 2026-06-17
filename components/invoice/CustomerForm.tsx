@@ -1,14 +1,14 @@
 "use client"
 
-import { useState } from "react"
-import type { CustomerRecord, CustomerRecordForm } from "@/types"
-import { createCustomer, updateCustomer } from "@/lib/actions"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch"
+import { createCustomer, updateCustomer } from "@/lib/actions"
 import { cn } from "@/lib/utils"
+import type { CustomerRecord, CustomerRecordForm } from "@/types"
+import { useState } from "react"
 
 interface Props {
   existing?: CustomerRecord
@@ -102,9 +102,7 @@ export default function CustomerForm({ existing, onDone }: Props) {
   async function handleSave() {
     setSaving(true)
     setError(null)
-    const result = existing
-      ? await updateCustomer(existing.id, form)
-      : await createCustomer(form)
+    const result = existing ? await updateCustomer(existing.id, form) : await createCustomer(form)
     setSaving(false)
     if (result.error) {
       setError(result.error)
@@ -211,7 +209,9 @@ export default function CustomerForm({ existing, onDone }: Props) {
       </div>
 
       <div className="flex justify-end gap-2 pt-2">
-        <Button variant="outline" onClick={onDone}>Zrušit</Button>
+        <Button variant="outline" onClick={onDone}>
+          Zrušit
+        </Button>
         <Button variant="dark" onClick={handleSave} disabled={saving}>
           {saving ? "Ukládám…" : existing ? "Uložit změny" : "Přidat odběratele"}
         </Button>

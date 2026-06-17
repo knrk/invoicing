@@ -1,15 +1,14 @@
 "use client"
 
-import { useState } from "react"
-import type { AppConfig } from "@/types"
-import { saveConfig } from "@/lib/actions"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { cn } from "@/lib/utils"
+import { saveConfig } from "@/lib/actions"
+import type { AppConfig } from "@/types"
+import { useState } from "react"
 
 const DEFAULT_CONFIG: Omit<AppConfig, "id" | "updated_at"> = {
   supplier: {
@@ -39,7 +38,8 @@ const DEFAULT_CONFIG: Omit<AppConfig, "id" | "updated_at"> = {
       "Při zpožděné úhradě Vám budeme účtovat penále ve výši 0,05% za každý započatý den prodlení.\n\nNejsem plátce DPH.",
     penalty_en:
       "In case of late payment, we will charge a penalty of 0.05% for each commenced day of delay.",
-    note_cs: "Fyzická osoba zapsaná v Živnostenském rejstříku od 1.9.2004\nEvidenční číslo ŽL: 381006-4173-00",
+    note_cs:
+      "Fyzická osoba zapsaná v Živnostenském rejstříku od 1.9.2004\nEvidenční číslo ŽL: 381006-4173-00",
     note_en: "",
   },
 }
@@ -88,10 +88,16 @@ export default function SettingsForm({ config }: { config: AppConfig | null }) {
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Jméno / Název">
-              <Input value={form.supplier.name} onChange={(e) => setNested("supplier", "name", e.target.value)} />
+              <Input
+                value={form.supplier.name}
+                onChange={(e) => setNested("supplier", "name", e.target.value)}
+              />
             </Field>
             <Field label="IČ">
-              <Input value={form.supplier.ico} onChange={(e) => setNested("supplier", "ico", e.target.value)} />
+              <Input
+                value={form.supplier.ico}
+                onChange={(e) => setNested("supplier", "ico", e.target.value)}
+              />
             </Field>
             <Field label="DIČ (VAT ID, volitelný)" hint="Zobrazí se pouze na anglických fakturách">
               <Input
@@ -101,25 +107,46 @@ export default function SettingsForm({ config }: { config: AppConfig | null }) {
               />
             </Field>
             <Field label="Ulice">
-              <Input value={form.supplier.street} onChange={(e) => setNested("supplier", "street", e.target.value)} />
+              <Input
+                value={form.supplier.street}
+                onChange={(e) => setNested("supplier", "street", e.target.value)}
+              />
             </Field>
             <Field label="PSČ">
-              <Input value={form.supplier.zip} onChange={(e) => setNested("supplier", "zip", e.target.value)} />
+              <Input
+                value={form.supplier.zip}
+                onChange={(e) => setNested("supplier", "zip", e.target.value)}
+              />
             </Field>
             <Field label="Město">
-              <Input value={form.supplier.city} onChange={(e) => setNested("supplier", "city", e.target.value)} />
+              <Input
+                value={form.supplier.city}
+                onChange={(e) => setNested("supplier", "city", e.target.value)}
+              />
             </Field>
             <Field label="Telefon">
-              <Input value={form.supplier.phone} onChange={(e) => setNested("supplier", "phone", e.target.value)} />
+              <Input
+                value={form.supplier.phone}
+                onChange={(e) => setNested("supplier", "phone", e.target.value)}
+              />
             </Field>
             <Field label="E-mail">
-              <Input value={form.supplier.email} onChange={(e) => setNested("supplier", "email", e.target.value)} />
+              <Input
+                value={form.supplier.email}
+                onChange={(e) => setNested("supplier", "email", e.target.value)}
+              />
             </Field>
             <Field label="Web 1">
-              <Input value={form.supplier.web1} onChange={(e) => setNested("supplier", "web1", e.target.value)} />
+              <Input
+                value={form.supplier.web1}
+                onChange={(e) => setNested("supplier", "web1", e.target.value)}
+              />
             </Field>
             <Field label="Web 2 (volitelný)">
-              <Input value={form.supplier.web2} onChange={(e) => setNested("supplier", "web2", e.target.value)} />
+              <Input
+                value={form.supplier.web2}
+                onChange={(e) => setNested("supplier", "web2", e.target.value)}
+              />
             </Field>
           </div>
         </CardContent>
@@ -131,7 +158,10 @@ export default function SettingsForm({ config }: { config: AppConfig | null }) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
-            <Field label="Účet CZK — IBAN" hint="Nutné pro QR platbu. Formát: CZ6508000000192000145399">
+            <Field
+              label="Účet CZK — IBAN"
+              hint="Nutné pro QR platbu. Formát: CZ6508000000192000145399"
+            >
               <Input
                 value={form.banking.account_czk}
                 onChange={(e) => setNested("banking", "account_czk", e.target.value)}
@@ -175,14 +205,22 @@ export default function SettingsForm({ config }: { config: AppConfig | null }) {
               <Input
                 type="number"
                 value={String(form.invoice.default_due_days_czk)}
-                onChange={(e) => setNested("invoice", "default_due_days_czk", parseInt(e.target.value) || 7)}
+                onChange={(e) =>
+                  setNested("invoice", "default_due_days_czk", Number.parseInt(e.target.value) || 7)
+                }
               />
             </Field>
             <Field label="Splatnost EUR (dny)">
               <Input
                 type="number"
                 value={String(form.invoice.default_due_days_eur)}
-                onChange={(e) => setNested("invoice", "default_due_days_eur", parseInt(e.target.value) || 14)}
+                onChange={(e) =>
+                  setNested(
+                    "invoice",
+                    "default_due_days_eur",
+                    Number.parseInt(e.target.value) || 14
+                  )
+                }
               />
             </Field>
           </div>
@@ -231,9 +269,7 @@ export default function SettingsForm({ config }: { config: AppConfig | null }) {
         <Button onClick={handleSave} disabled={saving}>
           {saving ? "Ukládám..." : "Uložit nastavení"}
         </Button>
-        {saved && (
-          <span className="text-sm text-green-700 font-medium">✓ Uloženo</span>
-        )}
+        {saved && <span className="text-sm text-green-700 font-medium">✓ Uloženo</span>}
         {saveError && (
           <Alert variant="destructive" className="flex-1 py-2">
             <AlertDescription>Chyba: {saveError}</AlertDescription>

@@ -20,11 +20,7 @@ function toIBAN(account: string): string {
   return `CZ${checkDigits}${bban}`
 }
 
-function buildSPAYD(
-  amount: number,
-  invoiceNumber: string,
-  config: AppConfig
-): string {
+function buildSPAYD(amount: number, invoiceNumber: string, config: AppConfig): string {
   const vs = invoiceNumber.replace(/\D/g, "").slice(-10)
   const acc = toIBAN(config.banking.account_czk)
 
@@ -40,11 +36,7 @@ function buildSPAYD(
   return parts.join("*")
 }
 
-function buildEPC(
-  amount: number,
-  invoiceNumber: string,
-  config: AppConfig
-): string {
+function buildEPC(amount: number, invoiceNumber: string, config: AppConfig): string {
   const lines = [
     "BCD",
     "002",
@@ -114,7 +106,10 @@ export async function generateQRCode(
       URL.revokeObjectURL(url)
       resolve(canvas.toDataURL("image/png"))
     }
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("QR normalise failed")) }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error("QR normalise failed"))
+    }
     img.src = url
   })
 }

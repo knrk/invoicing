@@ -1,9 +1,6 @@
-import { NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ ico: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ ico: string }> }) {
   const { ico } = await params
   const clean = ico.trim().replace(/\s+/g, "")
   if (!clean) return NextResponse.json({ error: "Chybí IČ" }, { status: 400 })
@@ -28,8 +25,7 @@ export async function GET(
 
     if (res.status === 404)
       return NextResponse.json({ error: "Subjekt v ARESu nenalezen" }, { status: 404 })
-    if (!res.ok)
-      return NextResponse.json({ error: `ARES ${res.status}` }, { status: 502 })
+    if (!res.ok) return NextResponse.json({ error: `ARES ${res.status}` }, { status: 502 })
 
     const ct = res.headers.get("content-type") ?? ""
     if (!ct.includes("json")) {

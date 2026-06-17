@@ -1,4 +1,4 @@
-import type { AppConfig, Language, Currency } from "@/types"
+import type { AppConfig, Currency, Language } from "@/types"
 
 export function getCurrency(language: Language): Currency {
   return language === "cs" ? "CZK" : "EUR"
@@ -54,11 +54,9 @@ export function ibanToCzDomestic(iban: string): string {
   const s = iban.trim().replace(/\s/g, "").toUpperCase()
   if (!/^CZ\d{22}$/.test(s)) return iban // not a Czech IBAN — return unchanged
   const bankcode = s.slice(4, 8)
-  const prefix   = String(parseInt(s.slice(8, 14), 10))
-  const number   = String(parseInt(s.slice(14, 24), 10))
-  return prefix === "0"
-    ? `${number}/${bankcode}`
-    : `${prefix}-${number}/${bankcode}`
+  const prefix = String(Number.parseInt(s.slice(8, 14), 10))
+  const number = String(Number.parseInt(s.slice(14, 24), 10))
+  return prefix === "0" ? `${number}/${bankcode}` : `${prefix}-${number}/${bankcode}`
 }
 
 export type PaymentPart = { text: string; bold: boolean }

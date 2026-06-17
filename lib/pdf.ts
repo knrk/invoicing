@@ -1,13 +1,11 @@
 "use client"
 
-import React from "react"
-import type { InvoiceFormData, AppConfig, Invoice } from "@/types"
 import { generateQRCode } from "@/lib/qr"
+import type { AppConfig, Invoice, InvoiceFormData } from "@/types"
+import type { DocumentProps } from "@react-pdf/renderer"
+import React from "react"
 
-export async function exportToPDF(
-  invoice: InvoiceFormData,
-  config: AppConfig
-): Promise<void> {
+export async function exportToPDF(invoice: InvoiceFormData, config: AppConfig): Promise<void> {
   const [qrImage, { pdf }, { InvoicePDF }] = await Promise.all([
     generateQRCode(invoice.total, invoice.invoice_number, invoice.language, config).catch(
       () => null
@@ -16,8 +14,7 @@ export async function exportToPDF(
     import("./InvoicePDF"),
   ])
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const element = React.createElement(InvoicePDF, { invoice, config, qrImage }) as any
+  const element = React.createElement(InvoicePDF, { invoice, config, qrImage }) as React.ReactElement<DocumentProps>
   const blob = await pdf(element).toBlob()
 
   const url = URL.createObjectURL(blob)
@@ -54,8 +51,7 @@ export async function exportAllToPDF(
       config
     ).catch(() => null)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const element = React.createElement(InvoicePDF, { invoice, config, qrImage }) as any
+    const element = React.createElement(InvoicePDF, { invoice, config, qrImage }) as React.ReactElement<DocumentProps>
     const blob = await pdf(element).toBlob()
     const filename = `${invoice.invoice_number.replace(/^[A-Za-z]+/, "")}.pdf`
     zip.file(filename, blob)

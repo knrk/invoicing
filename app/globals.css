@@ -1,52 +1,52 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Roboto:ital,wght@0,400;0,500;1,400&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Roboto:ital,wght@0,400;0,500;1,400&display=swap");
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-heading: 'Montserrat', sans-serif;
-  --font-body: 'Roboto', sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-heading: "Montserrat", sans-serif;
+  --font-body: "Roboto", sans-serif;
   --font-mono: monospace;
 
-  --color-page:            light-dark(#ECEEF1,  #1a1915);
-  --color-surface:         light-dark(#FFFFFF,  #212019);
-  --color-subtle:          light-dark(#F7F8FA,  #282623);
-  --color-border:          light-dark(#E4E6EA,  #302f2c);
-  --color-divider:         light-dark(#F0F1F3,  #252321);
-  --color-text:            light-dark(#111827,  #ece8e1);
-  --color-text-secondary:  light-dark(#6B7280,  #908d88);
-  --color-muted:           light-dark(#9CA3AF,  #6b6864);
-  --color-accent:          light-dark(#F97316,  #F97316);
-  --color-accent-hover:    light-dark(#EA6C0A,  #EA6C0A);
-  --color-warning-bg:      light-dark(#FFF7ED,  #2a1e0c);
-  --color-warning-border:  light-dark(#FED7AA,  #6b3f12);
-  --color-warning-text:    light-dark(#C2410C,  #fb923c);
-  --color-danger:          light-dark(#EF4444,  #f87171);
+  --color-page: light-dark(#eceef1, #1a1915);
+  --color-surface: light-dark(#ffffff, #212019);
+  --color-subtle: light-dark(#f7f8fa, #282623);
+  --color-border: light-dark(#e4e6ea, #302f2c);
+  --color-divider: light-dark(#f0f1f3, #252321);
+  --color-text: light-dark(#111827, #ece8e1);
+  --color-text-secondary: light-dark(#6b7280, #908d88);
+  --color-muted: light-dark(#9ca3af, #6b6864);
+  --color-accent: light-dark(#f97316, #f97316);
+  --color-accent-hover: light-dark(#ea6c0a, #ea6c0a);
+  --color-warning-bg: light-dark(#fff7ed, #2a1e0c);
+  --color-warning-border: light-dark(#fed7aa, #6b3f12);
+  --color-warning-text: light-dark(#c2410c, #fb923c);
+  --color-danger: light-dark(#ef4444, #f87171);
 
-  --radius-input:   8px;
-  --radius-card:    12px;
-  --radius-panel:   16px;
+  --radius-input: 8px;
+  --radius-card: 12px;
+  --radius-panel: 16px;
 
-  --shadow-card:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-preview: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-preview: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
 
-  --color-background:            light-dark(#FFFFFF,  #212019);
-  --color-foreground:            light-dark(#111827,  #ece8e1);
-  --color-card:                  light-dark(#FFFFFF,  #212019);
-  --color-card-foreground:       light-dark(#111827,  #ece8e1);
-  --color-popover:               light-dark(#FFFFFF,  #2a2926);
-  --color-popover-foreground:    light-dark(#111827,  #ece8e1);
-  --color-primary:               light-dark(#F97316,  #F97316);
-  --color-primary-foreground:    light-dark(#FFFFFF,  #FFFFFF);
-  --color-secondary:             light-dark(#F7F8FA,  #282623);
-  --color-secondary-foreground:  light-dark(#111827,  #ece8e1);
-  --color-muted-bg:              light-dark(#F7F8FA,  #282623);
-  --color-muted-fg:              light-dark(#6B7280,  #908d88);
-  --color-accent-bg:             light-dark(#FFF7ED,  #2a1e0c);
-  --color-accent-fg:             light-dark(#111827,  #ece8e1);
-  --color-destructive:           light-dark(#EF4444,  #f87171);
-  --color-destructive-foreground:light-dark(#FFFFFF,  #1a0505);
-  --color-input:                 light-dark(#E4E6EA,  #302f2c);
-  --color-ring:                  light-dark(#F97316,  #F97316);
+  --color-background: light-dark(#ffffff, #212019);
+  --color-foreground: light-dark(#111827, #ece8e1);
+  --color-card: light-dark(#ffffff, #212019);
+  --color-card-foreground: light-dark(#111827, #ece8e1);
+  --color-popover: light-dark(#ffffff, #2a2926);
+  --color-popover-foreground: light-dark(#111827, #ece8e1);
+  --color-primary: light-dark(#f97316, #f97316);
+  --color-primary-foreground: light-dark(#ffffff, #ffffff);
+  --color-secondary: light-dark(#f7f8fa, #282623);
+  --color-secondary-foreground: light-dark(#111827, #ece8e1);
+  --color-muted-bg: light-dark(#f7f8fa, #282623);
+  --color-muted-fg: light-dark(#6b7280, #908d88);
+  --color-accent-bg: light-dark(#fff7ed, #2a1e0c);
+  --color-accent-fg: light-dark(#111827, #ece8e1);
+  --color-destructive: light-dark(#ef4444, #f87171);
+  --color-destructive-foreground: light-dark(#ffffff, #1a0505);
+  --color-input: light-dark(#e4e6ea, #302f2c);
+  --color-ring: light-dark(#f97316, #f97316);
 
   --radius: 0.5rem;
 }
@@ -55,8 +55,12 @@
   color-scheme: light dark;
 }
 
-:root[data-theme="light"] { color-scheme: light; }
-:root[data-theme="dark"]  { color-scheme: dark; }
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
 
 * {
   box-sizing: border-box;
@@ -82,7 +86,7 @@ body {
   background: #fff;
   color: #000;
   color-scheme: light;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 @media print {

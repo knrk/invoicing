@@ -16,9 +16,7 @@ export default function RootLayout({
     <html lang="cs">
       <body suppressHydrationWarning className="flex h-screen overflow-hidden">
         <Sidebar />
-        <div className="flex-1 overflow-auto">
-          {children}
-        </div>
+        <div className="flex-1 overflow-auto">{children}</div>
       </body>
     </html>
   )

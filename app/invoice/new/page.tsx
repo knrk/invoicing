@@ -1,5 +1,5 @@
-import { getConfig, getCustomers } from "@/lib/actions"
 import InvoiceForm from "@/components/invoice/InvoiceForm"
+import { getConfig, getCustomers } from "@/lib/actions"
 import { redirect } from "next/navigation"
 
 export default async function NewInvoicePage() {

@@ -1,29 +1,25 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
-import { revalidatePath } from "next/cache"
+import { addDays, today } from "@/lib/invoice"
 import {
-  AppConfigSchema,
-  InvoiceFormDataSchema,
-  InvoiceSchema,
-  CustomerRecordSchema,
-  CustomerRecordFormSchema,
-  formatZodError,
   type AppConfig,
-  type Invoice,
-  type InvoiceFormData,
+  AppConfigSchema,
   type CustomerRecord,
   type CustomerRecordForm,
+  CustomerRecordFormSchema,
+  CustomerRecordSchema,
+  type Invoice,
+  type InvoiceFormData,
+  InvoiceFormDataSchema,
+  InvoiceSchema,
+  formatZodError,
 } from "@/lib/schemas"
-import { today, addDays } from "@/lib/invoice"
+import { createClient } from "@/lib/supabase/server"
+import { revalidatePath } from "next/cache"
 
 export async function getConfig(): Promise<AppConfig | null> {
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("config")
-    .select("*")
-    .eq("id", 1)
-    .single()
+  const { data, error } = await supabase.from("config").select("*").eq("id", 1).single()
   if (error || !data) return null
 
   const parsed = AppConfigSchema.safeParse(data)
@@ -68,19 +64,13 @@ export async function getInvoices(): Promise<Invoice[]> {
 
 export async function getInvoice(id: string): Promise<Invoice | null> {
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("invoices")
-    .select("*")
-    .eq("id", id)
-    .single()
+  const { data, error } = await supabase.from("invoices").select("*").eq("id", id).single()
   if (error || !data) return null
   const parsed = InvoiceSchema.safeParse(data)
   return parsed.success ? parsed.data : null
 }
 
-async function nextSeq(
-  supabase: Awaited<ReturnType<typeof createClient>>
-): Promise<number> {
+async function nextSeq(supabase: Awaited<ReturnType<typeof createClient>>): Promise<number> {
   const year = new Date().getFullYear()
   const { data } = await supabase
     .from("invoices")
@@ -91,8 +81,8 @@ async function nextSeq(
 
   if (!data || data.length === 0) return 1
   const seqStr = data[0].invoice_number.slice(4)
-  const seq = parseInt(seqStr, 10)
-  return isNaN(seq) ? 1 : seq + 1
+  const seq = Number.parseInt(seqStr, 10)
+  return Number.isNaN(seq) ? 1 : seq + 1
 }
 
 export async function getNextInvoiceSequence(): Promise<number> {
@@ -230,10 +220,7 @@ export async function deleteCustomer(id: string): Promise<{ error?: string }> {
   return {}
 }
 
-
-export async function duplicateInvoice(
-  id: string
-): Promise<{ data?: Invoice; error?: string }> {
+export async function duplicateInvoice(id: string): Promise<{ data?: Invoice; error?: string }> {
   const supabase = await createClient()
 
   const { data: originalRaw, error: fetchError } = await supabase
@@ -248,11 +235,7 @@ export async function duplicateInvoice(
   if (!originalParsed.success) return { error: "Invalid invoice data" }
   const original = originalParsed.data
 
-  const { data: configData } = await supabase
-    .from("config")
-    .select("invoice")
-    .eq("id", 1)
-    .single()
+  const { data: configData } = await supabase.from("config").select("invoice").eq("id", 1).single()
 
   const year = new Date().getFullYear()
   const newSeq = await nextSeq(supabase)
@@ -261,8 +244,8 @@ export async function duplicateInvoice(
   const issueDate = today()
   const dueDays =
     original.language === "cs"
-      ? configData?.invoice?.default_due_days_czk ?? 7
-      : configData?.invoice?.default_due_days_eur ?? 14
+      ? (configData?.invoice?.default_due_days_czk ?? 7)
+      : (configData?.invoice?.default_due_days_eur ?? 14)
   const dueDate = addDays(issueDate, dueDays)
 
   const now = new Date().toISOString()

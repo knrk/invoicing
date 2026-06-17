@@ -1,5 +1,5 @@
-import { getInvoices, getConfig } from "@/lib/actions"
 import InvoiceListClient from "@/components/invoice/InvoiceListClient"
+import { getConfig, getInvoices } from "@/lib/actions"
 
 export default async function HomePage() {
   const [invoices, config] = await Promise.all([getInvoices(), getConfig()])

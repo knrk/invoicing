@@ -1,32 +1,32 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import type { Invoice, AppConfig } from "@/types"
-import { fmtNum, today } from "@/lib/invoice"
-import { deleteInvoice, duplicateInvoice, setInvoicePaidAt } from "@/lib/actions"
-import { exportAllToPDF } from "@/lib/pdf"
-import { Calendar } from "@/components/ui/calendar"
-import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { deleteInvoice, duplicateInvoice, setInvoicePaidAt } from "@/lib/actions"
+import { fmtNum, today } from "@/lib/invoice"
+import { exportAllToPDF } from "@/lib/pdf"
 import { cn } from "@/lib/utils"
+import type { AppConfig, Invoice } from "@/types"
+import { useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
 
 function fmtDateCs(dateStr: string): string {
   const [y, m, d] = dateStr.split("-").map(Number)
@@ -66,9 +66,7 @@ export default function InvoiceListClient({ invoices, config }: Props) {
     if (!config || invoices.length === 0) return
     setExportProgress({ done: 0, total: invoices.length })
     try {
-      await exportAllToPDF(invoices, config, (done, total) =>
-        setExportProgress({ done, total })
-      )
+      await exportAllToPDF(invoices, config, (done, total) => setExportProgress({ done, total }))
     } finally {
       setExportProgress(null)
     }
@@ -172,10 +170,7 @@ export default function InvoiceListClient({ invoices, config }: Props) {
       )}
 
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <StatCard
-          label={`Fakturace ${currentYear} — CZK`}
-          value={`${fmtNum(yearCzk)} Kč`}
-        />
+        <StatCard label={`Fakturace ${currentYear} — CZK`} value={`${fmtNum(yearCzk)} Kč`} />
         <StatCard
           label={`Fakturace ${currentYear} — €`}
           value={yearEur > 0 ? `${fmtNum(yearEur)} €` : "—"}
@@ -187,7 +182,9 @@ export default function InvoiceListClient({ invoices, config }: Props) {
             overdueInvoices.length === 0
               ? "Vše v pořádku"
               : [
-                  overdueCountCzk > 0 ? `${overdueCountCzk} × ${fmtNum(overdueAmountCzk)} Kč` : null,
+                  overdueCountCzk > 0
+                    ? `${overdueCountCzk} × ${fmtNum(overdueAmountCzk)} Kč`
+                    : null,
                   overdueCountEur > 0 ? `${overdueCountEur} × ${fmtNum(overdueAmountEur)} €` : null,
                 ]
                   .filter(Boolean)
@@ -220,17 +217,17 @@ export default function InvoiceListClient({ invoices, config }: Props) {
                 <TableCell className="font-mono font-medium text-text">
                   <span className="inline-flex items-center gap-1.5">
                     {inv.invoice_number.replace(/^[A-Za-z]+/, "")}
-                    <Badge variant={inv.language === "cs" ? "blue" : "green"} className="text-[8px] px-1 py-0 leading-tight font-sans font-semibold">
+                    <Badge
+                      variant={inv.language === "cs" ? "blue" : "green"}
+                      className="text-[8px] px-1 py-0 leading-tight font-sans font-semibold"
+                    >
                       {inv.language === "cs" ? "CZ" : "EN"}
                     </Badge>
                   </span>
                 </TableCell>
-                <TableCell className="text-text">
-                  {inv.customer.name || "—"}
-                </TableCell>
+                <TableCell className="text-text">{inv.customer.name || "—"}</TableCell>
                 <TableCell className="font-medium tabular-nums text-text">
-                  {fmtNum(inv.total)}{" "}
-                  {inv.currency === "CZK" ? "Kč" : "€"}
+                  {fmtNum(inv.total)} {inv.currency === "CZK" ? "Kč" : "€"}
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <DuePaidCell invoice={inv} />
@@ -346,10 +343,12 @@ function DuePaidCell({ invoice }: { invoice: Invoice }) {
 
   return (
     <div ref={ref} className="relative flex flex-col gap-0.5">
-      <span className={cn(
-        "text-sm tabular-nums",
-        overdue ? "font-bold text-danger" : "text-text-secondary"
-      )}>
+      <span
+        className={cn(
+          "text-sm tabular-nums",
+          overdue ? "font-bold text-danger" : "text-text-secondary"
+        )}
+      >
         {fmtDateCs(invoice.due_date)}
       </span>
       <button
@@ -361,10 +360,7 @@ function DuePaidCell({ invoice }: { invoice: Invoice }) {
 
       {open && (
         <div className="absolute top-full left-0 z-50 mt-1 rounded-md border border-border bg-popover shadow-md">
-          <Calendar
-            selected={today()}
-            onSelect={handleSelect}
-          />
+          <Calendar selected={today()} onSelect={handleSelect} />
         </div>
       )}
     </div>

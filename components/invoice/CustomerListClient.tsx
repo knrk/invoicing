@@ -1,26 +1,25 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import type { CustomerRecord } from "@/types"
-import { deleteCustomer } from "@/lib/actions"
-import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog"
+import { deleteCustomer } from "@/lib/actions"
+import type { CustomerRecord } from "@/types"
+import { Building2, Globe, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
 import CustomerForm from "./CustomerForm"
-import { MoreVertical, Pencil, Trash2, Plus, Globe, Building2 } from "lucide-react"
 
 interface Props {
   customers: CustomerRecord[]
 }
-
 
 export default function CustomerListClient({ customers }: Props) {
   const router = useRouter()
@@ -64,7 +63,6 @@ export default function CustomerListClient({ customers }: Props) {
       )}
 
       <div className="grid grid-cols-4 gap-3">
-
         <button
           onClick={() => setAddOpen(true)}
           className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-transparent px-4 py-8 text-text-secondary hover:border-ring/50 hover:text-text hover:bg-subtle transition-colors cursor-pointer min-h-[110px]"
@@ -85,16 +83,20 @@ export default function CustomerListClient({ customers }: Props) {
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-subtle group-hover:bg-background text-text-secondary transition-colors shrink-0">
-                {c.language === "en"
-                  ? <Globe className="h-4 w-4" />
-                  : <Building2 className="h-4 w-4" />
-                }
+                {c.language === "en" ? (
+                  <Globe className="h-4 w-4" />
+                ) : (
+                  <Building2 className="h-4 w-4" />
+                )}
               </div>
 
               <button
                 id={`trigger-${c.id}`}
                 {...{ popoverTarget: `ctx-${c.id}` }}
-                onClick={(e) => { e.stopPropagation(); positionMenu(c.id) }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  positionMenu(c.id)
+                }}
                 className="p-1 rounded text-text-secondary hover:text-text hover:bg-border transition-colors opacity-0 group-hover:opacity-100 shrink-0"
               >
                 <MoreVertical className="h-3.5 w-3.5" />
@@ -119,14 +121,20 @@ export default function CustomerListClient({ customers }: Props) {
             >
               <button
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-text hover:bg-subtle transition-colors"
-                onClick={() => { hideMenu(c.id); setEditingId(c.id) }}
+                onClick={() => {
+                  hideMenu(c.id)
+                  setEditingId(c.id)
+                }}
               >
                 <Pencil className="h-3.5 w-3.5 text-text-secondary shrink-0" />
                 Upravit
               </button>
               <button
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-danger hover:bg-subtle transition-colors"
-                onClick={() => { hideMenu(c.id); setConfirmDelete(c.id) }}
+                onClick={() => {
+                  hideMenu(c.id)
+                  setConfirmDelete(c.id)
+                }}
               >
                 <Trash2 className="h-3.5 w-3.5 shrink-0" />
                 Smazat
@@ -141,7 +149,12 @@ export default function CustomerListClient({ customers }: Props) {
           <DialogHeader>
             <DialogTitle>Nový odběratel</DialogTitle>
           </DialogHeader>
-          <CustomerForm onDone={() => { setAddOpen(false); router.refresh() }} />
+          <CustomerForm
+            onDone={() => {
+              setAddOpen(false)
+              router.refresh()
+            }}
+          />
         </DialogContent>
       </Dialog>
 
@@ -153,7 +166,10 @@ export default function CustomerListClient({ customers }: Props) {
           {editingCustomer && (
             <CustomerForm
               existing={editingCustomer}
-              onDone={() => { setEditingId(null); router.refresh() }}
+              onDone={() => {
+                setEditingId(null)
+                router.refresh()
+              }}
             />
           )}
         </DialogContent>
@@ -166,7 +182,9 @@ export default function CustomerListClient({ customers }: Props) {
             <DialogDescription>Tato akce je nevratná.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDelete(null)}>Zrušit</Button>
+            <Button variant="outline" onClick={() => setConfirmDelete(null)}>
+              Zrušit
+            </Button>
             <Button
               variant="destructive"
               disabled={!!deleting}

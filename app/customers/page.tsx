@@ -1,5 +1,5 @@
-import { getCustomers } from "@/lib/actions"
 import CustomerListClient from "@/components/invoice/CustomerListClient"
+import { getCustomers } from "@/lib/actions"
 
 export default async function CustomersPage() {
   const customers = await getCustomers()
@@ -10,7 +10,11 @@ export default async function CustomersPage() {
         <h1 className="text-[22px] font-bold text-text">Odběratelé</h1>
         <p className="text-sm text-text-secondary mt-0.5">
           {customers.length}{" "}
-          {customers.length === 1 ? "odběratel" : customers.length < 5 ? "odběratelé" : "odběratelů"}
+          {customers.length === 1
+            ? "odběratel"
+            : customers.length < 5
+              ? "odběratelé"
+              : "odběratelů"}
         </p>
       </div>
       <CustomerListClient customers={customers} />
