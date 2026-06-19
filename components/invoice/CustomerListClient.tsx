@@ -1,6 +1,5 @@
 "use client"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -15,6 +14,7 @@ import type { CustomerRecord } from "@/types"
 import { Building2, Globe, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { toast } from "sonner"
 import CustomerForm from "./CustomerForm"
 
 interface Props {
@@ -27,15 +27,13 @@ export default function CustomerListClient({ customers }: Props) {
   const [addOpen, setAddOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
   async function handleDelete(id: string) {
     setDeleting(id)
-    setError(null)
     const result = await deleteCustomer(id)
     setDeleting(null)
     setConfirmDelete(null)
-    if (result.error) setError(result.error)
+    if (result.error) toast.error("Chyba při mazání odběratele", { description: result.error })
     else router.refresh()
   }
 
@@ -56,12 +54,6 @@ export default function CustomerListClient({ customers }: Props) {
 
   return (
     <div>
-      {error && (
-        <Alert variant="warning" className="mb-4">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
       <div className="grid grid-cols-4 gap-3">
         <button
           onClick={() => setAddOpen(true)}

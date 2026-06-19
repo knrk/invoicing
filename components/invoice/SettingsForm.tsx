@@ -1,6 +1,5 @@
 "use client"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { saveConfig } from "@/lib/actions"
 import type { AppConfig } from "@/types"
 import { useState } from "react"
+import { toast } from "sonner"
 
 const DEFAULT_CONFIG: Omit<AppConfig, "id" | "updated_at"> = {
   supplier: {
@@ -42,6 +42,14 @@ const DEFAULT_CONFIG: Omit<AppConfig, "id" | "updated_at"> = {
       "Fyzická osoba zapsaná v Živnostenském rejstříku od 1.9.2004\nEvidenční číslo ŽL: 381006-4173-00",
     note_en: "",
   },
+  tax: {
+    c_ufo: "",
+    c_pracufo: "",
+    typ_ds: "F",
+    prijmeni: "",
+    jmeno: "",
+    sest_telef: "",
+  },
 }
 
 export default function SettingsForm({ config }: { config: AppConfig | null }) {
@@ -50,9 +58,7 @@ export default function SettingsForm({ config }: { config: AppConfig | null }) {
     const { id: _id, updated_at: _u, ...rest } = config
     return rest
   })
-  const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
 
   function setNested<S extends keyof typeof form>(
     section: S,
@@ -63,19 +69,16 @@ export default function SettingsForm({ config }: { config: AppConfig | null }) {
       ...f,
       [section]: { ...f[section], [key]: value },
     }))
-    setSaved(false)
   }
 
   async function handleSave() {
     setSaving(true)
-    setSaveError(null)
     const result = await saveConfig(form)
     setSaving(false)
     if (result.error) {
-      setSaveError(result.error)
+      toast.error("Chyba při ukládání", { description: result.error })
     } else {
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
+      toast.success("Nastavení uloženo")
     }
   }
 
@@ -265,16 +268,65 @@ export default function SettingsForm({ config }: { config: AppConfig | null }) {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Souhrnné hlášení (EPO)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted mb-4">
+            Potřebné pro export XML souhrnného hlášení na Finanční správu. Kódy zjistíte v datové schránce nebo u svého FÚ.
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Kód FÚ (c_ufo)" hint="Např. 451 pro FÚ Praha 10">
+              <Input
+                value={form.tax.c_ufo}
+                onChange={(e) => setNested("tax", "c_ufo", e.target.value)}
+                placeholder="451"
+                mono
+              />
+            </Field>
+            <Field label="Kód pracoviště (c_pracufo)" hint="Např. 2010">
+              <Input
+                value={form.tax.c_pracufo}
+                onChange={(e) => setNested("tax", "c_pracufo", e.target.value)}
+                placeholder="2010"
+                mono
+              />
+            </Field>
+            <Field label="Typ datové schránky (typ_ds)" hint="F = fyzická osoba, P = právnická osoba">
+              <Input
+                value={form.tax.typ_ds}
+                onChange={(e) => setNested("tax", "typ_ds", e.target.value)}
+                placeholder="F"
+              />
+            </Field>
+            <Field label="Telefon sestavovatele" hint="Kontaktní tel. pro FÚ">
+              <Input
+                value={form.tax.sest_telef}
+                onChange={(e) => setNested("tax", "sest_telef", e.target.value)}
+                placeholder="775994439"
+              />
+            </Field>
+            <Field label="Příjmení">
+              <Input
+                value={form.tax.prijmeni}
+                onChange={(e) => setNested("tax", "prijmeni", e.target.value)}
+              />
+            </Field>
+            <Field label="Jméno">
+              <Input
+                value={form.tax.jmeno}
+                onChange={(e) => setNested("tax", "jmeno", e.target.value)}
+              />
+            </Field>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex items-center gap-4 pt-2">
         <Button onClick={handleSave} disabled={saving}>
           {saving ? "Ukládám..." : "Uložit nastavení"}
         </Button>
-        {saved && <span className="text-sm text-green-700 font-medium">✓ Uloženo</span>}
-        {saveError && (
-          <Alert variant="destructive" className="flex-1 py-2">
-            <AlertDescription>Chyba: {saveError}</AlertDescription>
-          </Alert>
-        )}
       </div>
     </div>
   )

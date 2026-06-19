@@ -14,6 +14,12 @@ import {
   InvoiceSchema,
   formatZodError,
 } from "@/lib/schemas"
+import {
+  buildVatRecapStatementData,
+  buildVatRecapStatementFilename,
+  generateVatRecapStatementXml,
+  type VatRecapStatementData,
+} from "@/lib/vat-recapitulative-statement"
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
@@ -218,6 +224,37 @@ export async function deleteCustomer(id: string): Promise<{ error?: string }> {
   if (error) return { error: error.message }
   revalidatePath("/customers")
   return {}
+}
+
+export async function getVatRecapStatementData(
+  rok: number,
+  mesic: number
+): Promise<{ data?: VatRecapStatementData; error?: string }> {
+  const invoices = await getInvoices()
+  try {
+    const data = await buildVatRecapStatementData(invoices, rok, mesic)
+    return { data }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Chyba při načítání dat" }
+  }
+}
+
+export async function exportVatRecapStatementXml(
+  rok: number,
+  mesic: number
+): Promise<{ xml?: string; filename?: string; error?: string }> {
+  const [invoices, config] = await Promise.all([getInvoices(), getConfig()])
+  if (!config) return { error: "Chybí konfigurace" }
+
+  try {
+    const data = await buildVatRecapStatementData(invoices, rok, mesic)
+    const now = new Date()
+    const filename = buildVatRecapStatementFilename(config, now)
+    const xml = generateVatRecapStatementXml(data, config, filename)
+    return { xml, filename: `${filename}.xml` }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Chyba při generování XML" }
+  }
 }
 
 export async function duplicateInvoice(id: string): Promise<{ data?: Invoice; error?: string }> {

@@ -1,6 +1,5 @@
 "use client"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -27,6 +26,7 @@ import { cn } from "@/lib/utils"
 import type { AppConfig, Invoice } from "@/types"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
 
 function fmtDateCs(dateStr: string): string {
   const [y, m, d] = dateStr.split("-").map(Number)
@@ -59,7 +59,6 @@ export default function InvoiceListClient({ invoices, config }: Props) {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [duplicating, setDuplicating] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
   const [exportProgress, setExportProgress] = useState<{ done: number; total: number } | null>(null)
 
   async function handleExportAll() {
@@ -74,12 +73,11 @@ export default function InvoiceListClient({ invoices, config }: Props) {
 
   async function handleDelete(id: string) {
     setDeleting(id)
-    setActionError(null)
     const result = await deleteInvoice(id)
     setDeleting(null)
     setConfirmDelete(null)
     if (result.error) {
-      setActionError(result.error)
+      toast.error("Chyba při mazání faktury", { description: result.error })
     } else {
       router.refresh()
     }
@@ -87,16 +85,17 @@ export default function InvoiceListClient({ invoices, config }: Props) {
 
   async function handleDuplicate(id: string) {
     setDuplicating(id)
-    setActionError(null)
     try {
       const result = await duplicateInvoice(id)
       if (result.error) {
-        setActionError(result.error)
+        toast.error("Chyba při duplikování faktury", { description: result.error })
       } else if (result.data) {
         router.push(`/invoice/${result.data.id}`)
       }
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Unknown error")
+      toast.error("Chyba při duplikování faktury", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      })
     } finally {
       setDuplicating(null)
     }
@@ -162,12 +161,6 @@ export default function InvoiceListClient({ invoices, config }: Props) {
             : "Exportovat vše (ZIP)"}
         </Button>
       </div>
-
-      {actionError && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertDescription>{actionError}</AlertDescription>
-        </Alert>
-      )}
 
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard label={`Fakturace ${currentYear} — CZK`} value={`${fmtNum(yearCzk)} Kč`} />

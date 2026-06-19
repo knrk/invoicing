@@ -7,6 +7,7 @@ export type {
   BankingConfig,
   InvoiceConfig,
   FooterConfig,
+  TaxConfig,
   Customer,
   CustomerRecord,
   CustomerRecordForm,

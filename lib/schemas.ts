@@ -35,12 +35,22 @@ export const FooterConfigSchema = z.object({
   note_en: z.string().default(""),
 })
 
+export const TaxConfigSchema = z.object({
+  c_ufo: z.string().default(""),
+  c_pracufo: z.string().default(""),
+  typ_ds: z.string().default("F"),
+  prijmeni: z.string().default(""),
+  jmeno: z.string().default(""),
+  sest_telef: z.string().default(""),
+})
+
 export const AppConfigSchema = z.object({
   id: z.number().optional(),
   supplier: SupplierConfigSchema,
   banking: BankingConfigSchema,
   invoice: InvoiceConfigSchema,
   footer: FooterConfigSchema,
+  tax: TaxConfigSchema.default({ c_ufo: "", c_pracufo: "", typ_ds: "F", prijmeni: "", jmeno: "", sest_telef: "" }),
   updated_at: z.string().optional(),
 })
 
@@ -49,6 +59,7 @@ export type SupplierConfig = z.infer<typeof SupplierConfigSchema>
 export type BankingConfig = z.infer<typeof BankingConfigSchema>
 export type InvoiceConfig = z.infer<typeof InvoiceConfigSchema>
 export type FooterConfig = z.infer<typeof FooterConfigSchema>
+export type TaxConfig = z.infer<typeof TaxConfigSchema>
 
 export const CustomerSchema = z.object({
   name: z.string().min(1, "Název odběratele je povinný"),

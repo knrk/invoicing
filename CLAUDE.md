@@ -1,5 +1,9 @@
 @AGENTS.md
 
+# File Naming
+
+Always name files in English (e.g. `invoice-list.tsx`, `tax-config.ts`). Never use Czech or other non-English names.
+
 # TypeScript
 
 Avoid `any`. Use precise types — `unknown`, explicit interfaces, or type imports from libraries. If a cast is truly necessary, use the narrowest possible type (e.g. `as React.ReactElement<DocumentProps>`), never `as any`.

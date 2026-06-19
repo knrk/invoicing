@@ -1,7 +1,6 @@
 "use client"
 
 import DatePicker from "@/components/ui/DatePicker"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -21,6 +20,7 @@ import type {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { toast } from "sonner"
 import InvoicePreview from "./InvoicePreview"
 
 interface Props {
@@ -73,7 +73,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
   const router = useRouter()
   const [form, setForm] = useState<InvoiceFormData>(() => initForm(config, existing))
   const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
   const [editInvoiceNumber, setEditInvoiceNumber] = useState(false)
   const [editPaymentMethod, setEditPaymentMethod] = useState(false)
@@ -147,15 +146,14 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
 
   async function handleSave() {
     setSaving(true)
-    setSaveError(null)
     try {
       if (existing) {
         const result = await updateInvoice(existing.id, formWithTotal)
-        if (result.error) setSaveError(result.error)
+        if (result.error) toast.error("Chyba při ukládání", { description: result.error })
         else router.refresh()
       } else {
         const result = await createInvoice(formWithTotal)
-        if (result.error) setSaveError(result.error)
+        if (result.error) toast.error("Chyba při ukládání", { description: result.error })
         else if (result.data) router.push(`/invoice/${result.data.id}`)
       }
     } finally {
@@ -200,12 +198,6 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
     <div className="flex h-screen overflow-hidden">
       <div className="w-[38%] flex-shrink-0 flex flex-col border-r border-border bg-surface">
         <div className="px-6 pt-6 pb-4 space-y-6 flex-1 overflow-y-auto">
-          {saveError && (
-            <Alert variant="warning">
-              <AlertDescription>{saveError}</AlertDescription>
-            </Alert>
-          )}
-
           {customers.length > 0 && (
             <CustomerPicker customers={customers} onSelect={applyCustomer} />
           )}

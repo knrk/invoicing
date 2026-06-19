@@ -73,6 +73,13 @@ grant execute on function increment_invoice_sequence() to anon;
 -- Migration: add reverse_charge column (run if table already exists)
 alter table invoices add column if not exists reverse_charge boolean not null default false;
 
+-- Migration: add variable_symbol and paid_at columns
+alter table invoices add column if not exists variable_symbol text not null default '';
+alter table invoices add column if not exists paid_at timestamptz;
+
+-- Migration: add tax column to config (VAT recapitulative statement / souhrnné hlášení)
+alter table config add column if not exists tax jsonb not null default '{}';
+
 -- Tabulka odběratelů (saved customers)
 create table if not exists customers (
   id uuid primary key default gen_random_uuid(),

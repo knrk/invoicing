@@ -1,6 +1,5 @@
 "use client"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,6 +8,7 @@ import { createCustomer, updateCustomer } from "@/lib/actions"
 import { cn } from "@/lib/utils"
 import type { CustomerRecord, CustomerRecordForm } from "@/types"
 import { useState } from "react"
+import { toast } from "sonner"
 
 interface Props {
   existing?: CustomerRecord
@@ -50,7 +50,6 @@ export default function CustomerForm({ existing, onDone }: Props) {
       : emptyForm()
   )
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [aresLoading, setAresLoading] = useState(false)
   const [aresError, setAresError] = useState<string | null>(null)
 
@@ -101,24 +100,18 @@ export default function CustomerForm({ existing, onDone }: Props) {
 
   async function handleSave() {
     setSaving(true)
-    setError(null)
     const result = existing ? await updateCustomer(existing.id, form) : await createCustomer(form)
     setSaving(false)
     if (result.error) {
-      setError(result.error)
+      toast.error("Chyba při ukládání", { description: result.error })
     } else {
+      toast.success(existing ? "Odběratel uložen" : "Odběratel přidán")
       onDone()
     }
   }
 
   return (
     <div className="space-y-4">
-      {error && (
-        <Alert variant="warning">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
       <div className="flex items-center justify-between">
         <Label>Typ odběratele</Label>
         <div className="flex items-center gap-2">

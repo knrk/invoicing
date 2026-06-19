@@ -3,15 +3,16 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  FileText, Settings, Users, Plus, ReceiptText,
-  Moon, Sun, ChevronLeft,
+  FileText, Settings, Contact, Plus, ReceiptText,
+  Moon, Sun, ChevronLeft, BadgeEuro,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 
 const NAV_ITEMS = [
-  { href: "/",          label: "Faktury",    icon: FileText },
-  { href: "/customers", label: "Odběratelé", icon: Users    },
+  { href: "/",                    label: "Faktury",           icon: FileText  },
+  { href: "/vat-recapitulative-statement", label: "Souhrnné hlášení", icon: BadgeEuro },
+  { href: "/customers",           label: "Odběratelé",        icon: Contact   },
 ]
 
 const BOTTOM_ITEMS = [
