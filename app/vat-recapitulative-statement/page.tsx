@@ -1,24 +1,29 @@
 import { getConfig, getInvoices } from "@/lib/actions"
 import { buildVatRecapStatementData } from "@/lib/vat-recapitulative-statement"
+import type { Invoice } from "@/types"
 import VatRecapStatementClient from "@/components/vat-recapitulative-statement/VatRecapStatementClient"
 
-/** How many past months to show (current month + N-1 prior) */
-const MONTHS_SHOWN = 13
-
-function monthRange(n: number): { rok: number; mesic: number }[] {
-  const result: { rok: number; mesic: number }[] = []
+/** Derive unique completed months from invoice issue_dates, newest first. */
+function monthsFromInvoices(invoices: Invoice[]): { rok: number; mesic: number }[] {
   const now = new Date()
-  for (let i = 1; i <= n; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    result.push({ rok: d.getFullYear(), mesic: d.getMonth() + 1 })
+  const currentYM = now.getFullYear() * 100 + (now.getMonth() + 1)
+
+  const seen = new Set<number>()
+  for (const inv of invoices) {
+    const [y, m] = inv.issue_date.split("-").map(Number)
+    const ym = y * 100 + m
+    if (ym < currentYM) seen.add(ym)
   }
-  return result
+
+  return [...seen]
+    .sort((a, b) => b - a)
+    .map((ym) => ({ rok: Math.floor(ym / 100), mesic: ym % 100 }))
 }
 
 export default async function VatRecapitulativeStatementPage() {
   const [invoices, config] = await Promise.all([getInvoices(), getConfig()])
 
-  const months = monthRange(MONTHS_SHOWN)
+  const months = monthsFromInvoices(invoices)
   const monthData = await Promise.all(
     months.map(async ({ rok, mesic }) => {
       try {

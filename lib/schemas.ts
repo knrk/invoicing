@@ -1,9 +1,9 @@
 import { z } from "zod"
 
-export const LanguageSchema = z.enum(["cs", "en"])
-export const CurrencySchema = z.enum(["CZK", "EUR"])
+const LanguageSchema = z.enum(["cs", "en"])
+const CurrencySchema = z.enum(["CZK", "EUR"])
 
-export const SupplierConfigSchema = z.object({
+const SupplierConfigSchema = z.object({
   name: z.string().min(1, "Jméno dodavatele je povinné"),
   ico: z.string().min(1, "IČ je povinné"),
   dic: z.string().default(""),
@@ -16,26 +16,26 @@ export const SupplierConfigSchema = z.object({
   web2: z.string().default(""),
 })
 
-export const BankingConfigSchema = z.object({
+const BankingConfigSchema = z.object({
   account_czk: z.string().default(""),
   account_eur_iban: z.string().default(""),
   account_eur_bic: z.string().default(""),
   constant_symbol: z.string().default("0308"),
 })
 
-export const InvoiceConfigSchema = z.object({
+const InvoiceConfigSchema = z.object({
   default_due_days_czk: z.number().int().min(1).max(365).default(7),
   default_due_days_eur: z.number().int().min(1).max(365).default(14),
 })
 
-export const FooterConfigSchema = z.object({
+const FooterConfigSchema = z.object({
   penalty_cs: z.string().default(""),
   penalty_en: z.string().default(""),
   note_cs: z.string().default(""),
   note_en: z.string().default(""),
 })
 
-export const TaxConfigSchema = z.object({
+const TaxConfigSchema = z.object({
   c_ufo: z.string().default(""),
   c_pracufo: z.string().default(""),
   typ_ds: z.string().default("F"),
@@ -55,13 +55,13 @@ export const AppConfigSchema = z.object({
 })
 
 export type AppConfig = z.infer<typeof AppConfigSchema>
-export type SupplierConfig = z.infer<typeof SupplierConfigSchema>
-export type BankingConfig = z.infer<typeof BankingConfigSchema>
-export type InvoiceConfig = z.infer<typeof InvoiceConfigSchema>
-export type FooterConfig = z.infer<typeof FooterConfigSchema>
-export type TaxConfig = z.infer<typeof TaxConfigSchema>
+type SupplierConfig = z.infer<typeof SupplierConfigSchema>
+type BankingConfig = z.infer<typeof BankingConfigSchema>
+type InvoiceConfig = z.infer<typeof InvoiceConfigSchema>
+type FooterConfig = z.infer<typeof FooterConfigSchema>
+type TaxConfig = z.infer<typeof TaxConfigSchema>
 
-export const CustomerSchema = z.object({
+const CustomerSchema = z.object({
   name: z.string().min(1, "Název odběratele je povinný"),
   ico: z.string().default(""),
   dic: z.string().default(""),
@@ -71,7 +71,7 @@ export const CustomerSchema = z.object({
   country: z.string().default("CZ"),
 })
 
-export const InvoiceLineSchema = z.object({
+const InvoiceLineSchema = z.object({
   id: z.string(),
   description: z.string().min(1, "Popis položky je povinný"),
   sub_description: z.string().default(""),
@@ -128,7 +128,7 @@ export const CustomerRecordFormSchema = CustomerRecordSchema.omit({
 
 export type Language = z.infer<typeof LanguageSchema>
 export type Currency = z.infer<typeof CurrencySchema>
-export type Customer = z.infer<typeof CustomerSchema>
+type Customer = z.infer<typeof CustomerSchema>
 export type CustomerRecord = z.infer<typeof CustomerRecordSchema>
 export type CustomerRecordForm = z.infer<typeof CustomerRecordFormSchema>
 export type InvoiceLine = z.infer<typeof InvoiceLineSchema>

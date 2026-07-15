@@ -10,7 +10,7 @@ export function getDueDays(language: Language, config: AppConfig): number {
     : config.invoice.default_due_days_eur
 }
 
-export function buildInvoiceNumber(sequence: number): string {
+function buildInvoiceNumber(sequence: number): string {
   const year = new Date().getFullYear()
   return `${year}${String(sequence).padStart(2, "0")}`
 }

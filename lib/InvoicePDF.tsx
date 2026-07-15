@@ -277,7 +277,7 @@ function PartyBlock({
   )
 }
 
-export interface InvoicePDFProps {
+interface InvoicePDFProps {
   invoice: InvoiceFormData
   config: AppConfig
   qrImage: string | null
