@@ -1,8 +1,11 @@
 import InvoiceListClient from "@/components/invoice/InvoiceListClient"
-import { getConfig, getInvoices } from "@/lib/actions"
+import { getConfig, getInvoicesResult } from "@/lib/actions"
 
 export default async function HomePage() {
-  const [invoices, config] = await Promise.all([getInvoices(), getConfig()])
+  const [{ invoices, error: dbError }, config] = await Promise.all([
+    getInvoicesResult(),
+    getConfig(),
+  ])
 
   return (
     <main className="max-w-7xl mx-auto px-10 py-8">
@@ -16,7 +19,7 @@ export default async function HomePage() {
         </div>
       )}
 
-      <InvoiceListClient invoices={invoices} config={config} />
+      <InvoiceListClient invoices={invoices} config={config} dbError={dbError} />
     </main>
   )
 }

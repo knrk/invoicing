@@ -41,12 +41,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const addr = json.adresaDorucovaci ?? {}
     const sidlo = json.sidlo ?? {}
 
-    // radekAdresy1 = "Ulice 123/4", radekAdresy2 = "110 00 Praha"
+    // radekAdresy1 = "Ulice 123/4". The "PSČ Město" line is radekAdresy2 for
+    // two-line addresses, but radekAdresy3 when a district sits on line 2.
     const street = addr.radekAdresy1 ?? ""
-    const radek2: string = addr.radekAdresy2 ?? ""
-    const zipMatch = radek2.match(/^(\d{3}\s?\d{2})\s+(.+)$/)
-    const zip = zipMatch ? zipMatch[1].replace(/\s/, " ") : (sidlo.pscFormatovany ?? "")
-    const city = zipMatch ? zipMatch[2] : (sidlo.nazevObce ?? "")
+    const zipCityRe = /^(\d{3})\s?(\d{2})\s+(.+)$/
+    const zipCityLine: string | undefined = [addr.radekAdresy3, addr.radekAdresy2].find(
+      (line): line is string => typeof line === "string" && zipCityRe.test(line)
+    )
+    const zipCityMatch = zipCityLine?.match(zipCityRe)
+
+    const fmtPsc = (psc: unknown): string => {
+      const digits = String(psc ?? "").replace(/\s/g, "")
+      return /^\d{5}$/.test(digits) ? `${digits.slice(0, 3)} ${digits.slice(3)}` : ""
+    }
+
+    const zip = zipCityMatch ? `${zipCityMatch[1]} ${zipCityMatch[2]}` : fmtPsc(sidlo.psc)
+    const city = zipCityMatch ? zipCityMatch[3] : (sidlo.nazevObce ?? "")
 
     return NextResponse.json({
       obchodniJmeno: json.obchodniJmeno ?? "",

@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { createCustomer, updateCustomer } from "@/lib/actions"
+import { useAresLookup } from "@/hooks/use-ares-lookup"
 import { cn } from "@/lib/utils"
 import type { CustomerRecord, CustomerRecordForm } from "@/types"
 import { useState } from "react"
 import { toast } from "sonner"
+import { AresLookupButton } from "./AresLookupButton"
 
 interface Props {
   existing?: CustomerRecord
@@ -50,37 +52,21 @@ export default function CustomerForm({ existing, onDone }: Props) {
       : emptyForm()
   )
   const [saving, setSaving] = useState(false)
-  const [aresLoading, setAresLoading] = useState(false)
-  const [aresError, setAresError] = useState<string | null>(null)
+  const { aresLoading, lookupAres } = useAresLookup((message) =>
+    toast.error("Vyhledání v ARESu selhalo", { description: message })
+  )
 
   async function handleAresLookup() {
-    const ico = form.ico.trim()
-    if (!ico) return
-    setAresLoading(true)
-    setAresError(null)
-    try {
-      const res = await fetch(`/api/ares/${ico}`)
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
-        setAresError(body.error ?? `ARES ${res.status}`)
-        return
-      }
-
-      const json = await res.json()
-
-      setForm((f) => ({
-        ...f,
-        name: json.obchodniJmeno || f.name,
-        dic: json.dic || f.dic,
-        street: json.street || f.street,
-        zip: json.zip || f.zip,
-        city: json.city || f.city,
-      }))
-    } catch {
-      setAresError("Nepodařilo se spojit s ARESem")
-    } finally {
-      setAresLoading(false)
-    }
+    const data = await lookupAres(form.ico)
+    if (!data) return
+    setForm((f) => ({
+      ...f,
+      name: data.obchodniJmeno || f.name,
+      dic: data.dic || f.dic,
+      street: data.street || f.street,
+      zip: data.zip || f.zip,
+      city: data.city || f.city,
+    }))
   }
 
   function set<K extends keyof CustomerRecordForm>(key: K, value: CustomerRecordForm[K]) {
@@ -88,6 +74,7 @@ export default function CustomerForm({ existing, onDone }: Props) {
   }
 
   const isCz = form.language === "cs"
+  const showAresLookup = isCz && form.ico.trim() !== "" && form.street.trim() === ""
 
   function setLanguage(en: boolean) {
     setForm((f) => ({
@@ -134,20 +121,17 @@ export default function CustomerForm({ existing, onDone }: Props) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label htmlFor="cf-ico">IČ</Label>
-          <Input id="cf-ico" value={form.ico} onChange={(e) => set("ico", e.target.value)} />
-          {isCz && (
-            <>
-              <button
-                type="button"
-                onClick={handleAresLookup}
-                disabled={aresLoading || !form.ico}
-                className="mt-1 text-xs text-primary underline underline-offset-2 hover:opacity-70 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {aresLoading ? "Načítám…" : "Vyhledat v ARESu"}
-              </button>
-              {aresError && <p className="mt-1 text-xs text-danger">{aresError}</p>}
-            </>
-          )}
+          <div className="relative">
+            <Input
+              id="cf-ico"
+              value={form.ico}
+              onChange={(e) => set("ico", e.target.value)}
+              className={cn(showAresLookup && "pr-9")}
+            />
+            {showAresLookup && (
+              <AresLookupButton onLookup={handleAresLookup} loading={aresLoading} />
+            )}
+          </div>
         </div>
         <div>
           <Label htmlFor="cf-dic">DIČ</Label>

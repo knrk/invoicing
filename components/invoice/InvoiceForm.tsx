@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { useAresLookup } from "@/hooks/use-ares-lookup"
 import { createInvoice, getNextInvoiceSequence, updateInvoice } from "@/lib/actions"
 import { LABELS, addDays, fmtNum, generateId, getCurrency, getDueDays, today } from "@/lib/invoice"
 import { exportToPDF } from "@/lib/pdf"
@@ -17,10 +18,12 @@ import type {
   InvoiceLine,
   Language,
 } from "@/types"
+import { LoaderCircle } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
+import { AresLookupButton } from "./AresLookupButton"
 import InvoicePreview from "./InvoicePreview"
 
 interface Props {
@@ -77,6 +80,9 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
   const [editInvoiceNumber, setEditInvoiceNumber] = useState(false)
   const [editPaymentMethod, setEditPaymentMethod] = useState(false)
   const [editVariableSymbol, setEditVariableSymbol] = useState(false)
+  const { aresLoading, lookupAres } = useAresLookup((message) =>
+    toast.error("Vyhledání v ARESu selhalo", { description: message })
+  )
 
   const total = useMemo(() => form.lines.reduce((s, l) => s + l.total, 0), [form.lines])
   const formWithTotal = useMemo(() => ({ ...form, total }), [form, total])
@@ -100,6 +106,22 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
 
   function setCustomerField(key: keyof InvoiceFormData["customer"], value: string) {
     setForm((f) => ({ ...f, customer: { ...f.customer, [key]: value } }))
+  }
+
+  async function handleAresLookup() {
+    const data = await lookupAres(form.customer.ico)
+    if (!data) return
+    setForm((f) => ({
+      ...f,
+      customer: {
+        ...f.customer,
+        name: data.obchodniJmeno || f.customer.name,
+        dic: data.dic || f.customer.dic,
+        street: data.street || f.customer.street,
+        zip: data.zip || f.customer.zip,
+        city: data.city || f.customer.city,
+      },
+    }))
   }
 
   async function setLanguage(lang: Language) {
@@ -189,6 +211,8 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
   }
 
   const isCz = form.language === "cs"
+  const showAresLookup =
+    isCz && form.customer.ico.trim() !== "" && form.customer.street.trim() === ""
   const L = {
     ...LABELS.cs.form,
     save: existing ? LABELS.cs.form.save : LABELS.cs.form.saveNew,
@@ -228,11 +252,17 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label={L.ico} htmlFor="f-customer-ico">
-                  <Input
-                    id="f-customer-ico"
-                    value={form.customer.ico}
-                    onChange={(e) => setCustomerField("ico", e.target.value)}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="f-customer-ico"
+                      value={form.customer.ico}
+                      onChange={(e) => setCustomerField("ico", e.target.value)}
+                      className={cn(showAresLookup && "pr-9")}
+                    />
+                    {showAresLookup && (
+                      <AresLookupButton onLookup={handleAresLookup} loading={aresLoading} />
+                    )}
+                  </div>
                 </Field>
                 <Field label={L.dic} htmlFor="f-customer-dic">
                   <Input
@@ -527,18 +557,7 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
           <span className="text-[15px] font-semibold text-text">Náhled</span>
           <Button variant="outline" onClick={handleExportPDF} disabled={exporting}>
             {exporting ? (
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="animate-spin"
-              >
-                <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
-                <path d="M12 2a10 10 0 0 1 10 10" strokeOpacity="1" />
-              </svg>
+              <LoaderCircle size={16} className="animate-spin" />
             ) : (
               <svg
                 width="16"

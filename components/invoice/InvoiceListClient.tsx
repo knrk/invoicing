@@ -19,11 +19,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { deleteInvoice, duplicateInvoice, setInvoicePaidAt } from "@/lib/actions"
 import { fmtNum, today } from "@/lib/invoice"
 import { exportAllToPDF } from "@/lib/pdf"
 import { cn } from "@/lib/utils"
 import type { AppConfig, Invoice } from "@/types"
+import { CopySlash, HandCoins, LoaderCircle, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -52,9 +59,10 @@ function isPastDue(dueDateStr: string): boolean {
 interface Props {
   invoices: Invoice[]
   config: AppConfig | null
+  dbError?: boolean
 }
 
-export default function InvoiceListClient({ invoices, config }: Props) {
+export default function InvoiceListClient({ invoices, config, dbError }: Props) {
   const router = useRouter()
   const [deleting, setDeleting] = useState<string | null>(null)
   const [duplicating, setDuplicating] = useState<string | null>(null)
@@ -130,13 +138,34 @@ export default function InvoiceListClient({ invoices, config }: Props) {
             0
           </span>
         </div>
-        <div className="bg-surface rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center py-20 gap-3">
-          <span className="text-4xl">📄</span>
-          <p className="text-sm text-text-secondary">Zatím žádné faktury</p>
-          <Button asChild className="mt-1">
-            <a href="/invoice/new">Vytvořit první fakturu</a>
-          </Button>
-        </div>
+        {dbError ? (
+          <div className="flex items-start gap-3 p-4 text-sm text-warning-text bg-warning-bg border border-warning-border rounded-lg">
+            <span className="text-base leading-none">⚠️</span>
+            <div className="space-y-1">
+              <p className="font-medium">Nepodařilo se načíst faktury z databáze.</p>
+              <p>
+                Databáze na Supabase mohla být uspána z důvodu neaktivity. Obnovte ji ručně v{" "}
+                <a
+                  href="https://supabase.com/dashboard/projects"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline font-medium"
+                >
+                  Supabase dashboardu
+                </a>{" "}
+                a poté stránku načtěte znovu.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-surface rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center py-20 gap-3">
+            <span className="text-4xl">📄</span>
+            <p className="text-sm text-text-secondary">Zatím žádné faktury</p>
+            <Button asChild className="mt-1">
+              <a href="/invoice/new">Vytvořit první fakturu</a>
+            </Button>
+          </div>
+        )}
       </>
     )
   }
@@ -226,23 +255,42 @@ export default function InvoiceListClient({ invoices, config }: Props) {
                   <DuePaidCell invoice={inv} />
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center gap-2 justify-end">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDuplicate(inv.id)}
-                      disabled={duplicating === inv.id}
-                    >
-                      {duplicating === inv.id ? "..." : "Duplikovat"}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setConfirmDelete(inv.id)}
-                      className="text-danger hover:text-danger hover:bg-danger/10"
-                    >
-                      Smazat
-                    </Button>
+                  <div className="flex items-center gap-1 justify-end">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDuplicate(inv.id)}
+                            disabled={duplicating === inv.id}
+                            className="cursor-pointer"
+                          >
+                            {duplicating === inv.id ? (
+                              <LoaderCircle size={16} className="animate-spin" />
+                            ) : (
+                              <CopySlash size={16} />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Duplikovat</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setConfirmDelete(inv.id)}
+                            className="cursor-pointer text-danger hover:text-danger hover:bg-danger/10"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Smazat</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </TableCell>
               </TableRow>
@@ -335,7 +383,7 @@ function DuePaidCell({ invoice }: { invoice: Invoice }) {
   const overdue = isOverdue14(invoice.due_date)
 
   return (
-    <div ref={ref} className="relative flex flex-col gap-0.5">
+    <div ref={ref} className="relative flex items-center gap-2">
       <span
         className={cn(
           "text-sm tabular-nums",
@@ -344,12 +392,19 @@ function DuePaidCell({ invoice }: { invoice: Invoice }) {
       >
         {fmtDateCs(invoice.due_date)}
       </span>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="text-xs text-primary hover:underline text-left w-fit"
-      >
-        Označit jako zaplaceno
-      </button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="w-fit cursor-pointer text-primary transition-opacity hover:opacity-70"
+            >
+              <HandCoins size={16} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Označit jako zaplaceno</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       {open && (
         <div className="absolute top-full left-0 z-50 mt-1 rounded-md border border-border bg-popover shadow-md">

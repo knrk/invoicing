@@ -55,17 +55,22 @@ export async function saveConfig(
   return {}
 }
 
-export async function getInvoices(): Promise<Invoice[]> {
+export async function getInvoicesResult(): Promise<{ invoices: Invoice[]; error: boolean }> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("invoices")
     .select("*")
     .order("created_at", { ascending: false })
-  if (error || !data) return []
-  return data.flatMap((row) => {
+  if (error || !data) return { invoices: [], error: true }
+  const invoices = data.flatMap((row) => {
     const parsed = InvoiceSchema.safeParse(row)
     return parsed.success ? [parsed.data] : []
   })
+  return { invoices, error: false }
+}
+
+export async function getInvoices(): Promise<Invoice[]> {
+  return (await getInvoicesResult()).invoices
 }
 
 export async function getInvoice(id: string): Promise<Invoice | null> {
@@ -295,6 +300,7 @@ export async function duplicateInvoice(id: string): Promise<{ data?: Invoice; er
       variable_symbol: newNumber,
       issue_date: issueDate,
       due_date: dueDate,
+      paid_at: null,
       created_at: now,
       updated_at: now,
     })
