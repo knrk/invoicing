@@ -18,13 +18,14 @@ import type {
   InvoiceLine,
   Language,
 } from "@/types"
-import { LoaderCircle } from "lucide-react"
+import { LoaderCircle, Send } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { AresLookupButton } from "./AresLookupButton"
 import InvoicePreview from "./InvoicePreview"
+import { SendEmailDialog } from "./SendEmailDialog"
 
 interface Props {
   config: AppConfig
@@ -77,6 +78,7 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
   const [form, setForm] = useState<InvoiceFormData>(() => initForm(config, existing))
   const [saving, setSaving] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [emailOpen, setEmailOpen] = useState(false)
   const [editInvoiceNumber, setEditInvoiceNumber] = useState(false)
   const [editPaymentMethod, setEditPaymentMethod] = useState(false)
   const [editVariableSymbol, setEditVariableSymbol] = useState(false)
@@ -86,6 +88,17 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
 
   const total = useMemo(() => form.lines.reduce((s, l) => s + l.total, 0), [form.lines])
   const formWithTotal = useMemo(() => ({ ...form, total }), [form, total])
+
+  // The invoice's customer snapshot has no e-mail, so match it against the
+  // saved customers (by IČ, then name) to prefill the recipient.
+  const defaultCustomerEmail = useMemo(() => {
+    const match = customers.find(
+      (c) =>
+        (form.customer.ico !== "" && c.ico === form.customer.ico) ||
+        (form.customer.name !== "" && c.name === form.customer.name)
+    )
+    return match?.email ?? ""
+  }, [customers, form.customer.ico, form.customer.name])
 
   useEffect(() => {
     if (existing) return
@@ -555,24 +568,30 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
       <div className="flex-1 flex flex-col bg-page overflow-hidden">
         <div className="flex items-center justify-between px-8 py-4 bg-surface border-b border-border">
           <span className="text-[15px] font-semibold text-text">Náhled</span>
-          <Button variant="outline" onClick={handleExportPDF} disabled={exporting}>
-            {exporting ? (
-              <LoaderCircle size={16} className="animate-spin" />
-            ) : (
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-              </svg>
-            )}
-            {exporting ? "Exportuji..." : L.exportPDF}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setEmailOpen(true)}>
+              <Send size={16} />
+              Zaslat e-mailem
+            </Button>
+            <Button variant="outline" onClick={handleExportPDF} disabled={exporting}>
+              {exporting ? (
+                <LoaderCircle size={16} className="animate-spin" />
+              ) : (
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+              )}
+              {exporting ? "Exportuji..." : L.exportPDF}
+            </Button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-auto p-8">
@@ -584,6 +603,14 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
           </div>
         </div>
       </div>
+
+      <SendEmailDialog
+        open={emailOpen}
+        onOpenChange={setEmailOpen}
+        invoice={formWithTotal}
+        config={config}
+        defaultEmail={defaultCustomerEmail}
+      />
     </div>
   )
 }

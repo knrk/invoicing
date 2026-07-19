@@ -119,6 +119,21 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
     .filter((inv) => inv.currency === "EUR" && inv.issue_date.startsWith(String(currentYear)))
     .reduce((sum, inv) => sum + inv.total, 0)
 
+  const unpaidInvoices = invoices.filter((inv) => !inv.paid_at)
+  const expectedAmountCzk = unpaidInvoices
+    .filter((inv) => inv.currency === "CZK")
+    .reduce((sum, inv) => sum + inv.total, 0)
+  const expectedAmountEur = unpaidInvoices
+    .filter((inv) => inv.currency === "EUR")
+    .reduce((sum, inv) => sum + inv.total, 0)
+  const expectedAmount =
+    [
+      expectedAmountCzk > 0 ? `${fmtNum(expectedAmountCzk)} Kč` : null,
+      expectedAmountEur > 0 ? `${fmtNum(expectedAmountEur)} €` : null,
+    ]
+      .filter(Boolean)
+      .join(" / ") || "—"
+
   const overdueInvoices = invoices.filter((inv) => !inv.paid_at && isPastDue(inv.due_date))
   const overdueCountCzk = overdueInvoices.filter((inv) => inv.currency === "CZK").length
   const overdueCountEur = overdueInvoices.filter((inv) => inv.currency === "EUR").length
@@ -191,11 +206,22 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-6">
         <StatCard label={`Fakturace ${currentYear} — CZK`} value={`${fmtNum(yearCzk)} Kč`} />
         <StatCard
           label={`Fakturace ${currentYear} — €`}
           value={yearEur > 0 ? `${fmtNum(yearEur)} €` : "—"}
+        />
+        <StatCard
+          label="Očekávaná platba"
+          value={
+            <>
+              {expectedAmount}
+              <span className="ml-1.5 text-sm font-normal text-text-secondary">
+                / {unpaidInvoices.length}
+              </span>
+            </>
+          }
         />
         <StatCard
           label="Po splatnosti"
@@ -323,9 +349,13 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
   )
 }
 
-function StatCard({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
+function StatCard({
+  label,
+  value,
+  danger,
+}: { label: string; value: React.ReactNode; danger?: boolean }) {
   return (
-    <div className="bg-surface rounded-xl border border-border px-5 py-4">
+    <div className="bg-surface rounded-xl border border-border px-5 py-4 shadow-elevated">
       <p className="text-xs text-text-secondary mb-1">{label}</p>
       <p className={cn("text-[18px] font-bold tabular-nums", danger ? "text-danger" : "text-text")}>
         {value}

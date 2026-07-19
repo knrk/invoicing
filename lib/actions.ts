@@ -22,6 +22,7 @@ import {
 } from "@/lib/vat-recapitulative-statement"
 import { createClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import { Resend } from "resend"
 
 export async function getConfig(): Promise<AppConfig | null> {
   const supabase = await createClient()
@@ -314,4 +315,42 @@ export async function duplicateInvoice(id: string): Promise<{ data?: Invoice; er
 
   revalidatePath("/")
   return { data: parsed.data }
+}
+
+export async function sendInvoiceEmail(params: {
+  to: string
+  subject: string
+  body: string
+  pdfBase64: string
+  filename: string
+}): Promise<{ error?: string }> {
+  const { to, subject, body, pdfBase64, filename } = params
+
+  const apiKey = process.env.RESEND_API_KEY
+  const fromAddress = process.env.RESEND_FROM
+  if (!apiKey) return { error: "Chybí RESEND_API_KEY v nastavení serveru." }
+  if (!fromAddress) return { error: "Chybí RESEND_FROM v nastavení serveru." }
+  if (!to.trim()) return { error: "Chybí e-mail příjemce." }
+
+  const config = await getConfig()
+  const supplierName = config?.supplier.name ?? ""
+  const supplierEmail = config?.supplier.email || undefined
+  const from = supplierName ? `${supplierName} <${fromAddress}>` : fromAddress
+
+  try {
+    const resend = new Resend(apiKey)
+    const { error } = await resend.emails.send({
+      from,
+      to,
+      subject,
+      text: body,
+      replyTo: supplierEmail,
+      bcc: supplierEmail,
+      attachments: [{ filename, content: Buffer.from(pdfBase64, "base64") }],
+    })
+    if (error) return { error: error.message }
+    return {}
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Nepodařilo se odeslat e-mail." }
+  }
 }

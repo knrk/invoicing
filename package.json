@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3030",
     "build": "biome lint . && next build",
-    "start": "next start",
+    "start": "next start -p 3030",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write ."
   },
@@ -34,6 +34,7 @@
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "resend": "^6.17.2",
     "roboto-fontface": "^0.10.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",

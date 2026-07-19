@@ -5,7 +5,15 @@ import type { AppConfig, Invoice, InvoiceFormData } from "@/types"
 import type { DocumentProps } from "@react-pdf/renderer"
 import React from "react"
 
-export async function exportToPDF(invoice: InvoiceFormData, config: AppConfig): Promise<void> {
+export function invoicePdfFilename(invoice: InvoiceFormData): string {
+  const vs = invoice.invoice_number.replace(/^[A-Za-z]+/, "")
+  return `${vs}.pdf`
+}
+
+export async function generateInvoicePdfBlob(
+  invoice: InvoiceFormData,
+  config: AppConfig
+): Promise<Blob> {
   const [qrImage, { pdf }, { InvoicePDF }] = await Promise.all([
     generateQRCode(invoice.total, invoice.invoice_number, invoice.language, config).catch(
       () => null
@@ -14,14 +22,21 @@ export async function exportToPDF(invoice: InvoiceFormData, config: AppConfig): 
     import("./InvoicePDF"),
   ])
 
-  const element = React.createElement(InvoicePDF, { invoice, config, qrImage }) as React.ReactElement<DocumentProps>
-  const blob = await pdf(element).toBlob()
+  const element = React.createElement(InvoicePDF, {
+    invoice,
+    config,
+    qrImage,
+  }) as React.ReactElement<DocumentProps>
+  return pdf(element).toBlob()
+}
+
+export async function exportToPDF(invoice: InvoiceFormData, config: AppConfig): Promise<void> {
+  const blob = await generateInvoicePdfBlob(invoice, config)
 
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
-  const vs = invoice.invoice_number.replace(/^[A-Za-z]+/, "")
-  a.download = `${vs}.pdf`
+  a.download = invoicePdfFilename(invoice)
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
