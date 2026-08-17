@@ -52,7 +52,7 @@ export default function DatePicker({ value, language, onChange }: Props) {
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 z-50 mt-1 rounded-md border border-border bg-popover shadow-md">
+        <div className="absolute top-full left-0 z-50 mt-1 w-max rounded-md border border-border bg-popover shadow-md">
           <Calendar
             selected={value}
             onSelect={handleSelect}
