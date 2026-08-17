@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import {
+  backfillGmailReceivedDates,
   disconnectGmail,
   listGmailLabels,
   setGmailLabel,
@@ -29,6 +30,7 @@ export default function GmailIntegrationSettings({ status }: Props) {
   const [loadingLabels, setLoadingLabels] = useState(false)
   const [savingLabel, setSavingLabel] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [backfilling, setBackfilling] = useState(false)
   const [needsReconnect, setNeedsReconnect] = useState(false)
   const toastedParam = useRef(false)
 
@@ -107,6 +109,26 @@ export default function GmailIntegrationSettings({ status }: Props) {
     router.refresh()
   }
 
+  async function handleBackfill() {
+    setBackfilling(true)
+    const res = await backfillGmailReceivedDates()
+    setBackfilling(false)
+    if (res.needsReconnect) {
+      setNeedsReconnect(true)
+      toast.error("Přístup vypršel", { description: "Připoj Gmail znovu." })
+      return
+    }
+    if (res.error) {
+      toast.error("Doplnění datumů selhalo", { description: res.error })
+      return
+    }
+    toast.success(`Datumy doplněny u ${res.updated} nákladů`)
+    if (res.errors.length) {
+      toast.error("Některé se nepodařilo", { description: res.errors.slice(0, 3).join("; ") })
+    }
+    router.refresh()
+  }
+
   async function handleDisconnect() {
     const res = await disconnectGmail()
     if (res.error) toast.error("Odpojení selhalo", { description: res.error })
@@ -168,6 +190,9 @@ export default function GmailIntegrationSettings({ status }: Props) {
           <div className="flex items-center gap-3">
             <Button variant="dark" onClick={handleSync} disabled={syncing || !status.labelId}>
               {syncing ? "Kontroluji…" : "Zkontrolovat teď"}
+            </Button>
+            <Button variant="outline" onClick={handleBackfill} disabled={backfilling}>
+              {backfilling ? "Doplňuji…" : "Doplnit datumy z e-mailů"}
             </Button>
             <Button variant="outline" onClick={handleDisconnect}>
               Odpojit

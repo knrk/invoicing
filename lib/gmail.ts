@@ -261,3 +261,65 @@ export async function syncGmailCosts(): Promise<GmailSyncResult> {
   revalidatePath("/settings")
   return { imported, skipped, errors }
 }
+
+// Jednorázově doplní datum přijetí u již naimportovaných Gmail nákladů podle
+// data původního e-mailu (internalDate).
+export async function backfillGmailReceivedDates(): Promise<{
+  updated: number
+  errors: string[]
+  error?: string
+  needsReconnect?: boolean
+}> {
+  const supabase = await createClient()
+  const { data: integ } = await supabase
+    .from("gmail_integration")
+    .select("refresh_token")
+    .eq("id", 1)
+    .single()
+  if (!integ?.refresh_token) return { updated: 0, errors: [], error: "Gmail není připojen" }
+
+  let token: string
+  try {
+    token = await refreshAccessToken(integ.refresh_token)
+  } catch (err) {
+    if (err instanceof GmailAuthError) {
+      return { updated: 0, errors: [], needsReconnect: true, error: "Přístup vypršel, připoj Gmail znovu." }
+    }
+    return { updated: 0, errors: [], error: err instanceof Error ? err.message : "Chyba přístupu" }
+  }
+
+  const { data: rows } = await supabase
+    .from("gmail_processed")
+    .select("message_id, cost_id")
+    .not("cost_id", "is", null)
+
+  // Zprávu stáhneme jen jednou, i když má víc příloh/nákladů.
+  const byMessage = new Map<string, string[]>()
+  for (const r of rows ?? []) {
+    if (!r.cost_id) continue
+    const arr = byMessage.get(r.message_id) ?? []
+    arr.push(r.cost_id)
+    byMessage.set(r.message_id, arr)
+  }
+
+  let updated = 0
+  const errors: string[] = []
+  for (const [messageId, costIds] of byMessage) {
+    try {
+      const message = await getMessage(token, messageId)
+      const received = receivedDateFromMessage(message.internalDate)
+      const { error } = await supabase
+        .from("costs")
+        .update({ received_date: received, updated_at: new Date().toISOString() })
+        .in("id", costIds)
+      if (error) errors.push(`${messageId}: ${error.message}`)
+      else updated += costIds.length
+    } catch (err) {
+      errors.push(`${messageId}: ${err instanceof Error ? err.message : "chyba"}`)
+    }
+  }
+
+  revalidatePath("/costs")
+  revalidatePath("/")
+  return { updated, errors }
+}
