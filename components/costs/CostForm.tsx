@@ -4,6 +4,13 @@ import { AresLookupButton } from "@/components/invoice/AresLookupButton"
 import DatePicker from "@/components/ui/DatePicker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useAresLookup } from "@/hooks/use-ares-lookup"
@@ -118,20 +125,19 @@ export default function CostForm({ value, onChange }: Props) {
       {savedSuppliers.length > 0 && (
         <div>
           <Label htmlFor="cost-supplier-pick">Vybrat z uložených dodavatelů</Label>
-          <select
-            id="cost-supplier-pick"
-            value=""
-            onChange={(e) => pickSupplier(e.target.value)}
-            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
-          >
-            <option value="">— vyber dodavatele —</option>
-            {savedSuppliers.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-                {s.ico ? ` (IČ ${s.ico})` : ""}
-              </option>
-            ))}
-          </select>
+          <Select value="" onValueChange={pickSupplier}>
+            <SelectTrigger id="cost-supplier-pick" className="w-full">
+              <SelectValue placeholder="— vyber dodavatele —" />
+            </SelectTrigger>
+            <SelectContent>
+              {savedSuppliers.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                  {s.ico ? ` (IČ ${s.ico})` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 

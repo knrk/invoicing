@@ -10,6 +10,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   backfillGmailReceivedDates,
   disconnectGmail,
   listGmailLabels,
@@ -201,20 +208,22 @@ export default function GmailIntegrationSettings({ status }: Props) {
               Sledovaný label
             </label>
             <div className="flex items-center gap-2">
-              <select
-                id="gmail-label"
+              <Select
                 value={selectedLabel}
-                onChange={(e) => setSelectedLabel(e.target.value)}
+                onValueChange={setSelectedLabel}
                 disabled={loadingLabels}
-                className="h-10 flex-1 rounded-md border border-input bg-background px-3 text-sm text-foreground"
               >
-                <option value="">{loadingLabels ? "Načítám…" : "— vyber label —"}</option>
-                {labels.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="gmail-label" className="flex-1">
+                  <SelectValue placeholder={loadingLabels ? "Načítám…" : "— vyber label —"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {labels.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button variant="outline" onClick={handleSaveLabel} disabled={savingLabel}>
                 {savingLabel ? "Ukládám…" : "Uložit"}
               </Button>
