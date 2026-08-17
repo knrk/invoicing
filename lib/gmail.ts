@@ -343,6 +343,30 @@ export async function syncGmailCosts(): Promise<GmailSyncResult> {
   return { imported, skipped, errors }
 }
 
+// Smaže dosavadní Gmail náklady + dedup log a naimportuje vše znovu (s aktuální
+// logikou předvyplnění). Ruční uploady (source='upload') nechává být.
+export async function reimportAllGmail(): Promise<GmailSyncResult> {
+  const supabase = await createClient()
+
+  const { data: gmailCosts } = await supabase
+    .from("costs")
+    .select("id, file_path")
+    .eq("source", "gmail")
+  const ids = (gmailCosts ?? []).map((c) => c.id)
+  if (ids.length > 0) {
+    await supabase.from("costs").delete().in("id", ids)
+    const paths = (gmailCosts ?? [])
+      .map((c) => c.file_path)
+      .filter((p): p is string => typeof p === "string" && p.length > 0)
+    if (paths.length > 0) await supabase.storage.from("costs").remove(paths)
+  }
+
+  // Vyčisti dedup log (message_id je vždy neprázdné → smaže vše).
+  await supabase.from("gmail_processed").delete().not("message_id", "is", null)
+
+  return syncGmailCosts()
+}
+
 // Jednorázově doplní datum přijetí u již naimportovaných Gmail nákladů podle
 // data původního e-mailu (internalDate).
 export async function backfillGmailReceivedDates(): Promise<{

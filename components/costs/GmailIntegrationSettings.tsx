@@ -2,9 +2,18 @@
 
 import { Button } from "@/components/ui/button"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   backfillGmailReceivedDates,
   disconnectGmail,
   listGmailLabels,
+  reimportAllGmail,
   setGmailLabel,
   syncGmailCosts,
 } from "@/lib/gmail"
@@ -31,6 +40,8 @@ export default function GmailIntegrationSettings({ status }: Props) {
   const [savingLabel, setSavingLabel] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [backfilling, setBackfilling] = useState(false)
+  const [reimporting, setReimporting] = useState(false)
+  const [confirmReimport, setConfirmReimport] = useState(false)
   const [needsReconnect, setNeedsReconnect] = useState(false)
   const toastedParam = useRef(false)
 
@@ -129,6 +140,27 @@ export default function GmailIntegrationSettings({ status }: Props) {
     router.refresh()
   }
 
+  async function handleReimport() {
+    setReimporting(true)
+    const res = await reimportAllGmail()
+    setReimporting(false)
+    setConfirmReimport(false)
+    if (res.needsReconnect) {
+      setNeedsReconnect(true)
+      toast.error("Přístup vypršel", { description: "Připoj Gmail znovu." })
+      return
+    }
+    if (res.error) {
+      toast.error("Přeimport selhal", { description: res.error })
+      return
+    }
+    toast.success(`Přeimportováno: ${res.imported} nákladů`)
+    if (res.errors.length) {
+      toast.error("Některé se nepodařily", { description: res.errors.slice(0, 3).join("; ") })
+    }
+    router.refresh()
+  }
+
   async function handleDisconnect() {
     const res = await disconnectGmail()
     if (res.error) toast.error("Odpojení selhalo", { description: res.error })
@@ -194,6 +226,13 @@ export default function GmailIntegrationSettings({ status }: Props) {
             <Button variant="outline" onClick={handleBackfill} disabled={backfilling}>
               {backfilling ? "Doplňuji…" : "Doplnit datumy z e-mailů"}
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmReimport(true)}
+              disabled={reimporting || !status.labelId}
+            >
+              {reimporting ? "Přeimportuji…" : "Přeimportovat vše z Gmailu"}
+            </Button>
             <Button variant="outline" onClick={handleDisconnect}>
               Odpojit
             </Button>
@@ -210,6 +249,26 @@ export default function GmailIntegrationSettings({ status }: Props) {
           )}
         </div>
       )}
+
+      <Dialog open={confirmReimport} onOpenChange={(o) => !o && setConfirmReimport(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Přeimportovat vše z Gmailu?</DialogTitle>
+            <DialogDescription>
+              Smaže stávající náklady načtené z Gmailu (ruční uploady zůstanou) a naimportuje je
+              znovu z labelu s aktuálním předvyplněním. Nevratné.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmReimport(false)}>
+              Zrušit
+            </Button>
+            <Button variant="destructive" disabled={reimporting} onClick={handleReimport}>
+              {reimporting ? "Přeimportuji…" : "Přeimportovat"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
