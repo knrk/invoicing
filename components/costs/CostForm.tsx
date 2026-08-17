@@ -48,8 +48,25 @@ function parseNumber(value: string): number {
   return Number.isNaN(n) ? 0 : n
 }
 
+// Povolí jen číslice a desetinnou čárku, max 2 desetinná místa. Poslední
+// oddělovač (`,` nebo `.`) je desetinný; vše před ním jsou tisíce (zahodí se).
+function sanitizeAmount(raw: string): string {
+  const s = raw.replace(/[^\d.,]/g, "")
+  const lastSep = Math.max(s.lastIndexOf(","), s.lastIndexOf("."))
+  if (lastSep === -1) return s
+  const intPart = s.slice(0, lastSep).replace(/[.,]/g, "")
+  const dec = s
+    .slice(lastSep + 1)
+    .replace(/[.,]/g, "")
+    .slice(0, 2)
+  return `${intPart},${dec}`
+}
+
 export default function CostForm({ value, onChange }: Props) {
   const [savedSuppliers, setSavedSuppliers] = useState<SupplierRecord[]>([])
+  const [totalText, setTotalText] = useState(() =>
+    value.total ? String(value.total).replace(".", ",") : ""
+  )
   const { aresLoading, lookupAres } = useAresLookup((message) =>
     toast.error("Vyhledání v ARESu selhalo", { description: message })
   )
@@ -258,8 +275,12 @@ export default function CostForm({ value, onChange }: Props) {
         <Input
           id="cost-total"
           inputMode="decimal"
-          value={String(value.total)}
-          onChange={(e) => set("total", parseNumber(e.target.value))}
+          value={totalText}
+          onChange={(e) => {
+            const s = sanitizeAmount(e.target.value)
+            setTotalText(s)
+            set("total", parseNumber(s))
+          }}
         />
       </div>
 
