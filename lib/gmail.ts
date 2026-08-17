@@ -24,7 +24,16 @@ import { revalidatePath } from "next/cache"
 
 type Supabase = Awaited<ReturnType<typeof createClient>>
 
-function gmailCostForm(note: string): CostFormData {
+// Datum přijetí e-mailu (internalDate = ms epoch) → "YYYY-MM-DD" (lokálně).
+function receivedDateFromMessage(internalDate: string | undefined): string {
+  if (!internalDate) return today()
+  const ms = Number(internalDate)
+  if (!Number.isFinite(ms)) return today()
+  const d = new Date(ms)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
+function gmailCostForm(note: string, receivedDate: string): CostFormData {
   return {
     supplier: { name: "", ico: "", dic: "", street: "", zip: "", city: "", country: "CZ" },
     invoice_number: "",
@@ -32,7 +41,7 @@ function gmailCostForm(note: string): CostFormData {
     currency: "CZK",
     issue_date: "",
     due_date: "",
-    received_date: today(),
+    received_date: receivedDate,
     total: 0,
     vat_amount: null,
     reverse_charge: false,
@@ -213,6 +222,7 @@ export async function syncGmailCosts(): Promise<GmailSyncResult> {
       if (pdfs.length === 0) continue
       const from = getHeader(message, "From")
       const subject = getHeader(message, "Subject")
+      const received = receivedDateFromMessage(message.internalDate)
       for (const pdf of pdfs) {
         const key = `${msgId}:${pdf.attachmentId}`
         if (processed.has(key)) {
@@ -221,7 +231,7 @@ export async function syncGmailCosts(): Promise<GmailSyncResult> {
         }
         const base64 = await getAttachmentBase64(token, msgId, pdf.attachmentId)
         const created = await createCost(
-          gmailCostForm(`Z Gmailu — ${subject || "(bez předmětu)"} — ${from}`)
+          gmailCostForm(`Z Gmailu — ${subject || "(bez předmětu)"} — ${from}`, received)
         )
         if (created.error || !created.data) {
           errors.push(`${pdf.filename}: ${created.error ?? "vytvoření selhalo"}`)

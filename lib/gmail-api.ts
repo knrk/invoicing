@@ -147,6 +147,7 @@ interface MessagePart {
 
 export interface GmailMessage {
   id: string
+  internalDate?: string
   payload?: {
     headers?: { name: string; value: string }[]
     parts?: MessagePart[]
