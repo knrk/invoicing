@@ -18,7 +18,18 @@ interface Props {
 }
 
 function emptyForm(): SupplierRecordForm {
-  return { name: "", ico: "", dic: "", street: "", zip: "", city: "", country: "CZ", email: "", note: "" }
+  return {
+    name: "",
+    ico: "",
+    dic: "",
+    street: "",
+    zip: "",
+    city: "",
+    country: "CZ",
+    phone: "",
+    email: "",
+    note: "",
+  }
 }
 
 export default function SupplierForm({ existing, onDone }: Props) {
@@ -32,6 +43,7 @@ export default function SupplierForm({ existing, onDone }: Props) {
           zip: existing.zip,
           city: existing.city,
           country: existing.country,
+          phone: existing.phone ?? "",
           email: existing.email ?? "",
           note: existing.note ?? "",
         }
@@ -127,15 +139,27 @@ export default function SupplierForm({ existing, onDone }: Props) {
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="sf-email">E-mail</Label>
-        <Input
-          id="sf-email"
-          type="email"
-          value={form.email}
-          onChange={(e) => set("email", e.target.value)}
-          placeholder="fakturace@dodavatel.cz"
-        />
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label htmlFor="sf-phone">Telefon (nepovinné)</Label>
+          <Input
+            id="sf-phone"
+            type="tel"
+            value={form.phone}
+            onChange={(e) => set("phone", e.target.value)}
+            placeholder="+420 …"
+          />
+        </div>
+        <div>
+          <Label htmlFor="sf-email">E-mail</Label>
+          <Input
+            id="sf-email"
+            type="email"
+            value={form.email}
+            onChange={(e) => set("email", e.target.value)}
+            placeholder="fakturace@dodavatel.cz"
+          />
+        </div>
       </div>
 
       <div>

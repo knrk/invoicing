@@ -136,6 +136,7 @@ export const SupplierRecordSchema = z.object({
   zip: z.string().default(""),
   city: z.string().default(""),
   country: z.string().default("CZ"),
+  phone: z.string().default(""),
   email: z.string().email("Neplatný e-mail").or(z.literal("")).default(""),
   note: z.string().default(""),
   created_at: z.string().optional(),

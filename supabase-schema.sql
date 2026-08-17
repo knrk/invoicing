@@ -191,11 +191,14 @@ create table if not exists suppliers (
   zip text not null default '',
   city text not null default '',
   country text not null default 'CZ',
+  phone text not null default '',
   email text not null default '',
   note text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+-- Migrace pro existující tabulku:
+alter table suppliers add column if not exists phone text not null default '';
 create index if not exists suppliers_name_idx on suppliers (name);
 create index if not exists suppliers_ico_idx on suppliers (ico);
 alter table suppliers enable row level security;
