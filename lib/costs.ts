@@ -129,13 +129,21 @@ export async function deleteCost(id: string): Promise<{ error?: string }> {
   return {}
 }
 
+// Supabase Storage klíče nepovolují diakritiku a řadu znaků ("Invalid key").
+// Odstraníme diakritiku a nepovolené znaky; původní název zůstává v DB (file_name).
+function toStorageName(name: string): string {
+  const ascii = name.normalize("NFD").replace(/\p{M}/gu, "")
+  const cleaned = ascii.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/_{2,}/g, "_")
+  return cleaned.replace(/^_+|_+$/g, "") || "document.pdf"
+}
+
 export async function uploadCostFile(
   costId: string,
   fileName: string,
   base64: string
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
-  const path = `${costId}/${fileName}`
+  const path = `${costId}/${toStorageName(fileName)}`
   const bytes = Buffer.from(base64, "base64")
   const { error: upErr } = await supabase.storage
     .from(BUCKET)
