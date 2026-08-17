@@ -178,3 +178,27 @@ alter table gmail_processed enable row level security;
 drop policy if exists "anon full access gmail_processed" on gmail_processed;
 create policy "anon full access gmail_processed" on gmail_processed
   for all to anon using (true) with check (true);
+
+-- ==========================================================================
+-- Evidence dodavatelů (obdoba odběratelů; přepoužití + reporty)
+-- ==========================================================================
+create table if not exists suppliers (
+  id uuid primary key default gen_random_uuid(),
+  name text not null default '',
+  ico text not null default '',
+  dic text not null default '',
+  street text not null default '',
+  zip text not null default '',
+  city text not null default '',
+  country text not null default 'CZ',
+  email text not null default '',
+  note text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists suppliers_name_idx on suppliers (name);
+create index if not exists suppliers_ico_idx on suppliers (ico);
+alter table suppliers enable row level security;
+drop policy if exists "anon full access suppliers" on suppliers;
+create policy "anon full access suppliers" on suppliers
+  for all to anon using (true) with check (true);

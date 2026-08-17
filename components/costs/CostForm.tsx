@@ -7,8 +7,10 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useAresLookup } from "@/hooks/use-ares-lookup"
+import { getSuppliers } from "@/lib/suppliers"
 import { cn } from "@/lib/utils"
-import type { CostFormData } from "@/types"
+import type { CostFormData, SupplierRecord } from "@/types"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 interface Props {
@@ -40,9 +42,31 @@ function parseNumber(value: string): number {
 }
 
 export default function CostForm({ value, onChange }: Props) {
+  const [savedSuppliers, setSavedSuppliers] = useState<SupplierRecord[]>([])
   const { aresLoading, lookupAres } = useAresLookup((message) =>
     toast.error("Vyhledání v ARESu selhalo", { description: message })
   )
+
+  useEffect(() => {
+    getSuppliers().then(setSavedSuppliers)
+  }, [])
+
+  function pickSupplier(id: string) {
+    const s = savedSuppliers.find((x) => x.id === id)
+    if (!s) return
+    onChange({
+      ...value,
+      supplier: {
+        name: s.name,
+        ico: s.ico,
+        dic: s.dic,
+        street: s.street,
+        zip: s.zip,
+        city: s.city,
+        country: s.country,
+      },
+    })
+  }
 
   function set<K extends keyof CostFormData>(key: K, v: CostFormData[K]) {
     onChange({ ...value, [key]: v })
@@ -90,6 +114,26 @@ export default function CostForm({ value, onChange }: Props) {
           <span className={cn("text-sm font-medium", !isEur && "text-muted-foreground")}>EUR</span>
         </div>
       </div>
+
+      {savedSuppliers.length > 0 && (
+        <div>
+          <Label htmlFor="cost-supplier-pick">Vybrat z uložených dodavatelů</Label>
+          <select
+            id="cost-supplier-pick"
+            value=""
+            onChange={(e) => pickSupplier(e.target.value)}
+            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+          >
+            <option value="">— vyber dodavatele —</option>
+            {savedSuppliers.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+                {s.ico ? ` (IČ ${s.ico})` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div>
         <Label htmlFor="cost-supplier-name">Dodavatel</Label>

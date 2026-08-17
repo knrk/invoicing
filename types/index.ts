@@ -10,4 +10,6 @@ export type {
   Invoice,
   CostFormData,
   Cost,
+  SupplierRecord,
+  SupplierRecordForm,
 } from "@/lib/schemas"

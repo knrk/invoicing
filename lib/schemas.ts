@@ -126,6 +126,28 @@ export const CustomerRecordFormSchema = CustomerRecordSchema.omit({
   updated_at: true,
 })
 
+// Evidence dodavatelů (obdoba odběratelů, k přepoužití + reportům).
+export const SupplierRecordSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1, "Název dodavatele je povinný"),
+  ico: z.string().default(""),
+  dic: z.string().default(""),
+  street: z.string().default(""),
+  zip: z.string().default(""),
+  city: z.string().default(""),
+  country: z.string().default("CZ"),
+  email: z.string().email("Neplatný e-mail").or(z.literal("")).default(""),
+  note: z.string().default(""),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+})
+
+export const SupplierRecordFormSchema = SupplierRecordSchema.omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+})
+
 // Náklady (příchozí faktury). Dodavatel je záměrně volnější než u faktur —
 // u Gmail importu nemusí být jméno hned známé.
 const CostSupplierSchema = z.object({
@@ -180,6 +202,8 @@ export type InvoiceFormData = z.infer<typeof InvoiceFormDataSchema>
 export type Invoice = z.infer<typeof InvoiceSchema>
 export type CostFormData = z.infer<typeof CostFormDataSchema>
 export type Cost = z.infer<typeof CostSchema>
+export type SupplierRecord = z.infer<typeof SupplierRecordSchema>
+export type SupplierRecordForm = z.infer<typeof SupplierRecordFormSchema>
 
 export function formatZodError(error: z.ZodError): string {
   return error.issues.map((issue) => issue.message).join(", ")
