@@ -163,14 +163,15 @@ export async function deleteCosts(ids: string[]): Promise<{ deleted: number; err
 export async function uploadCostFile(
   costId: string,
   fileName: string,
-  base64: string
+  base64: string,
+  contentType = "application/pdf"
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
   const path = `${costId}/${toStorageName(fileName)}`
   const bytes = Buffer.from(base64, "base64")
   const { error: upErr } = await supabase.storage
     .from(BUCKET)
-    .upload(path, bytes, { contentType: "application/pdf", upsert: true })
+    .upload(path, bytes, { contentType, upsert: true })
   if (upErr) return { error: upErr.message }
 
   const { error } = await supabase

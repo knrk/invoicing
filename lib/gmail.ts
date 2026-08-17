@@ -4,6 +4,7 @@ import { createCost, uploadCostFile } from "@/lib/costs"
 import {
   buildAuthUrl,
   exchangeCodeForTokens,
+  extractHtmlBody,
   extractPdfAttachments,
   getAttachmentBase64,
   getHeader,
@@ -218,30 +219,60 @@ export async function syncGmailCosts(): Promise<GmailSyncResult> {
   for (const msgId of messageIds) {
     try {
       const message = await getMessage(token, msgId)
-      const pdfs = extractPdfAttachments(message)
-      if (pdfs.length === 0) continue
       const from = getHeader(message, "From")
       const subject = getHeader(message, "Subject")
       const received = receivedDateFromMessage(message.internalDate)
-      for (const pdf of pdfs) {
-        const key = `${msgId}:${pdf.attachmentId}`
+      const note = `Z Gmailu — ${subject || "(bez předmětu)"} — ${from}`
+      const pdfs = extractPdfAttachments(message)
+
+      if (pdfs.length > 0) {
+        for (const pdf of pdfs) {
+          const key = `${msgId}:${pdf.attachmentId}`
+          if (processed.has(key)) {
+            skipped++
+            continue
+          }
+          const base64 = await getAttachmentBase64(token, msgId, pdf.attachmentId)
+          const created = await createCost(gmailCostForm(note, received))
+          if (created.error || !created.data) {
+            errors.push(`${pdf.filename}: ${created.error ?? "vytvoření selhalo"}`)
+            continue
+          }
+          const up = await uploadCostFile(created.data.id, pdf.filename, base64)
+          if (up.error) errors.push(`${pdf.filename}: ${up.error}`)
+          await supabase.from("gmail_processed").insert({
+            message_id: msgId,
+            attachment_id: pdf.attachmentId,
+            cost_id: created.data.id,
+          })
+          processed.add(key)
+          imported++
+        }
+      } else {
+        // Bez PDF přílohy → faktura je v těle e-mailu (HTML), např. Apple.
+        const key = `${msgId}:body`
         if (processed.has(key)) {
           skipped++
           continue
         }
-        const base64 = await getAttachmentBase64(token, msgId, pdf.attachmentId)
-        const created = await createCost(
-          gmailCostForm(`Z Gmailu — ${subject || "(bez předmětu)"} — ${from}`, received)
-        )
+        const html = extractHtmlBody(message)
+        if (!html) continue
+        const created = await createCost(gmailCostForm(note, received))
         if (created.error || !created.data) {
-          errors.push(`${pdf.filename}: ${created.error ?? "vytvoření selhalo"}`)
+          errors.push(`${subject || msgId}: ${created.error ?? "vytvoření selhalo"}`)
           continue
         }
-        const up = await uploadCostFile(created.data.id, pdf.filename, base64)
-        if (up.error) errors.push(`${pdf.filename}: ${up.error}`)
+        const base64 = Buffer.from(html, "utf8").toString("base64")
+        const up = await uploadCostFile(
+          created.data.id,
+          "faktura.html",
+          base64,
+          "text/html; charset=utf-8"
+        )
+        if (up.error) errors.push(`${subject || msgId}: ${up.error}`)
         await supabase.from("gmail_processed").insert({
           message_id: msgId,
-          attachment_id: pdf.attachmentId,
+          attachment_id: "body",
           cost_id: created.data.id,
         })
         processed.add(key)

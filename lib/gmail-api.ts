@@ -141,7 +141,7 @@ export async function listMessageIds(
 interface MessagePart {
   filename?: string
   mimeType?: string
-  body?: { attachmentId?: string; size?: number }
+  body?: { attachmentId?: string; size?: number; data?: string }
   parts?: MessagePart[]
 }
 
@@ -153,7 +153,7 @@ export interface GmailMessage {
     parts?: MessagePart[]
     filename?: string
     mimeType?: string
-    body?: { attachmentId?: string }
+    body?: { attachmentId?: string; data?: string }
   }
 }
 
@@ -184,6 +184,33 @@ export function extractPdfAttachments(message: GmailMessage): PdfAttachment[] {
   }
   walk(message.payload)
   return out
+}
+
+// Vrátí HTML tělo e-mailu (pro faktury bez přílohy). Preferuje text/html,
+// jinak zabalí text/plain. Null když tělo není.
+export function extractHtmlBody(message: GmailMessage): string | null {
+  const parts: MessagePart[] = []
+  const collect = (part: MessagePart | undefined) => {
+    if (!part) return
+    parts.push(part)
+    for (const child of part.parts ?? []) collect(child)
+  }
+  collect(message.payload)
+
+  const decode = (data?: string): string => (data ? Buffer.from(data, "base64url").toString("utf8") : "")
+
+  const htmlPart = parts.find((p) => p.mimeType === "text/html" && p.body?.data)
+  if (htmlPart) return decode(htmlPart.body?.data)
+
+  const textPart = parts.find((p) => p.mimeType === "text/plain" && p.body?.data)
+  if (textPart) {
+    const escaped = decode(textPart.body?.data).replace(
+      /[&<>]/g,
+      (s) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[s] ?? s
+    )
+    return `<pre style="white-space:pre-wrap;font-family:system-ui,sans-serif;padding:16px">${escaped}</pre>`
+  }
+  return null
 }
 
 export function getHeader(message: GmailMessage, name: string): string {
