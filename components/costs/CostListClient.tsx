@@ -113,12 +113,19 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
 
   const filtered = useMemo(
     () =>
-      costs.filter((c) => {
-        if (status === "unpaid" && c.paid_at) return false
-        if (status === "paid" && !c.paid_at) return false
-        if (period && !c.issue_date.startsWith(period)) return false
-        return true
-      }),
+      costs
+        .filter((c) => {
+          if (status === "unpaid" && c.paid_at) return false
+          if (status === "paid" && !c.paid_at) return false
+          if (period && !c.issue_date.startsWith(period)) return false
+          return true
+        })
+        // Řazení podle data přijetí, nejnovější první; bez data na konec.
+        .sort((a, b) => {
+          if (!a.received_date) return 1
+          if (!b.received_date) return -1
+          return b.received_date.localeCompare(a.received_date)
+        }),
     [costs, status, period]
   )
 
