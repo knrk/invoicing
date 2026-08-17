@@ -96,7 +96,7 @@ export default function CostUploadDialog({ open, onOpenChange, onSaved }: Props)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden p-0">
+      <DialogContent className="flex max-h-[90vh] w-full max-w-[35rem] flex-col overflow-hidden p-0">
         <DialogHeader className="mb-0 shrink-0 border-b border-border px-6 py-4">
           <DialogTitle>Nový náklad</DialogTitle>
         </DialogHeader>
