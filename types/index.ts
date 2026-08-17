@@ -8,4 +8,6 @@ export type {
   InvoiceLine,
   InvoiceFormData,
   Invoice,
+  CostFormData,
+  Cost,
 } from "@/lib/schemas"

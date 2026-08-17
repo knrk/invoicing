@@ -1,0 +1,18 @@
+import CostListClient from "@/components/costs/CostListClient"
+import { getCosts } from "@/lib/costs"
+
+export default async function CostsPage() {
+  const costs = await getCosts()
+
+  return (
+    <main className="mx-auto max-w-7xl px-10 py-8">
+      <div className="mb-8 flex items-center gap-2.5">
+        <h1 className="text-[22px] font-bold text-text">Náklady</h1>
+        <span className="inline-flex items-center rounded-full border border-border bg-subtle px-2 py-0.5 text-xs font-semibold tabular-nums text-text-secondary">
+          {costs.length}
+        </span>
+      </div>
+      <CostListClient costs={costs} />
+    </main>
+  )
+}
