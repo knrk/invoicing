@@ -85,7 +85,8 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
   const router = useRouter()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [status, setStatus] = useState<StatusFilter>("all")
-  const [period, setPeriod] = useState("")
+  // Přijaté faktury vždy zobrazují jen aktuální rok.
+  const currentYear = String(new Date().getFullYear())
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [exporting, setExporting] = useState<"csv" | "zip" | null>(null)
@@ -117,7 +118,7 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
         .filter((c) => {
           if (status === "unpaid" && c.paid_at) return false
           if (status === "paid" && !c.paid_at) return false
-          if (period && !c.issue_date.startsWith(period)) return false
+          if (!c.issue_date.startsWith(currentYear)) return false
           return true
         })
         // Řazení podle data přijetí, nejnovější první; bez data na konec.
@@ -126,7 +127,7 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
           if (!b.received_date) return -1
           return b.received_date.localeCompare(a.received_date)
         }),
-    [costs, status, period]
+    [costs, status, currentYear]
   )
 
   const unpaid = costs.filter((c) => !c.paid_at)
@@ -183,7 +184,7 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
   async function handleExportCsv() {
     setExporting("csv")
     try {
-      const { csv, filename } = await exportCostsCsv(period)
+      const { csv, filename } = await exportCostsCsv(currentYear)
       downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), filename)
     } catch (err) {
       toast.error("Export CSV selhal", {
@@ -197,7 +198,7 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
   async function handleExportZip() {
     setExporting("zip")
     try {
-      const { base64, filename, error } = await exportCostsZip(period)
+      const { base64, filename, error } = await exportCostsZip(currentYear)
       if (error || !base64) {
         toast.error("Export ZIP selhal", { description: error ?? "Neznámá chyba" })
         return
@@ -251,20 +252,6 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
               {s === "all" ? "Vše" : s === "unpaid" ? "Nezaplacené" : "Zaplacené"}
             </button>
           ))}
-          <input
-            type="month"
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="ml-2 h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
-          />
-          {period && (
-            <button
-              onClick={() => setPeriod("")}
-              className="text-xs text-text-secondary underline hover:text-text"
-            >
-              Zrušit filtr
-            </button>
-          )}
         </div>
 
         <div className="flex items-center gap-2">
