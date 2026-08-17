@@ -42,18 +42,23 @@ function costToForm(cost: Cost): CostFormData {
 
 export default function CostDetailClient({ cost }: Props) {
   const router = useRouter()
+  const [form, setForm] = useState<CostFormData>(() => costToForm(cost))
+  const [saving, setSaving] = useState(false)
   const [paid, setPaid] = useState<boolean>(!!cost.paid_at)
   const [togglingPaid, setTogglingPaid] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  async function handleSubmit(form: CostFormData): Promise<{ error?: string }> {
+  async function handleSave() {
+    setSaving(true)
     const result = await updateCost(cost.id, form)
-    if (!result.error) {
+    setSaving(false)
+    if (result.error) {
+      toast.error("Chyba při ukládání", { description: result.error })
+    } else {
       toast.success("Náklad uložen")
       router.refresh()
     }
-    return result
   }
 
   async function togglePaid() {
@@ -102,11 +107,12 @@ export default function CostDetailClient({ cost }: Props) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-border bg-surface p-5">
-          <CostForm
-            initial={costToForm(cost)}
-            submitLabel="Uložit změny"
-            onSubmit={handleSubmit}
-          />
+          <CostForm value={form} onChange={setForm} />
+          <div className="mt-4 flex justify-end">
+            <Button variant="dark" onClick={handleSave} disabled={saving}>
+              {saving ? "Ukládám…" : "Uložit změny"}
+            </Button>
+          </div>
         </div>
         <CostFilePreview costId={cost.id} hasFile={!!cost.file_path} />
       </div>

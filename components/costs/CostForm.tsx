@@ -1,7 +1,6 @@
 "use client"
 
 import { AresLookupButton } from "@/components/invoice/AresLookupButton"
-import { Button } from "@/components/ui/button"
 import DatePicker from "@/components/ui/DatePicker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,14 +9,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { useAresLookup } from "@/hooks/use-ares-lookup"
 import { cn } from "@/lib/utils"
 import type { CostFormData } from "@/types"
-import { useState } from "react"
 import { toast } from "sonner"
 
 interface Props {
-  initial: CostFormData
-  submitLabel: string
-  onSubmit: (form: CostFormData) => Promise<{ error?: string }>
-  onCancel?: () => void
+  value: CostFormData
+  onChange: (value: CostFormData) => void
 }
 
 export function emptyCostForm(): CostFormData {
@@ -43,54 +39,42 @@ function parseNumber(value: string): number {
   return Number.isNaN(n) ? 0 : n
 }
 
-export default function CostForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
-  const [form, setForm] = useState<CostFormData>(initial)
-  const [saving, setSaving] = useState(false)
+export default function CostForm({ value, onChange }: Props) {
   const { aresLoading, lookupAres } = useAresLookup((message) =>
     toast.error("Vyhledání v ARESu selhalo", { description: message })
   )
 
-  function set<K extends keyof CostFormData>(key: K, value: CostFormData[K]) {
-    setForm((f) => ({ ...f, [key]: value }))
+  function set<K extends keyof CostFormData>(key: K, v: CostFormData[K]) {
+    onChange({ ...value, [key]: v })
   }
 
   function setSupplier<K extends keyof CostFormData["supplier"]>(
     key: K,
-    value: CostFormData["supplier"][K]
+    v: CostFormData["supplier"][K]
   ) {
-    setForm((f) => ({ ...f, supplier: { ...f.supplier, [key]: value } }))
+    onChange({ ...value, supplier: { ...value.supplier, [key]: v } })
   }
 
   async function handleAresLookup() {
-    const data = await lookupAres(form.supplier.ico)
+    const data = await lookupAres(value.supplier.ico)
     if (!data) return
-    setForm((f) => ({
-      ...f,
+    onChange({
+      ...value,
       supplier: {
-        ...f.supplier,
-        name: data.obchodniJmeno || f.supplier.name,
-        dic: data.dic || f.supplier.dic,
-        street: data.street || f.supplier.street,
-        zip: data.zip || f.supplier.zip,
-        city: data.city || f.supplier.city,
+        ...value.supplier,
+        name: data.obchodniJmeno || value.supplier.name,
+        dic: data.dic || value.supplier.dic,
+        street: data.street || value.supplier.street,
+        zip: data.zip || value.supplier.zip,
+        city: data.city || value.supplier.city,
       },
-    }))
+    })
   }
 
   // Na poli IČ je ARES lookup vždy, když je IČ vyplněné — ať jde kdykoli
   // (i po vyplnění názvu) údaje přenačíst.
-  const showAresLookup = form.supplier.ico.trim() !== ""
-
-  async function handleSubmit() {
-    setSaving(true)
-    const result = await onSubmit(form)
-    setSaving(false)
-    if (result.error) {
-      toast.error("Chyba při ukládání", { description: result.error })
-    }
-  }
-
-  const isEur = form.currency === "EUR"
+  const showAresLookup = value.supplier.ico.trim() !== ""
+  const isEur = value.currency === "EUR"
 
   return (
     <div className="space-y-4">
@@ -111,7 +95,7 @@ export default function CostForm({ initial, submitLabel, onSubmit, onCancel }: P
         <Label htmlFor="cost-supplier-name">Dodavatel</Label>
         <Input
           id="cost-supplier-name"
-          value={form.supplier.name}
+          value={value.supplier.name}
           onChange={(e) => setSupplier("name", e.target.value)}
           placeholder="Název dodavatele"
         />
@@ -123,7 +107,7 @@ export default function CostForm({ initial, submitLabel, onSubmit, onCancel }: P
           <div className="relative">
             <Input
               id="cost-supplier-ico"
-              value={form.supplier.ico}
+              value={value.supplier.ico}
               onChange={(e) => setSupplier("ico", e.target.value)}
               className={cn(showAresLookup && "pr-9")}
             />
@@ -136,7 +120,7 @@ export default function CostForm({ initial, submitLabel, onSubmit, onCancel }: P
           <Label htmlFor="cost-supplier-dic">DIČ</Label>
           <Input
             id="cost-supplier-dic"
-            value={form.supplier.dic}
+            value={value.supplier.dic}
             onChange={(e) => setSupplier("dic", e.target.value)}
           />
         </div>
@@ -146,7 +130,7 @@ export default function CostForm({ initial, submitLabel, onSubmit, onCancel }: P
         <Label htmlFor="cost-supplier-street">Ulice</Label>
         <Input
           id="cost-supplier-street"
-          value={form.supplier.street}
+          value={value.supplier.street}
           onChange={(e) => setSupplier("street", e.target.value)}
         />
       </div>
@@ -155,7 +139,7 @@ export default function CostForm({ initial, submitLabel, onSubmit, onCancel }: P
           <Label htmlFor="cost-supplier-zip">PSČ</Label>
           <Input
             id="cost-supplier-zip"
-            value={form.supplier.zip}
+            value={value.supplier.zip}
             onChange={(e) => setSupplier("zip", e.target.value)}
           />
         </div>
@@ -163,7 +147,7 @@ export default function CostForm({ initial, submitLabel, onSubmit, onCancel }: P
           <Label htmlFor="cost-supplier-city">Město</Label>
           <Input
             id="cost-supplier-city"
-            value={form.supplier.city}
+            value={value.supplier.city}
             onChange={(e) => setSupplier("city", e.target.value)}
           />
         </div>
@@ -171,7 +155,7 @@ export default function CostForm({ initial, submitLabel, onSubmit, onCancel }: P
           <Label htmlFor="cost-supplier-country">Země</Label>
           <Input
             id="cost-supplier-country"
-            value={form.supplier.country}
+            value={value.supplier.country}
             onChange={(e) => setSupplier("country", e.target.value)}
           />
         </div>
@@ -182,7 +166,7 @@ export default function CostForm({ initial, submitLabel, onSubmit, onCancel }: P
           <Label htmlFor="cost-invoice-number">Číslo faktury</Label>
           <Input
             id="cost-invoice-number"
-            value={form.invoice_number}
+            value={value.invoice_number}
             onChange={(e) => set("invoice_number", e.target.value)}
           />
         </div>
@@ -190,7 +174,7 @@ export default function CostForm({ initial, submitLabel, onSubmit, onCancel }: P
           <Label htmlFor="cost-vs">Variabilní symbol</Label>
           <Input
             id="cost-vs"
-            value={form.variable_symbol}
+            value={value.variable_symbol}
             onChange={(e) => set("variable_symbol", e.target.value)}
           />
         </div>
@@ -200,19 +184,19 @@ export default function CostForm({ initial, submitLabel, onSubmit, onCancel }: P
         <div>
           <Label>Datum vystavení</Label>
           <DatePicker
-            value={form.issue_date}
+            value={value.issue_date}
             language="cs"
             onChange={(v) => set("issue_date", v)}
           />
         </div>
         <div>
           <Label>Splatnost</Label>
-          <DatePicker value={form.due_date} language="cs" onChange={(v) => set("due_date", v)} />
+          <DatePicker value={value.due_date} language="cs" onChange={(v) => set("due_date", v)} />
         </div>
         <div>
           <Label>Přijato</Label>
           <DatePicker
-            value={form.received_date}
+            value={value.received_date}
             language="cs"
             onChange={(v) => set("received_date", v)}
           />
@@ -224,7 +208,7 @@ export default function CostForm({ initial, submitLabel, onSubmit, onCancel }: P
         <Input
           id="cost-total"
           inputMode="decimal"
-          value={String(form.total)}
+          value={String(value.total)}
           onChange={(e) => set("total", parseNumber(e.target.value))}
         />
       </div>
@@ -233,21 +217,10 @@ export default function CostForm({ initial, submitLabel, onSubmit, onCancel }: P
         <Label htmlFor="cost-note">Poznámka</Label>
         <Textarea
           id="cost-note"
-          value={form.note}
+          value={value.note}
           onChange={(e) => set("note", e.target.value)}
           rows={2}
         />
-      </div>
-
-      <div className="flex justify-end gap-2 pt-2">
-        {onCancel && (
-          <Button variant="outline" onClick={onCancel}>
-            Zrušit
-          </Button>
-        )}
-        <Button variant="dark" onClick={handleSubmit} disabled={saving}>
-          {saving ? "Ukládám…" : submitLabel}
-        </Button>
       </div>
     </div>
   )
