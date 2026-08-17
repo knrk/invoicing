@@ -77,7 +77,9 @@ export default function CostForm({ initial, submitLabel, onSubmit, onCancel }: P
     }))
   }
 
-  const showAresLookup = form.supplier.ico.trim() !== "" && form.supplier.name.trim() === ""
+  // Na poli IČ je ARES lookup vždy, když je IČ vyplněné — ať jde kdykoli
+  // (i po vyplnění názvu) údaje přenačíst.
+  const showAresLookup = form.supplier.ico.trim() !== ""
 
   async function handleSubmit() {
     setSaving(true)
