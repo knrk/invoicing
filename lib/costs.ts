@@ -8,7 +8,7 @@ import {
   formatZodError,
 } from "@/lib/schemas"
 import { createClient } from "@/lib/supabase/server"
-import { upsertSupplierByIco } from "@/lib/suppliers"
+import { upsertSupplierFromCost } from "@/lib/suppliers"
 import JSZip from "jszip"
 import { revalidatePath } from "next/cache"
 
@@ -84,7 +84,7 @@ export async function createCost(form: CostFormData): Promise<{ data?: Cost; err
 
   const cost = rowToCost(data)
   if (!cost) return { error: "Unexpected response from database" }
-  await upsertSupplierByIco(parsed.data.supplier)
+  await upsertSupplierFromCost(parsed.data.supplier)
   revalidatePath("/costs")
   revalidatePath("/")
   return { data: cost }
@@ -100,7 +100,7 @@ export async function updateCost(id: string, form: CostFormData): Promise<{ erro
     .update({ ...toDbRow(parsed.data), updated_at: new Date().toISOString() })
     .eq("id", id)
   if (error) return { error: error.message }
-  await upsertSupplierByIco(parsed.data.supplier)
+  await upsertSupplierFromCost(parsed.data.supplier)
   revalidatePath("/costs")
   revalidatePath(`/costs/${id}`)
   revalidatePath("/")

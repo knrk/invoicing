@@ -69,9 +69,10 @@ export async function deleteSupplier(id: string): Promise<{ error?: string }> {
   return {}
 }
 
-// Auto-uložení dodavatele z nákladu: podle IČ vloží nebo aktualizuje záznam.
-// Toleruje chyby (nesmí shodit uložení nákladu) a vyžaduje neprázdné IČ + název.
-export async function upsertSupplierByIco(supplier: {
+// Auto-uložení dodavatele z nákladu: identifikuje podle IČ, a když chybí (typicky
+// zahraniční dodavatel), tak podle DIČ (VAT ID). Toleruje chyby (nesmí shodit
+// uložení nákladu). Vyžaduje název + alespoň jeden identifikátor (IČ nebo DIČ).
+export async function upsertSupplierFromCost(supplier: {
   name: string
   ico: string
   dic: string
@@ -81,25 +82,42 @@ export async function upsertSupplierByIco(supplier: {
   country: string
 }): Promise<void> {
   const ico = supplier.ico.trim()
+  const dic = supplier.dic.trim()
   const name = supplier.name.trim()
-  if (!ico || !name) return
+  if (!name || (!ico && !dic)) return
 
   const supabase = await createClient()
   const now = new Date().toISOString()
-  const { data: existing } = await supabase
-    .from("suppliers")
-    .select("id")
-    .eq("ico", ico)
-    .limit(1)
-    .maybeSingle()
 
-  if (existing?.id) {
+  let existingId: string | undefined
+  if (ico) {
+    const { data } = await supabase
+      .from("suppliers")
+      .select("id")
+      .eq("ico", ico)
+      .limit(1)
+      .maybeSingle()
+    existingId = data?.id
+  }
+  if (!existingId && dic) {
+    const { data } = await supabase
+      .from("suppliers")
+      .select("id")
+      .eq("dic", dic)
+      .limit(1)
+      .maybeSingle()
+    existingId = data?.id
+  }
+
+  if (existingId) {
     await supabase
       .from("suppliers")
-      .update({ ...supplier, ico, name, updated_at: now })
-      .eq("id", existing.id)
+      .update({ ...supplier, ico, dic, name, updated_at: now })
+      .eq("id", existingId)
   } else {
-    await supabase.from("suppliers").insert({ ...supplier, ico, name, created_at: now, updated_at: now })
+    await supabase
+      .from("suppliers")
+      .insert({ ...supplier, ico, dic, name, created_at: now, updated_at: now })
   }
   revalidatePath("/suppliers")
 }
