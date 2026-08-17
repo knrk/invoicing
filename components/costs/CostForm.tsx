@@ -284,6 +284,31 @@ export default function CostForm({ value, onChange }: Props) {
         />
       </div>
 
+      <div className="space-y-3 rounded-lg border border-border bg-subtle px-4 py-3">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="cost-reverse-charge" className="cursor-pointer">
+            Přenesená daňová povinnost
+          </Label>
+          <Switch
+            id="cost-reverse-charge"
+            size="sm"
+            checked={value.reverse_charge}
+            onCheckedChange={(v) => set("reverse_charge", v)}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="cost-eu-supplier" className="cursor-pointer">
+            Dodavatel z EU
+          </Label>
+          <Switch
+            id="cost-eu-supplier"
+            size="sm"
+            checked={value.is_eu_supplier}
+            onCheckedChange={(v) => set("is_eu_supplier", v)}
+          />
+        </div>
+      </div>
+
       <div>
         <Label htmlFor="cost-note">Poznámka</Label>
         <Textarea
