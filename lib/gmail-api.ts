@@ -186,31 +186,119 @@ export function extractPdfAttachments(message: GmailMessage): PdfAttachment[] {
   return out
 }
 
+function collectParts(message: GmailMessage): MessagePart[] {
+  const out: MessagePart[] = []
+  const walk = (part: MessagePart | undefined) => {
+    if (!part) return
+    out.push(part)
+    for (const child of part.parts ?? []) walk(child)
+  }
+  walk(message.payload)
+  return out
+}
+
+function decodeB64Url(data?: string): string {
+  return data ? Buffer.from(data, "base64url").toString("utf8") : ""
+}
+
 // Vrátí HTML tělo e-mailu (pro faktury bez přílohy). Preferuje text/html,
 // jinak zabalí text/plain. Null když tělo není.
 export function extractHtmlBody(message: GmailMessage): string | null {
-  const parts: MessagePart[] = []
-  const collect = (part: MessagePart | undefined) => {
-    if (!part) return
-    parts.push(part)
-    for (const child of part.parts ?? []) collect(child)
-  }
-  collect(message.payload)
-
-  const decode = (data?: string): string => (data ? Buffer.from(data, "base64url").toString("utf8") : "")
-
+  const parts = collectParts(message)
   const htmlPart = parts.find((p) => p.mimeType === "text/html" && p.body?.data)
-  if (htmlPart) return decode(htmlPart.body?.data)
+  if (htmlPart) return decodeB64Url(htmlPart.body?.data)
 
   const textPart = parts.find((p) => p.mimeType === "text/plain" && p.body?.data)
   if (textPart) {
-    const escaped = decode(textPart.body?.data).replace(
+    const escaped = decodeB64Url(textPart.body?.data).replace(
       /[&<>]/g,
       (s) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[s] ?? s
     )
     return `<pre style="white-space:pre-wrap;font-family:system-ui,sans-serif;padding:16px">${escaped}</pre>`
   }
   return null
+}
+
+// Plain-text tělo pro heuristické parsování (text/plain; jinak HTML bez značek).
+export function getBodyText(message: GmailMessage): string {
+  const parts = collectParts(message)
+  const textPart = parts.find((p) => p.mimeType === "text/plain" && p.body?.data)
+  if (textPart) return decodeB64Url(textPart.body?.data)
+  const htmlPart = parts.find((p) => p.mimeType === "text/html" && p.body?.data)
+  if (htmlPart) {
+    return decodeB64Url(htmlPart.body?.data)
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&")
+      .replace(/\s+/g, " ")
+      .trim()
+  }
+  return ""
+}
+
+// Rozparsuje odesílatele "Jméno <email>" → { name, email }.
+export function parseSender(from: string): { name: string; email: string } {
+  const m = from.match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/)
+  if (m) return { name: m[1].trim(), email: m[2].trim().toLowerCase() }
+  const t = from.trim()
+  return { name: "", email: t.includes("@") ? t.toLowerCase() : "" }
+}
+
+export interface ParsedEmailFields {
+  invoice_number: string
+  variable_symbol: string
+  total: number | null
+  currency: "CZK" | "EUR" | null
+  due_date: string
+}
+
+// "1 234,56" / "1.234,56" / "1234.56" → number
+function parseAmount(raw: string): number | null {
+  let s = raw.replace(/\s/g, "")
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".")
+  const n = Number.parseFloat(s)
+  return Number.isFinite(n) ? n : null
+}
+
+function parseDueDate(text: string): string {
+  const m = text.match(
+    /(?:splatnost|datum\s*splatnosti|due\s*date)\D{0,10}(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/i
+  )
+  if (!m) return ""
+  const day = m[1]
+  const month = m[2]
+  let year = Number(m[3])
+  if (year < 100) year += 2000
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
+}
+
+// Heuristicky vytáhne jasně označené údaje z předmětu a těla. Prázdné, když nejsou.
+export function parseEmailFields(subject: string, body: string): ParsedEmailFields {
+  const text = `${subject}\n${body}`
+  const vs =
+    text.match(/variabiln[íi]\s*symbol\D{0,5}(\d{4,10})/i) ??
+    text.match(/\bVS\b\s*[:#]?\s*(\d{4,10})/i)
+  const inv = text.match(
+    /(?:č[íi]slo\s*faktury|faktura\s*č[íi]slo|invoice\s*(?:number|no\.?))\D{0,5}([A-Za-z0-9][A-Za-z0-9/-]{2,})/i
+  )
+  const amt = text.match(
+    /(?:celkem\s*k\s*[úu]hrad[ěe]|k\s*[úu]hrad[ěe]|celkem|total|částka)\D{0,12}(\d[\d\s.]*(?:,\d{1,2})?)\s*(K[čc]|CZK|EUR|€)/i
+  )
+  let total: number | null = null
+  let currency: "CZK" | "EUR" | null = null
+  if (amt) {
+    total = parseAmount(amt[1])
+    const cur = amt[2].toLowerCase()
+    currency = cur === "eur" || cur === "€" ? "EUR" : "CZK"
+  }
+  return {
+    invoice_number: inv ? inv[1] : "",
+    variable_symbol: vs ? vs[1] : "",
+    total,
+    currency,
+    due_date: parseDueDate(text),
+  }
 }
 
 export function getHeader(message: GmailMessage, name: string): string {

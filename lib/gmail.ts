@@ -7,6 +7,7 @@ import {
   extractHtmlBody,
   extractPdfAttachments,
   getAttachmentBase64,
+  getBodyText,
   getHeader,
   getMessage,
   getProfileEmail,
@@ -16,11 +17,14 @@ import {
   type GmailSyncResult,
   listLabels,
   listMessageIds,
+  parseEmailFields,
+  parseSender,
   refreshAccessToken,
 } from "@/lib/gmail-api"
 import { today } from "@/lib/invoice"
-import type { CostFormData } from "@/lib/schemas"
+import type { CostFormData, SupplierRecord } from "@/lib/schemas"
 import { createClient } from "@/lib/supabase/server"
+import { getSuppliers } from "@/lib/suppliers"
 import { revalidatePath } from "next/cache"
 
 type Supabase = Awaited<ReturnType<typeof createClient>>
@@ -32,6 +36,41 @@ function receivedDateFromMessage(internalDate: string | undefined): string {
   if (!Number.isFinite(ms)) return today()
   const d = new Date(ms)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
+// Dodavatel z odesílatele: když e-mail/doména sedí na uloženého dodavatele,
+// předvyplní se celý; jinak jen název z odesílatele.
+function supplierFromSender(
+  saved: SupplierRecord[],
+  sender: { name: string; email: string }
+): CostFormData["supplier"] {
+  const email = sender.email
+  const domain = email.includes("@") ? email.split("@")[1] : ""
+  const match =
+    (email ? saved.find((s) => s.email.toLowerCase() === email) : undefined) ??
+    (domain
+      ? saved.find((s) => s.email && s.email.toLowerCase().split("@")[1] === domain)
+      : undefined)
+  if (match) {
+    return {
+      name: match.name,
+      ico: match.ico,
+      dic: match.dic,
+      street: match.street,
+      zip: match.zip,
+      city: match.city,
+      country: match.country,
+    }
+  }
+  return {
+    name: sender.name || sender.email,
+    ico: "",
+    dic: "",
+    street: "",
+    zip: "",
+    city: "",
+    country: "CZ",
+  }
 }
 
 function gmailCostForm(note: string, receivedDate: string): CostFormData {
@@ -197,6 +236,7 @@ export async function syncGmailCosts(): Promise<GmailSyncResult> {
   const processed = new Set(
     (processedRows ?? []).map((r) => `${r.message_id}:${r.attachment_id}`)
   )
+  const savedSuppliers = await getSuppliers()
 
   let imported = 0
   let skipped = 0
@@ -223,6 +263,16 @@ export async function syncGmailCosts(): Promise<GmailSyncResult> {
       const subject = getHeader(message, "Subject")
       const received = receivedDateFromMessage(message.internalDate)
       const note = `Z Gmailu — ${subject || "(bez předmětu)"} — ${from}`
+      const fields = parseEmailFields(subject, getBodyText(message))
+      const form: CostFormData = {
+        ...gmailCostForm(note, received),
+        supplier: supplierFromSender(savedSuppliers, parseSender(from)),
+        invoice_number: fields.invoice_number,
+        variable_symbol: fields.variable_symbol,
+        total: fields.total ?? 0,
+        currency: fields.currency ?? "CZK",
+        due_date: fields.due_date,
+      }
       const pdfs = extractPdfAttachments(message)
 
       if (pdfs.length > 0) {
@@ -233,7 +283,7 @@ export async function syncGmailCosts(): Promise<GmailSyncResult> {
             continue
           }
           const base64 = await getAttachmentBase64(token, msgId, pdf.attachmentId)
-          const created = await createCost(gmailCostForm(note, received))
+          const created = await createCost(form)
           if (created.error || !created.data) {
             errors.push(`${pdf.filename}: ${created.error ?? "vytvoření selhalo"}`)
             continue
@@ -257,7 +307,7 @@ export async function syncGmailCosts(): Promise<GmailSyncResult> {
         }
         const html = extractHtmlBody(message)
         if (!html) continue
-        const created = await createCost(gmailCostForm(note, received))
+        const created = await createCost(form)
         if (created.error || !created.data) {
           errors.push(`${subject || msgId}: ${created.error ?? "vytvoření selhalo"}`)
           continue
