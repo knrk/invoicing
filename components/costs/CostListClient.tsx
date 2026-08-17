@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { deleteCost, exportCostsCsv, exportCostsZip } from "@/lib/costs"
+import { deleteCost, deleteCosts, exportCostsCsv, exportCostsZip } from "@/lib/costs"
 import { syncGmailCosts } from "@/lib/gmail"
 import { fmtNum } from "@/lib/invoice"
 import { cn } from "@/lib/utils"
@@ -90,6 +90,9 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [exporting, setExporting] = useState<"csv" | "zip" | null>(null)
   const [syncing, setSyncing] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [confirmBulk, setConfirmBulk] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
 
   async function handleGmailSync() {
     setSyncing(true)
@@ -121,6 +124,45 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
 
   const unpaid = costs.filter((c) => !c.paid_at)
   const overdue = unpaid.filter((c) => isPastDue(c.due_date))
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every((c) => selected.has(c.id))
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    setSelected((prev) => {
+      if (filtered.every((c) => prev.has(c.id))) {
+        const next = new Set(prev)
+        for (const c of filtered) next.delete(c.id)
+        return next
+      }
+      const next = new Set(prev)
+      for (const c of filtered) next.add(c.id)
+      return next
+    })
+  }
+
+  async function handleBulkDelete() {
+    setBulkDeleting(true)
+    const ids = [...selected]
+    const result = await deleteCosts(ids)
+    setBulkDeleting(false)
+    setConfirmBulk(false)
+    if (result.error) {
+      toast.error("Hromadné mazání selhalo", { description: result.error })
+    } else {
+      toast.success(`Smazáno ${result.deleted} nákladů`)
+      setSelected(new Set())
+      router.refresh()
+    }
+  }
 
   async function handleDelete(id: string) {
     setDeleting(id)
@@ -236,6 +278,20 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
         </div>
       </div>
 
+      {selected.size > 0 && (
+        <div className="mb-3 flex items-center justify-between rounded-lg border border-border bg-subtle px-4 py-2">
+          <span className="text-sm text-text">Vybráno {selected.size}</span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setSelected(new Set())}>
+              Zrušit výběr
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => setConfirmBulk(true)}>
+              Smazat vybrané
+            </Button>
+          </div>
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-surface py-20">
           <span className="text-4xl">🧾</span>
@@ -253,6 +309,15 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
+                <TableHead className="w-8">
+                  <input
+                    type="checkbox"
+                    aria-label="Vybrat vše"
+                    checked={allFilteredSelected}
+                    onChange={toggleSelectAll}
+                    className="h-4 w-4 cursor-pointer accent-primary"
+                  />
+                </TableHead>
                 {["Dodavatel", "Číslo", "Vystaveno", "Splatnost", "Celkem", "Stav", ""].map((h) => (
                   <TableHead key={h}>{h}</TableHead>
                 ))}
@@ -272,6 +337,15 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
                       if (e.key === "Enter" || e.key === " ") router.push(`/costs/${c.id}`)
                     }}
                   >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Vybrat ${c.supplier.name || c.invoice_number || c.id}`}
+                        checked={selected.has(c.id)}
+                        onChange={() => toggleSelect(c.id)}
+                        className="h-4 w-4 cursor-pointer accent-primary"
+                      />
+                    </TableCell>
                     <TableCell className="text-text">{c.supplier.name || "—"}</TableCell>
                     <TableCell className="font-mono text-text">{c.invoice_number || "—"}</TableCell>
                     <TableCell className="tabular-nums text-text-secondary">
@@ -342,6 +416,25 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
               onClick={() => confirmDelete && handleDelete(confirmDelete)}
             >
               {deleting ? "Mažu…" : "Smazat"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmBulk} onOpenChange={(o) => !o && setConfirmBulk(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Smazat {selected.size} nákladů?</DialogTitle>
+            <DialogDescription>
+              Tato akce je nevratná. Smaže i připojená PDF.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmBulk(false)}>
+              Zrušit
+            </Button>
+            <Button variant="destructive" disabled={bulkDeleting} onClick={handleBulkDelete}>
+              {bulkDeleting ? "Mažu…" : `Smazat ${selected.size}`}
             </Button>
           </DialogFooter>
         </DialogContent>

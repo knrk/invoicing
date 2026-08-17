@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 
 const NAV_ITEMS = [
-  { href: "/",                    label: "Faktury",           icon: FileText  },
-  { href: "/costs",               label: "Náklady",           icon: Receipt   },
+  { href: "/",                    label: "Vydané",            icon: FileText  },
+  { href: "/costs",               label: "Přijaté",           icon: Receipt   },
   { href: "/vat-recapitulative-statement", label: "Souhrnné hlášení", icon: BadgeEuro },
   { href: "/customers",           label: "Odběratelé",        icon: Contact   },
 ]

@@ -137,6 +137,26 @@ function toStorageName(name: string): string {
   return cleaned.replace(/^_+|_+$/g, "") || "document.pdf"
 }
 
+export async function deleteCosts(ids: string[]): Promise<{ deleted: number; error?: string }> {
+  if (ids.length === 0) return { deleted: 0 }
+  const supabase = await createClient()
+
+  const { data: rows } = await supabase.from("costs").select("file_path").in("id", ids)
+  const { error } = await supabase.from("costs").delete().in("id", ids)
+  if (error) return { deleted: 0, error: error.message }
+
+  const paths = (rows ?? [])
+    .map((r) => r.file_path)
+    .filter((p): p is string => typeof p === "string" && p.length > 0)
+  if (paths.length > 0) {
+    await supabase.storage.from(BUCKET).remove(paths)
+  }
+
+  revalidatePath("/costs")
+  revalidatePath("/")
+  return { deleted: ids.length }
+}
+
 export async function uploadCostFile(
   costId: string,
   fileName: string,
