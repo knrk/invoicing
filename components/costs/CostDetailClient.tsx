@@ -114,7 +114,7 @@ export default function CostDetailClient({ cost }: Props) {
             </Button>
           </div>
         </div>
-        <CostFilePreview costId={cost.id} hasFile={!!cost.file_path} />
+        <CostFilePreview costId={cost.id} hasFile={!!cost.file_path} fileName={cost.file_name} />
       </div>
 
       <Dialog open={confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(false)}>

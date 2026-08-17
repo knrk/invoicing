@@ -193,6 +193,16 @@ export async function getCostFileUrl(id: string): Promise<{ url?: string; error?
   return { url: data.signedUrl }
 }
 
+// Stáhne obsah HTML faktury (tělo e-mailu) jako text pro vykreslení v náhledu.
+export async function getCostHtml(id: string): Promise<{ html?: string; error?: string }> {
+  const supabase = await createClient()
+  const { data: row } = await supabase.from("costs").select("file_path").eq("id", id).single()
+  if (!row?.file_path) return { error: "Soubor není k dispozici" }
+  const { data, error } = await supabase.storage.from(BUCKET).download(row.file_path)
+  if (error || !data) return { error: error?.message ?? "Nepodařilo se načíst soubor" }
+  return { html: await data.text() }
+}
+
 // --- Export pro účetního ------------------------------------------------
 
 const CSV_HEADER = [
