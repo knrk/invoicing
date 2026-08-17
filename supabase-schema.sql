@@ -131,13 +131,17 @@ create index if not exists costs_created_at_idx on costs (created_at desc);
 create index if not exists costs_due_date_idx on costs (due_date);
 
 alter table costs enable row level security;
+drop policy if exists "anon full access costs" on costs;
 create policy "anon full access costs" on costs for all to anon using (true) with check (true);
 
 -- Storage bucket `costs` musí být vytvořen ručně (privátní, "Public" vypnuto).
 -- Poté spustit tyto politiky pro anon přístup ke Storage objektům bucketu `costs`:
+drop policy if exists "anon read costs files" on storage.objects;
 create policy "anon read costs files" on storage.objects
   for select to anon using (bucket_id = 'costs');
+drop policy if exists "anon insert costs files" on storage.objects;
 create policy "anon insert costs files" on storage.objects
   for insert to anon with check (bucket_id = 'costs');
+drop policy if exists "anon delete costs files" on storage.objects;
 create policy "anon delete costs files" on storage.objects
   for delete to anon using (bucket_id = 'costs');
