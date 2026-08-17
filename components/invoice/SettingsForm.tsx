@@ -52,7 +52,10 @@ const DEFAULT_CONFIG: Omit<AppConfig, "id" | "updated_at"> = {
   },
 }
 
-export default function SettingsForm({ config }: { config: AppConfig | null }) {
+export default function SettingsForm({
+  config,
+  children,
+}: { config: AppConfig | null; children?: React.ReactNode }) {
   const [form, setForm] = useState(() => {
     if (!config) return DEFAULT_CONFIG
     const { id: _id, updated_at: _u, ...rest } = config
@@ -322,6 +325,8 @@ export default function SettingsForm({ config }: { config: AppConfig | null }) {
           </div>
         </CardContent>
       </Card>
+
+      {children}
 
       <div className="flex items-center gap-4 pt-2">
         <Button onClick={handleSave} disabled={saving}>

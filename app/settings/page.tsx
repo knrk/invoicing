@@ -9,10 +9,11 @@ export default async function SettingsPage() {
   return (
     <main className="max-w-2xl mx-auto px-10 py-8">
       <h1 className="text-[22px] font-bold text-text mb-8">Nastavení</h1>
-      <SettingsForm config={config} />
-      <Suspense>
-        <GmailIntegrationSettings status={gmailStatus} />
-      </Suspense>
+      <SettingsForm config={config}>
+        <Suspense>
+          <GmailIntegrationSettings status={gmailStatus} />
+        </Suspense>
+      </SettingsForm>
     </main>
   )
 }
