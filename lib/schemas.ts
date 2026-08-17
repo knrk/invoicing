@@ -126,6 +126,50 @@ export const CustomerRecordFormSchema = CustomerRecordSchema.omit({
   updated_at: true,
 })
 
+// Náklady (příchozí faktury). Dodavatel je záměrně volnější než u faktur —
+// u Gmail importu nemusí být jméno hned známé.
+const CostSupplierSchema = z.object({
+  name: z.string().default(""),
+  ico: z.string().default(""),
+  dic: z.string().default(""),
+  street: z.string().default(""),
+  zip: z.string().default(""),
+  city: z.string().default(""),
+  country: z.string().default("CZ"),
+})
+
+const OptionalDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Neplatné datum")
+  .or(z.literal(""))
+  .default("")
+
+export const CostFormDataSchema = z.object({
+  supplier: CostSupplierSchema,
+  invoice_number: z.string().default(""),
+  variable_symbol: z.string().default(""),
+  currency: CurrencySchema.default("CZK"),
+  issue_date: OptionalDateSchema,
+  due_date: OptionalDateSchema,
+  received_date: OptionalDateSchema,
+  total: z.number().min(0).default(0),
+  vat_amount: z.number().min(0).nullable().default(null),
+  reverse_charge: z.boolean().default(false),
+  is_eu_supplier: z.boolean().default(false),
+  note: z.string().default(""),
+  source: z.enum(["upload", "gmail"]).default("upload"),
+})
+
+export const CostSchema = CostFormDataSchema.extend({
+  id: z.string().uuid(),
+  paid_at: z.string().nullable().default(null),
+  file_path: z.string().nullable().default(null),
+  file_name: z.string().nullable().default(null),
+  extraction: z.unknown().nullable().default(null),
+  created_at: z.string(),
+  updated_at: z.string(),
+})
+
 export type Language = z.infer<typeof LanguageSchema>
 export type Currency = z.infer<typeof CurrencySchema>
 type Customer = z.infer<typeof CustomerSchema>
@@ -134,6 +178,8 @@ export type CustomerRecordForm = z.infer<typeof CustomerRecordFormSchema>
 export type InvoiceLine = z.infer<typeof InvoiceLineSchema>
 export type InvoiceFormData = z.infer<typeof InvoiceFormDataSchema>
 export type Invoice = z.infer<typeof InvoiceSchema>
+export type CostFormData = z.infer<typeof CostFormDataSchema>
+export type Cost = z.infer<typeof CostSchema>
 
 export function formatZodError(error: z.ZodError): string {
   return error.issues.map((issue) => issue.message).join(", ")

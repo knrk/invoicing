@@ -101,3 +101,43 @@ create index if not exists customers_name_idx on customers (name);
 
 alter table customers enable row level security;
 create policy "anon full access customers" on customers for all to anon using (true) with check (true);
+
+-- ==========================================================================
+-- Náklady (příchozí faktury) — Fáze 1
+-- ==========================================================================
+create table if not exists costs (
+  id uuid primary key default gen_random_uuid(),
+  supplier jsonb not null default '{}',
+  invoice_number text not null default '',
+  variable_symbol text not null default '',
+  currency text not null check (currency in ('CZK','EUR')) default 'CZK',
+  issue_date date,
+  due_date date,
+  received_date date,
+  total numeric(12,2) not null default 0,
+  vat_amount numeric(12,2),
+  reverse_charge boolean not null default false,
+  is_eu_supplier boolean not null default false,
+  note text not null default '',
+  paid_at timestamptz,
+  file_path text,
+  file_name text,
+  source text not null check (source in ('upload','gmail')) default 'upload',
+  extraction jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists costs_created_at_idx on costs (created_at desc);
+create index if not exists costs_due_date_idx on costs (due_date);
+
+alter table costs enable row level security;
+create policy "anon full access costs" on costs for all to anon using (true) with check (true);
+
+-- Storage bucket `costs` musí být vytvořen ručně (privátní, "Public" vypnuto).
+-- Poté spustit tyto politiky pro anon přístup ke Storage objektům bucketu `costs`:
+create policy "anon read costs files" on storage.objects
+  for select to anon using (bucket_id = 'costs');
+create policy "anon insert costs files" on storage.objects
+  for insert to anon with check (bucket_id = 'costs');
+create policy "anon delete costs files" on storage.objects
+  for delete to anon using (bucket_id = 'costs');
