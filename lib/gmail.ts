@@ -1,0 +1,251 @@
+"use server"
+
+import { createCost, uploadCostFile } from "@/lib/costs"
+import {
+  buildAuthUrl,
+  exchangeCodeForTokens,
+  extractPdfAttachments,
+  getAttachmentBase64,
+  getHeader,
+  getMessage,
+  getProfileEmail,
+  GmailAuthError,
+  type GmailLabel,
+  type GmailStatus,
+  type GmailSyncResult,
+  listLabels,
+  listMessageIds,
+  refreshAccessToken,
+} from "@/lib/gmail-api"
+import { today } from "@/lib/invoice"
+import type { CostFormData } from "@/lib/schemas"
+import { createClient } from "@/lib/supabase/server"
+import { revalidatePath } from "next/cache"
+
+type Supabase = Awaited<ReturnType<typeof createClient>>
+
+function gmailCostForm(note: string): CostFormData {
+  return {
+    supplier: { name: "", ico: "", dic: "", street: "", zip: "", city: "", country: "CZ" },
+    invoice_number: "",
+    variable_symbol: "",
+    currency: "CZK",
+    issue_date: "",
+    due_date: "",
+    received_date: today(),
+    total: 0,
+    vat_amount: null,
+    reverse_charge: false,
+    is_eu_supplier: false,
+    note,
+    source: "gmail",
+  }
+}
+
+export async function getGmailAuthUrl(): Promise<string> {
+  return buildAuthUrl()
+}
+
+// Volané z callback route po návratu z Google consent.
+export async function connectGmail(code: string): Promise<{ error?: string }> {
+  try {
+    const tokens = await exchangeCodeForTokens(code)
+    if (!tokens.refresh_token) {
+      return {
+        error:
+          "Google nevrátil refresh token. V účtu Google odeber přístup aplikaci a připoj znovu.",
+      }
+    }
+    const email = await getProfileEmail(tokens.access_token)
+    const supabase = await createClient()
+    const { error } = await supabase.from("gmail_integration").upsert({
+      id: 1,
+      email,
+      refresh_token: tokens.refresh_token,
+      updated_at: new Date().toISOString(),
+    })
+    if (error) return { error: error.message }
+    revalidatePath("/settings")
+    return {}
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Připojení Gmailu selhalo" }
+  }
+}
+
+export async function getGmailStatus(): Promise<GmailStatus> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("gmail_integration")
+    .select("email, refresh_token, label_id, label_name, last_sync_at")
+    .eq("id", 1)
+    .single()
+  if (!data?.refresh_token) {
+    return { connected: false, email: null, labelId: null, labelName: null, lastSyncAt: null }
+  }
+  return {
+    connected: true,
+    email: data.email ?? null,
+    labelId: data.label_id ?? null,
+    labelName: data.label_name ?? null,
+    lastSyncAt: data.last_sync_at ?? null,
+  }
+}
+
+async function accessTokenFromStore(supabase: Supabase): Promise<string> {
+  const { data } = await supabase
+    .from("gmail_integration")
+    .select("refresh_token")
+    .eq("id", 1)
+    .single()
+  if (!data?.refresh_token) throw new GmailAuthError("Gmail není připojen")
+  return refreshAccessToken(data.refresh_token)
+}
+
+export async function listGmailLabels(): Promise<{
+  labels?: GmailLabel[]
+  error?: string
+  needsReconnect?: boolean
+}> {
+  const supabase = await createClient()
+  try {
+    const token = await accessTokenFromStore(supabase)
+    const labels = await listLabels(token)
+    return {
+      labels: labels
+        .filter((l) => l.type === "user")
+        .sort((a, b) => a.name.localeCompare(b.name, "cs")),
+    }
+  } catch (err) {
+    if (err instanceof GmailAuthError) {
+      return { error: "Přístup vypršel, připoj Gmail znovu.", needsReconnect: true }
+    }
+    return { error: err instanceof Error ? err.message : "Nepodařilo se načíst labely" }
+  }
+}
+
+export async function setGmailLabel(labelId: string, labelName: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from("gmail_integration")
+    .update({ label_id: labelId, label_name: labelName, updated_at: new Date().toISOString() })
+    .eq("id", 1)
+  if (error) return { error: error.message }
+  revalidatePath("/settings")
+  revalidatePath("/costs")
+  return {}
+}
+
+export async function disconnectGmail(): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { error } = await supabase.from("gmail_integration").delete().eq("id", 1)
+  if (error) return { error: error.message }
+  revalidatePath("/settings")
+  revalidatePath("/costs")
+  return {}
+}
+
+// Stáhne nové PDF přílohy ze zvoleného labelu a založí z nich náklady.
+// Čistá funkce volatelná z tlačítka i z budoucího Vercel Cronu.
+export async function syncGmailCosts(): Promise<GmailSyncResult> {
+  const supabase = await createClient()
+  const { data: integ } = await supabase
+    .from("gmail_integration")
+    .select("refresh_token, label_id")
+    .eq("id", 1)
+    .single()
+  if (!integ?.refresh_token) {
+    return { imported: 0, skipped: 0, errors: [], error: "Gmail není připojen" }
+  }
+  if (!integ.label_id) {
+    return { imported: 0, skipped: 0, errors: [], error: "Není zvolený label" }
+  }
+
+  let token: string
+  try {
+    token = await refreshAccessToken(integ.refresh_token)
+  } catch (err) {
+    if (err instanceof GmailAuthError) {
+      return {
+        imported: 0,
+        skipped: 0,
+        errors: [],
+        needsReconnect: true,
+        error: "Přístup vypršel, připoj Gmail znovu.",
+      }
+    }
+    return {
+      imported: 0,
+      skipped: 0,
+      errors: [],
+      error: err instanceof Error ? err.message : "Chyba přístupu ke Gmailu",
+    }
+  }
+
+  const { data: processedRows } = await supabase
+    .from("gmail_processed")
+    .select("message_id, attachment_id")
+  const processed = new Set(
+    (processedRows ?? []).map((r) => `${r.message_id}:${r.attachment_id}`)
+  )
+
+  let imported = 0
+  let skipped = 0
+  const errors: string[] = []
+
+  let messageIds: string[]
+  try {
+    messageIds = await listMessageIds(token, integ.label_id)
+  } catch (err) {
+    return {
+      imported,
+      skipped,
+      errors,
+      error: err instanceof Error ? err.message : "Nepodařilo se načíst zprávy",
+    }
+  }
+
+  for (const msgId of messageIds) {
+    try {
+      const message = await getMessage(token, msgId)
+      const pdfs = extractPdfAttachments(message)
+      if (pdfs.length === 0) continue
+      const from = getHeader(message, "From")
+      const subject = getHeader(message, "Subject")
+      for (const pdf of pdfs) {
+        const key = `${msgId}:${pdf.attachmentId}`
+        if (processed.has(key)) {
+          skipped++
+          continue
+        }
+        const base64 = await getAttachmentBase64(token, msgId, pdf.attachmentId)
+        const created = await createCost(
+          gmailCostForm(`Z Gmailu — ${subject || "(bez předmětu)"} — ${from}`)
+        )
+        if (created.error || !created.data) {
+          errors.push(`${pdf.filename}: ${created.error ?? "vytvoření selhalo"}`)
+          continue
+        }
+        const up = await uploadCostFile(created.data.id, pdf.filename, base64)
+        if (up.error) errors.push(`${pdf.filename}: ${up.error}`)
+        await supabase.from("gmail_processed").insert({
+          message_id: msgId,
+          attachment_id: pdf.attachmentId,
+          cost_id: created.data.id,
+        })
+        processed.add(key)
+        imported++
+      }
+    } catch (err) {
+      errors.push(`Zpráva ${msgId}: ${err instanceof Error ? err.message : "chyba"}`)
+    }
+  }
+
+  await supabase
+    .from("gmail_integration")
+    .update({ last_sync_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("id", 1)
+  revalidatePath("/costs")
+  revalidatePath("/")
+  revalidatePath("/settings")
+  return { imported, skipped, errors }
+}

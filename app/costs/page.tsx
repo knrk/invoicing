@@ -1,8 +1,10 @@
 import CostListClient from "@/components/costs/CostListClient"
 import { getCosts } from "@/lib/costs"
+import { getGmailStatus } from "@/lib/gmail"
 
 export default async function CostsPage() {
-  const costs = await getCosts()
+  const [costs, gmail] = await Promise.all([getCosts(), getGmailStatus()])
+  const gmailReady = gmail.connected && !!gmail.labelId
 
   return (
     <main className="mx-auto max-w-7xl px-10 py-8">
@@ -12,7 +14,7 @@ export default async function CostsPage() {
           {costs.length}
         </span>
       </div>
-      <CostListClient costs={costs} />
+      <CostListClient costs={costs} gmailReady={gmailReady} />
     </main>
   )
 }

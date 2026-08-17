@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { deleteCost, exportCostsCsv, exportCostsZip } from "@/lib/costs"
+import { syncGmailCosts } from "@/lib/gmail"
 import { fmtNum } from "@/lib/invoice"
 import { cn } from "@/lib/utils"
 import type { Cost } from "@/types"
@@ -77,9 +78,10 @@ function base64ToBytes(base64: string): Uint8Array {
 
 interface Props {
   costs: Cost[]
+  gmailReady?: boolean
 }
 
-export default function CostListClient({ costs }: Props) {
+export default function CostListClient({ costs, gmailReady = false }: Props) {
   const router = useRouter()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [status, setStatus] = useState<StatusFilter>("all")
@@ -87,6 +89,24 @@ export default function CostListClient({ costs }: Props) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [exporting, setExporting] = useState<"csv" | "zip" | null>(null)
+  const [syncing, setSyncing] = useState(false)
+
+  async function handleGmailSync() {
+    setSyncing(true)
+    const res = await syncGmailCosts()
+    setSyncing(false)
+    if (res.error) {
+      toast.error("Kontrola Gmailu selhala", { description: res.error })
+      return
+    }
+    toast.success(`Hotovo: ${res.imported} nových, ${res.skipped} přeskočeno`)
+    if (res.errors.length) {
+      toast.error("Některé přílohy se nenahrály", {
+        description: res.errors.slice(0, 3).join("; "),
+      })
+    }
+    router.refresh()
+  }
 
   const filtered = useMemo(
     () =>
@@ -205,6 +225,11 @@ export default function CostListClient({ costs }: Props) {
           <Button variant="outline" size="sm" onClick={handleExportZip} disabled={!!exporting}>
             {exporting === "zip" ? "Exportuji…" : "Export ZIP"}
           </Button>
+          {gmailReady && (
+            <Button variant="outline" size="sm" onClick={handleGmailSync} disabled={syncing}>
+              {syncing ? "Kontroluji…" : "Zkontrolovat Gmail"}
+            </Button>
+          )}
           <Button variant="dark" size="sm" onClick={() => setUploadOpen(true)}>
             <Plus className="mr-1 h-4 w-4" /> Nahrát fakturu
           </Button>

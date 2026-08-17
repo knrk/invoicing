@@ -145,3 +145,36 @@ create policy "anon insert costs files" on storage.objects
 drop policy if exists "anon delete costs files" on storage.objects;
 create policy "anon delete costs files" on storage.objects
   for delete to anon using (bucket_id = 'costs');
+
+-- ==========================================================================
+-- Náklady — Fáze 2: napojení Gmailu (import příchozích faktur z labelu)
+-- ==========================================================================
+-- Jednořádková konfigurace napojení Gmailu (OAuth refresh token + zvolený label).
+create table if not exists gmail_integration (
+  id integer primary key default 1,
+  email text,
+  refresh_token text,
+  label_id text,
+  label_name text,
+  last_sync_at timestamptz,
+  updated_at timestamptz not null default now(),
+  constraint gmail_integration_single_row check (id = 1)
+);
+alter table gmail_integration enable row level security;
+drop policy if exists "anon full access gmail_integration" on gmail_integration;
+create policy "anon full access gmail_integration" on gmail_integration
+  for all to anon using (true) with check (true);
+
+-- Deduplikace: které Gmail přílohy už byly zpracovány (aby se neimportovaly znovu,
+-- ani po smazání nákladu).
+create table if not exists gmail_processed (
+  message_id text not null,
+  attachment_id text not null,
+  cost_id uuid references costs(id) on delete set null,
+  processed_at timestamptz not null default now(),
+  primary key (message_id, attachment_id)
+);
+alter table gmail_processed enable row level security;
+drop policy if exists "anon full access gmail_processed" on gmail_processed;
+create policy "anon full access gmail_processed" on gmail_processed
+  for all to anon using (true) with check (true);
