@@ -18,6 +18,8 @@ import {
   syncGmailCosts,
 } from "@/lib/gmail"
 import type { GmailLabel, GmailStatus } from "@/lib/gmail-api"
+import { cn } from "@/lib/utils"
+import { CalendarClock, Mail, RefreshCw, Unplug } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -219,25 +221,42 @@ export default function GmailIntegrationSettings({ status }: Props) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Button variant="dark" onClick={handleSync} disabled={syncing || !status.labelId}>
-              {syncing ? "Kontroluji…" : "Zkontrolovat teď"}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="dark"
+              size="icon"
+              onClick={handleSync}
+              disabled={syncing || !status.labelId}
+              title="Zkontrolovat teď"
+              aria-label="Zkontrolovat teď"
+            >
+              <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
             </Button>
             <Button variant="outline" onClick={handleBackfill} disabled={backfilling}>
-              {backfilling ? "Doplňuji…" : "Doplnit datumy z e-mailů"}
+              <CalendarClock className="mr-1.5 h-4 w-4" />
+              {backfilling ? "Doplňuji…" : "Doplnit datumy"}
             </Button>
             <Button
               variant="outline"
+              size="icon"
               onClick={() => setConfirmReimport(true)}
               disabled={reimporting || !status.labelId}
+              title="Přeimportovat vše z Gmailu"
+              aria-label="Přeimportovat vše z Gmailu"
             >
-              {reimporting ? "Přeimportuji…" : "Přeimportovat vše z Gmailu"}
+              <Mail className={cn("h-4 w-4", reimporting && "animate-pulse")} />
             </Button>
-            <Button variant="outline" onClick={handleDisconnect}>
-              Odpojit
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleDisconnect}
+              title="Odpojit"
+              aria-label="Odpojit"
+            >
+              <Unplug className="h-4 w-4" />
             </Button>
             {status.lastSyncAt && (
-              <span className="text-xs text-text-secondary">
+              <span className="ml-auto text-xs text-text-secondary">
                 Naposledy: {fmtDateTime(status.lastSyncAt)}
               </span>
             )}
