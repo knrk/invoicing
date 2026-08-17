@@ -115,15 +115,18 @@ export async function listLabels(accessToken: string): Promise<GmailLabel[]> {
 }
 
 // Vrátí ID zpráv v daném labelu (stránkuje, s horním limitem kvůli zátěži).
+// `query` je volitelný Gmail search dotaz (např. "after:2026/01/01").
 export async function listMessageIds(
   accessToken: string,
   labelId: string,
-  maxMessages = 50
+  query = "",
+  maxMessages = 200
 ): Promise<string[]> {
   const ids: string[] = []
   let pageToken: string | undefined
   do {
     const params = new URLSearchParams({ labelIds: labelId, maxResults: "100" })
+    if (query) params.set("q", query)
     if (pageToken) params.set("pageToken", pageToken)
     const data = await gmailGet<{
       messages?: { id: string }[]

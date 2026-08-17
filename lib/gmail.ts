@@ -192,9 +192,11 @@ export async function syncGmailCosts(): Promise<GmailSyncResult> {
   let skipped = 0
   const errors: string[] = []
 
+  // Jen e-maily z aktuálního kalendářního roku.
+  const year = new Date().getFullYear()
   let messageIds: string[]
   try {
-    messageIds = await listMessageIds(token, integ.label_id)
+    messageIds = await listMessageIds(token, integ.label_id, `after:${year}/01/01`)
   } catch (err) {
     return {
       imported,
