@@ -205,57 +205,9 @@ export async function getCostHtml(id: string): Promise<{ html?: string; error?: 
 
 // --- Export pro účetního ------------------------------------------------
 
-const CSV_HEADER = [
-  "Dodavatel",
-  "IČ",
-  "DIČ",
-  "Číslo faktury",
-  "VS",
-  "Datum vystavení",
-  "Splatnost",
-  "Měna",
-  "Celkem",
-  "DPH",
-  "Zaplaceno",
-]
-
-function csvCell(v: string | number | null | undefined): string {
-  const s = v == null ? "" : String(v)
-  return `"${s.replace(/"/g, '""')}"`
-}
-
-export async function buildCostsCsv(costs: Cost[]): Promise<string> {
-  const rows = costs.map((c) =>
-    [
-      c.supplier.name,
-      c.supplier.ico,
-      c.supplier.dic,
-      c.invoice_number,
-      c.variable_symbol,
-      c.issue_date,
-      c.due_date,
-      c.currency,
-      c.total,
-      c.vat_amount ?? "",
-      c.paid_at ? "ano" : "ne",
-    ]
-      .map(csvCell)
-      .join(";")
-  )
-  // UTF-8 BOM (﻿) kvůli českému Excelu.
-  return `﻿${[CSV_HEADER.map(csvCell).join(";"), ...rows].join("\r\n")}`
-}
-
 function inPeriod(cost: Cost, period: string): boolean {
   if (!period) return true
   return cost.issue_date.startsWith(period)
-}
-
-export async function exportCostsCsv(period = ""): Promise<{ csv: string; filename: string }> {
-  const all = await getCosts()
-  const filtered = all.filter((c) => inPeriod(c, period))
-  const suffix = period || "vse"
-  return { csv: await buildCostsCsv(filtered), filename: `naklady-${suffix}.csv` }
 }
 
 export async function exportCostsZip(

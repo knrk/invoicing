@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { deleteCost, deleteCosts, exportCostsCsv, exportCostsZip } from "@/lib/costs"
+import { deleteCost, deleteCosts, exportCostsZip } from "@/lib/costs"
 import { syncGmailCosts } from "@/lib/gmail"
 import { fmtNum } from "@/lib/invoice"
 import { cn } from "@/lib/utils"
@@ -89,7 +89,7 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
   const currentYear = String(new Date().getFullYear())
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [exporting, setExporting] = useState<"csv" | "zip" | null>(null)
+  const [exporting, setExporting] = useState<"zip" | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmBulk, setConfirmBulk] = useState(false)
@@ -181,20 +181,6 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
     else router.refresh()
   }
 
-  async function handleExportCsv() {
-    setExporting("csv")
-    try {
-      const { csv, filename } = await exportCostsCsv(currentYear)
-      downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8" }), filename)
-    } catch (err) {
-      toast.error("Export CSV selhal", {
-        description: err instanceof Error ? err.message : "Neznámá chyba",
-      })
-    } finally {
-      setExporting(null)
-    }
-  }
-
   async function handleExportZip() {
     setExporting("zip")
     try {
@@ -255,9 +241,6 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={!!exporting}>
-            {exporting === "csv" ? "Exportuji…" : "Export CSV"}
-          </Button>
           <Button variant="outline" size="sm" onClick={handleExportZip} disabled={!!exporting}>
             {exporting === "zip" ? "Exportuji…" : "Export ZIP"}
           </Button>
