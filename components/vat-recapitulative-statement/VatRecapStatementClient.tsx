@@ -113,7 +113,7 @@ export default function VatRecapStatementClient({ months, configMissing }: Props
                 "flex items-center gap-4 px-5 py-4 rounded-xl border transition-colors",
                 error || obligation || hasWarning
                   ? "bg-surface border-border"
-                  : "bg-subtle border-transparent opacity-60"
+                  : "bg-subtle border-transparent"
               )}
             >
               {/* Status icon */}
@@ -125,7 +125,7 @@ export default function VatRecapStatementClient({ months, configMissing }: Props
                 ) : hasWarning ? (
                   <TriangleAlert className="w-5 h-5 text-warning-text" />
                 ) : (
-                  <Circle className="w-5 h-5 text-muted" />
+                  <Circle className="w-5 h-5 text-text-secondary" />
                 )}
               </div>
 
