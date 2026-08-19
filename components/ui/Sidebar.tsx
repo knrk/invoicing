@@ -134,7 +134,7 @@ export default function Sidebar() {
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
             <ReceiptText className="w-4 h-4 text-white" />
           </div>
-          <span className="text-[15px] font-bold text-text tracking-tight whitespace-nowrap overflow-hidden">
+          <span className="text-base font-bold text-text tracking-tight whitespace-nowrap overflow-hidden">
             Fakturace
           </span>
         </div>
@@ -155,10 +155,13 @@ export default function Sidebar() {
       </div>
 
       <nav className={cn("flex-1 py-2 overflow-y-auto overflow-x-hidden", collapsed ? "px-2" : "px-3")}>
-        {NAV_SECTIONS.map((section) => (
-          <div key={section.label} className="mb-3">
+        {NAV_SECTIONS.map((section, i) => (
+          <div
+            key={section.label}
+            className={cn("mb-3", collapsed && i > 0 && "border-t border-divider pt-3")}
+          >
             {!collapsed && (
-              <p className="text-[10px] font-semibold text-muted uppercase tracking-[0.12em] px-2 mb-1">
+              <p className="text-xs font-semibold text-muted uppercase tracking-[0.12em] px-2 mb-1">
                 {section.label}
               </p>
             )}
@@ -174,11 +177,11 @@ export default function Sidebar() {
                         "flex items-center text-sm transition-colors",
                         collapsed ? "justify-center px-0 py-2 rounded-full aspect-square" : "gap-3 px-3 py-2 rounded-lg",
                         active
-                          ? "bg-subtle text-text font-semibold"
+                          ? "bg-nav-active text-text font-semibold"
                           : "text-text-secondary hover:bg-subtle hover:text-text"
                       )}
                     >
-                      <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary" : "")} />
+                      <Icon className={cn("w-4 h-4 shrink-0", active ? "text-text" : "")} />
                       {!collapsed && (
                         <span className="whitespace-nowrap overflow-hidden">{label}</span>
                       )}
@@ -192,7 +195,7 @@ export default function Sidebar() {
       </nav>
 
       <div className={cn(
-        "pb-4 border-t border-divider pt-3 shrink-0 space-y-0.5",
+        "pb-2 border-t border-divider pt-3 shrink-0 space-y-0.5",
         collapsed ? "px-2" : "px-3"
       )}>
         {BOTTOM_ITEMS.map(({ href, label, icon: Icon }) => {
@@ -206,11 +209,11 @@ export default function Sidebar() {
                 "flex items-center rounded-xl text-sm transition-colors",
                 collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2",
                 active
-                  ? "bg-primary text-primary-foreground font-semibold shadow-[0_6px_16px_-8px_var(--color-primary)]"
+                  ? "bg-nav-active text-text font-semibold"
                   : "text-text-secondary hover:bg-subtle hover:text-text"
               )}
             >
-              <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary" : "")} />
+              <Icon className={cn("w-4 h-4 shrink-0", active ? "text-text" : "")} />
               {!collapsed && (
                 <span className="whitespace-nowrap overflow-hidden">{label}</span>
               )}

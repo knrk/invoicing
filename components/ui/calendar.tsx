@@ -94,7 +94,7 @@ export function Calendar({ selected, onSelect, className }: CalendarProps) {
 
       <div className="grid grid-cols-7 mb-1">
         {DAY_NAMES.map((d) => (
-          <div key={d} className="text-muted-foreground text-[0.8rem] font-normal text-center h-8 flex items-center justify-center">
+          <div key={d} className="text-muted-foreground text-xs font-normal text-center h-8 flex items-center justify-center">
             {d}
           </div>
         ))}

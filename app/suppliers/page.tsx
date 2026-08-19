@@ -7,7 +7,7 @@ export default async function SuppliersPage() {
   return (
     <main className="max-w-7xl mx-auto px-10 py-8">
       <div className="mb-8">
-        <h1 className="text-[22px] font-bold text-text">Dodavatelé</h1>
+        <h1 className="text-2xl font-bold text-text">Dodavatelé</h1>
         <p className="text-sm text-text-secondary mt-0.5">
           {suppliers.length}{" "}
           {suppliers.length === 1

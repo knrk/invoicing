@@ -35,7 +35,7 @@ export default async function VatRecapitulativeStatementPage() {
 
   return (
     <main className="max-w-3xl mx-auto px-10 py-8">
-      <h1 className="text-[22px] font-bold text-text mb-2">Souhrnné hlášení</h1>
+      <h1 className="text-2xl font-bold text-text mb-2">Souhrnné hlášení</h1>
       <p className="text-sm text-text-secondary mb-8">
         Přehled měsíců s povinností hlášení. Vydané faktury v EUR odběratelům z EU jdou do
         souhrnného hlášení (XML). Přijaté faktury od dodavatelů z EU nebo v režimu přenesené

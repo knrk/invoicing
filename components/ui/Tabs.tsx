@@ -34,7 +34,7 @@ export function Tabs({ items, value, onValueChange, className }: TabsProps) {
             aria-selected={active}
             onClick={() => onValueChange(id)}
             className={cn(
-              "inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors",
+              "inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium cursor-pointer transition-colors",
               active
                 ? "bg-primary text-primary-foreground"
                 : "text-text-secondary hover:text-text"

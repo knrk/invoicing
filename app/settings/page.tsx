@@ -7,8 +7,8 @@ import { Suspense } from "react"
 export default async function SettingsPage() {
   const [config, gmailStatus] = await Promise.all([getConfig(), getGmailStatus()])
   return (
-    <main className="max-w-5xl mx-auto px-10 py-8">
-      <h1 className="text-[28px] font-bold text-text tracking-tight mb-6">Nastavení</h1>
+    <main className="max-w-3xl mx-auto px-10 py-8">
+      <h1 className="text-3xl font-bold text-text tracking-tight mb-6">Nastavení</h1>
       <SettingsForm config={config}>
         <Suspense>
           <GmailIntegrationSettings status={gmailStatus} />
