@@ -204,6 +204,12 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
 
   return (
     <>
+      <div className="mb-8 flex items-center gap-2.5">
+        <h1 className="text-2xl font-bold text-text">Přijaté faktury</h1>
+        <span className="inline-flex items-center rounded-full border border-border bg-subtle px-2 py-0.5 text-xs font-semibold tabular-nums text-text-secondary">
+          {yearCosts.length}
+        </span>
+      </div>
       <div className="mb-6 grid grid-cols-3 gap-4">
         <StatCard label="Náklady celkem" value={sumByCurrency(yearCosts)} />
         <StatCard
@@ -243,7 +249,7 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportZip} disabled={!!exporting}>
+          <Button variant="outline" size="sm" onClick={handleExportZip} disabled={!!exporting || yearCosts.length === 0}>
             {exporting === "zip" ? "Exportuji…" : "Export ZIP"}
           </Button>
           {gmailReady && (
