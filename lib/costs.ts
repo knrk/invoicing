@@ -9,6 +9,7 @@ import {
 } from "@/lib/schemas"
 import { createClient } from "@/lib/supabase/server"
 import { upsertSupplierFromCost } from "@/lib/suppliers"
+import { costYear } from "@/lib/year-filter"
 import JSZip from "jszip"
 import { revalidatePath } from "next/cache"
 
@@ -207,7 +208,8 @@ export async function getCostHtml(id: string): Promise<{ html?: string; error?: 
 
 function inPeriod(cost: Cost, period: string): boolean {
   if (!period) return true
-  return cost.issue_date.startsWith(period)
+  const y = costYear(cost)
+  return y !== null && String(y) === period
 }
 
 export async function exportCostsZip(
