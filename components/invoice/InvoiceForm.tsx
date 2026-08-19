@@ -73,6 +73,15 @@ function displayCurrency(c: string): string {
   return c === "CZK" ? "Kč" : c
 }
 
+const MIN_LEFT_WIDTH = 400
+const MAX_LEFT_WIDTH = 650
+const DEFAULT_LEFT_WIDTH = 480
+const LEFT_WIDTH_STORAGE_KEY = "invoice-form-left-width"
+
+function clampLeftWidth(w: number): number {
+  return Math.min(MAX_LEFT_WIDTH, Math.max(MIN_LEFT_WIDTH, w))
+}
+
 export default function InvoiceForm({ config, existing, customers = [] }: Props) {
   const router = useRouter()
   const [form, setForm] = useState<InvoiceFormData>(() => initForm(config, existing))
@@ -232,7 +241,7 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-[calc(100vh-1.5rem)] overflow-hidden">
       <div className="w-[38%] flex-shrink-0 flex flex-col border-r border-border bg-surface">
         <div className="px-6 pt-6 pb-4 space-y-6 flex-1 overflow-y-auto">
           {customers.length > 0 && (
