@@ -133,7 +133,7 @@ export default function SupplierListClient({ suppliers }: Props) {
       </div>
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[484px]">
           <DialogHeader>
             <DialogTitle>Nový dodavatel</DialogTitle>
           </DialogHeader>
@@ -147,7 +147,7 @@ export default function SupplierListClient({ suppliers }: Props) {
       </Dialog>
 
       <Dialog open={!!editingId} onOpenChange={(o) => !o && setEditingId(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-[484px]">
           <DialogHeader>
             <DialogTitle>Upravit dodavatele</DialogTitle>
           </DialogHeader>
