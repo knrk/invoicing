@@ -23,6 +23,8 @@ import { deleteCost, deleteCosts, exportCostsZip } from "@/lib/costs"
 import { syncGmailCosts } from "@/lib/gmail"
 import { fmtNum } from "@/lib/invoice"
 import { cn } from "@/lib/utils"
+import { useYearFilter } from "@/components/year-filter/YearFilterProvider"
+import { costYear } from "@/lib/year-filter"
 import type { Cost } from "@/types"
 import { Plus, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -85,8 +87,7 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
   const router = useRouter()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [status, setStatus] = useState<StatusFilter>("all")
-  // Přijaté faktury vždy zobrazují jen aktuální rok.
-  const currentYear = String(new Date().getFullYear())
+  const { year } = useYearFilter()
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [exporting, setExporting] = useState<"zip" | null>(null)
@@ -112,13 +113,14 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
     router.refresh()
   }
 
+  const yearCosts = useMemo(() => costs.filter((c) => costYear(c) === year), [costs, year])
+
   const filtered = useMemo(
     () =>
-      costs
+      yearCosts
         .filter((c) => {
           if (status === "unpaid" && c.paid_at) return false
           if (status === "paid" && !c.paid_at) return false
-          if (!c.issue_date.startsWith(currentYear)) return false
           return true
         })
         // Řazení podle data přijetí, nejnovější první; bez data na konec.
@@ -127,10 +129,10 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
           if (!b.received_date) return -1
           return b.received_date.localeCompare(a.received_date)
         }),
-    [costs, status, currentYear]
+    [yearCosts, status]
   )
 
-  const unpaid = costs.filter((c) => !c.paid_at)
+  const unpaid = yearCosts.filter((c) => !c.paid_at)
   const overdue = unpaid.filter((c) => isPastDue(c.due_date))
 
   const allFilteredSelected = filtered.length > 0 && filtered.every((c) => selected.has(c.id))
@@ -184,7 +186,7 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
   async function handleExportZip() {
     setExporting("zip")
     try {
-      const { base64, filename, error } = await exportCostsZip(currentYear)
+      const { base64, filename, error } = await exportCostsZip(String(year))
       if (error || !base64) {
         toast.error("Export ZIP selhal", { description: error ?? "Neznámá chyba" })
         return
@@ -203,7 +205,7 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
   return (
     <>
       <div className="mb-6 grid grid-cols-3 gap-4">
-        <StatCard label="Náklady celkem" value={sumByCurrency(costs)} />
+        <StatCard label="Náklady celkem" value={sumByCurrency(yearCosts)} />
         <StatCard
           label="Nezaplaceno"
           value={
@@ -273,7 +275,11 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-surface py-20">
           <span className="text-4xl">🧾</span>
           <p className="text-sm text-text-secondary">
-            {costs.length === 0 ? "Zatím žádné náklady" : "Žádné náklady neodpovídají filtru"}
+            {costs.length === 0
+              ? "Zatím žádné náklady"
+              : yearCosts.length === 0
+                ? `Žádné náklady v roce ${year}`
+                : "Žádné náklady neodpovídají filtru"}
           </p>
           {costs.length === 0 && (
             <Button variant="dark" size="sm" className="mt-1" onClick={() => setUploadOpen(true)}>
