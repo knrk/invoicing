@@ -107,7 +107,7 @@ export default function Sidebar() {
       className={cn(
         "group relative shrink-0 flex flex-col h-full bg-surface rounded-2xl shadow-card overflow-visible",
         "transition-[width] duration-200 ease-in-out",
-        collapsed ? "w-[64px]" : "w-[232px]"
+        collapsed ? "w-[48px]" : "w-[232px]"
       )}
     >
       <button
