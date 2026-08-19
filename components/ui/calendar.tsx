@@ -41,7 +41,9 @@ function daysInMonth(year: number, month: number): number {
 export function Calendar({ selected, onSelect, className }: CalendarProps) {
   const today = todayStr()
 
-  const init = selected ?? today
+  // `||` (ne `??`), aby prázdný string spadl na dnešek — jinak "".split("-")
+  // dá NaN a `Array(firstWeekday)` shodí RangeError.
+  const init = selected || today
   const [initY, initM] = init.split("-").map(Number)
   const [viewYear, setViewYear] = useState(initY)
   const [viewMonth, setViewMonth] = useState(initM - 1)

@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3030",
+    "dev:no-sourcemaps": "next dev -p 3030 --disable-source-maps",
+    "dev:webpack": "next dev -p 3030 --webpack",
     "build": "biome lint . && next build",
     "start": "next start -p 3030",
     "lint": "biome lint .",
@@ -15,6 +17,7 @@
     "@fontsource/roboto": "^5.2.10",
     "@radix-ui/react-dialog": "^1.1.16",
     "@radix-ui/react-label": "^2.1.9",
+    "@radix-ui/react-select": "^2.3.7",
     "@radix-ui/react-separator": "^1.1.9",
     "@radix-ui/react-slot": "^1.2.5",
     "@radix-ui/react-switch": "^1.3.0",

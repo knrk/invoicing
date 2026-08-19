@@ -4,15 +4,35 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   FileText, Settings, Contact, Plus, ReceiptText,
-  Moon, Sun, ChevronLeft, BadgeEuro,
+  Moon, Sun, ChevronLeft, BadgeEuro, Receipt, Truck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 
-const NAV_ITEMS = [
-  { href: "/",                    label: "Faktury",           icon: FileText  },
-  { href: "/vat-recapitulative-statement", label: "Souhrnné hlášení", icon: BadgeEuro },
-  { href: "/customers",           label: "Odběratelé",        icon: Contact   },
+const NAV_SECTIONS: {
+  label: string
+  items: { href: string; label: string; icon: typeof FileText }[]
+}[] = [
+  {
+    label: "Hlavní",
+    items: [
+      { href: "/",      label: "Vydané",  icon: FileText },
+      { href: "/costs", label: "Přijaté", icon: Receipt  },
+    ],
+  },
+  {
+    label: "Přehledy",
+    items: [
+      { href: "/vat-recapitulative-statement", label: "Souhrnné hlášení", icon: BadgeEuro },
+    ],
+  },
+  {
+    label: "Kontakty",
+    items: [
+      { href: "/customers", label: "Odběratelé", icon: Contact },
+      { href: "/suppliers", label: "Dodavatelé", icon: Truck   },
+    ],
+  },
 ]
 
 const BOTTOM_ITEMS = [
@@ -49,8 +69,8 @@ function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
       onClick={toggle}
       title={dark ? "Světlý režim" : "Tmavý režim"}
       className={cn(
-        "flex items-center rounded-lg text-sm w-full text-text-secondary hover:bg-subtle hover:text-text transition-colors",
-        collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2"
+        "flex items-center text-sm w-full text-text-secondary hover:bg-subtle hover:text-text transition-colors",
+        collapsed ? "justify-center px-0 py-2 rounded-full aspect-square" : "gap-3 px-3 py-2 rounded-lg"
       )}
     >
       {dark
@@ -85,9 +105,9 @@ export default function Sidebar() {
   return (
     <aside
       className={cn(
-        "group relative shrink-0 flex flex-col h-screen bg-surface border-r border-border overflow-visible",
+        "group relative shrink-0 flex flex-col h-full bg-surface rounded-2xl shadow-card overflow-visible",
         "transition-[width] duration-200 ease-in-out",
-        collapsed ? "w-[56px]" : "w-[220px]"
+        collapsed ? "w-[48px]" : "w-[232px]"
       )}
     >
       <button
@@ -109,29 +129,24 @@ export default function Sidebar() {
         />
       </button>
 
-      <div
-        className={cn(
-          "flex items-center h-14 border-b border-border shrink-0 overflow-hidden",
-          collapsed ? "justify-center px-0" : "gap-2.5 px-5"
-        )}
-      >
-        <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
-          <ReceiptText className="w-4 h-4 text-white" />
-        </div>
-        {!collapsed && (
+      {!collapsed && (
+        <div className="flex items-center h-14 shrink-0 overflow-hidden gap-2.5 px-4">
+          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
+            <ReceiptText className="w-4 h-4 text-white" />
+          </div>
           <span className="text-[15px] font-bold text-text tracking-tight whitespace-nowrap overflow-hidden">
             Fakturace
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div className={cn("pt-4 pb-2 shrink-0", collapsed ? "px-2" : "px-3")}>
+      <div className={cn("pb-2 shrink-0", collapsed ? "px-2 pt-3" : "px-3 pt-4")}>
         <Link
           href="/invoice/new"
           title={collapsed ? "Nová faktura" : undefined}
           className={cn(
-            "flex items-center justify-center w-full h-9 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors",
-            !collapsed && "gap-2"
+            "flex items-center justify-center w-full bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors",
+            collapsed ? "aspect-square rounded-full" : "h-9 rounded-lg gap-2"
           )}
         >
           <Plus className="w-4 h-4 shrink-0" />
@@ -140,40 +155,44 @@ export default function Sidebar() {
       </div>
 
       <nav className={cn("flex-1 py-2 overflow-y-auto overflow-x-hidden", collapsed ? "px-2" : "px-3")}>
-        {!collapsed && (
-          <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-widest px-2 mb-1">
-            Nabídka
-          </p>
-        )}
-        <ul className="space-y-0.5">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-            const active = path === href
-            return (
-              <li key={href}>
-                <Link
-                  href={href}
-                  title={collapsed ? label : undefined}
-                  className={cn(
-                    "flex items-center rounded-lg text-sm transition-colors",
-                    collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2",
-                    active
-                      ? "bg-subtle text-text font-semibold"
-                      : "text-text-secondary hover:bg-subtle hover:text-text"
-                  )}
-                >
-                  <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary" : "")} />
-                  {!collapsed && (
-                    <span className="whitespace-nowrap overflow-hidden">{label}</span>
-                  )}
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.label} className="mb-3">
+            {!collapsed && (
+              <p className="text-[10px] font-semibold text-muted uppercase tracking-[0.12em] px-2 mb-1">
+                {section.label}
+              </p>
+            )}
+            <ul className="space-y-0.5">
+              {section.items.map(({ href, label, icon: Icon }) => {
+                const active = path === href
+                return (
+                  <li key={href}>
+                    <Link
+                      href={href}
+                      title={collapsed ? label : undefined}
+                      className={cn(
+                        "flex items-center text-sm transition-colors",
+                        collapsed ? "justify-center px-0 py-2 rounded-full aspect-square" : "gap-3 px-3 py-2 rounded-lg",
+                        active
+                          ? "bg-subtle text-text font-semibold"
+                          : "text-text-secondary hover:bg-subtle hover:text-text"
+                      )}
+                    >
+                      <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary" : "")} />
+                      {!collapsed && (
+                        <span className="whitespace-nowrap overflow-hidden">{label}</span>
+                      )}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
       <div className={cn(
-        "pb-4 border-t border-border pt-3 shrink-0 space-y-0.5",
+        "pb-4 border-t border-divider pt-3 shrink-0 space-y-0.5",
         collapsed ? "px-2" : "px-3"
       )}>
         {BOTTOM_ITEMS.map(({ href, label, icon: Icon }) => {
@@ -184,10 +203,10 @@ export default function Sidebar() {
               href={href}
               title={collapsed ? label : undefined}
               className={cn(
-                "flex items-center rounded-lg text-sm transition-colors",
+                "flex items-center rounded-xl text-sm transition-colors",
                 collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2",
                 active
-                  ? "bg-subtle text-text font-semibold"
+                  ? "bg-primary text-primary-foreground font-semibold shadow-[0_6px_16px_-8px_var(--color-primary)]"
                   : "text-text-secondary hover:bg-subtle hover:text-text"
               )}
             >

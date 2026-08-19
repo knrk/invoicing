@@ -4,6 +4,7 @@ import { useState } from "react"
 import { exportVatRecapStatementXml } from "@/lib/actions"
 import { toast } from "sonner"
 import type { VatRecapStatementData } from "@/lib/vat-recapitulative-statement"
+import type { ReceivedObligationData } from "@/lib/vat-obligation-overview"
 import { Download, CheckCircle2, Circle, AlertCircle, TriangleAlert } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -18,10 +19,33 @@ const EXCLUDE_REASON_LABEL: Record<string, string> = {
   not_eur_currency: "faktura není v EUR",
 }
 
+/** České skloňování počtu dokladů. */
+function docWord(n: number): string {
+  if (n === 1) return "doklad"
+  if (n >= 2 && n <= 4) return "doklady"
+  return "dokladů"
+}
+
+/** Příznak, který u přijaté faktury zakládá povinnost. */
+function costFlag(c: ReceivedObligationData["costs"][number]): string {
+  if (c.is_eu_supplier && c.reverse_charge) return "EU · PDP"
+  if (c.is_eu_supplier) return "EU"
+  return "PDP"
+}
+
+/** Součet přijaté strany per měna — tržby a náklady se nikdy nesčítají. */
+function receivedAmount(d: ReceivedObligationData): string {
+  const parts: string[] = []
+  if (d.totalCzk > 0) parts.push(`${d.totalCzk.toLocaleString("cs-CZ")} Kč`)
+  if (d.totalEur > 0) parts.push(`${d.totalEur.toLocaleString("cs-CZ")} €`)
+  return parts.join(" / ") || "—"
+}
+
 interface MonthEntry {
   rok: number
   mesic: number
   data: VatRecapStatementData | null
+  received: ReceivedObligationData
   error: string | null
 }
 
@@ -66,41 +90,42 @@ export default function VatRecapStatementClient({ months, configMissing }: Props
 
   return (
     <div className="space-y-3">
-      {months.map(({ rok, mesic, data, error }) => {
+      {months.map(({ rok, mesic, data, received, error }) => {
         const key = `${rok}-${mesic}`
-        const needed = data !== null && data.rows.length > 0
         const isExporting = exporting === key
+
+        // Vydaná strana (souhrnné hlášení + XML)
+        const outgoingNeeded = data !== null && data.rows.length > 0
         const totalCzk = data?.rows.reduce((s, r) => s + r.pln_hodnota, 0) ?? 0
         const invoiceCount = data?.invoices.length ?? 0
-
-        // Excluded invoices that should be flagged (EU-adjacent issues only)
         const euExcluded = data?.excluded.filter((e) => e.reason !== "not_eur_currency") ?? []
         const hasWarning = euExcluded.length > 0
+
+        // Přijatá strana (pořízení z EU / přenesená DP)
+        const receivedNeeded = received.costs.length > 0
+
+        const obligation = outgoingNeeded || receivedNeeded
 
         return (
           <div key={key} className="flex flex-col gap-0">
             <div
               className={cn(
                 "flex items-center gap-4 px-5 py-4 rounded-xl border transition-colors",
-                error
+                error || obligation || hasWarning
                   ? "bg-surface border-border"
-                  : needed
-                    ? "bg-surface border-border"
-                    : hasWarning
-                      ? "bg-surface border-border"
-                      : "bg-subtle border-transparent opacity-60"
+                  : "bg-subtle border-transparent"
               )}
             >
               {/* Status icon */}
               <div className="shrink-0">
                 {error ? (
                   <AlertCircle className="w-5 h-5 text-danger" />
-                ) : needed ? (
+                ) : obligation ? (
                   <CheckCircle2 className="w-5 h-5 text-accent" />
                 ) : hasWarning ? (
                   <TriangleAlert className="w-5 h-5 text-warning-text" />
                 ) : (
-                  <Circle className="w-5 h-5 text-muted" />
+                  <Circle className="w-5 h-5 text-text-secondary" />
                 )}
               </div>
 
@@ -111,37 +136,47 @@ export default function VatRecapStatementClient({ months, configMissing }: Props
                 </span>
               </div>
 
-              {/* Status text */}
+              {/* Status text — dvě částky odděleně */}
               <div className="flex-1 text-sm text-text-secondary">
                 {error ? (
                   <span className="text-danger">{error}</span>
-                ) : needed ? (
-                  <>
-                    <span className="font-medium text-text">{invoiceCount}</span>{" "}
-                    {invoiceCount === 1 ? "faktura" : invoiceCount < 5 ? "faktury" : "faktur"} ·{" "}
-                    <span className="font-medium text-text">
-                      {totalCzk.toLocaleString("cs-CZ")} Kč
-                    </span>{" "}
-                    · {data?.rows.length ?? 0}{" "}
-                    {(data?.rows.length ?? 0) === 1 ? "příjemce" : "příjemci"}
-                    {hasWarning && (
-                      <span className="ml-2 text-warning-text">
-                        · {euExcluded.length} vyloučeno
-                      </span>
+                ) : obligation ? (
+                  <div className="space-y-0.5">
+                    {outgoingNeeded && (
+                      <div>
+                        Vydané: <span className="font-medium text-text">{invoiceCount}</span>{" "}
+                        {docWord(invoiceCount)} ·{" "}
+                        <span className="font-medium text-text">
+                          {totalCzk.toLocaleString("cs-CZ")} Kč
+                        </span>
+                        {hasWarning && (
+                          <span className="ml-2 text-warning-text">
+                            · {euExcluded.length} vyloučeno
+                          </span>
+                        )}
+                      </div>
                     )}
-                  </>
+                    {receivedNeeded && (
+                      <div>
+                        Přijaté:{" "}
+                        <span className="font-medium text-text">{received.costs.length}</span>{" "}
+                        {docWord(received.costs.length)} ·{" "}
+                        <span className="font-medium text-text">{receivedAmount(received)}</span>
+                      </div>
+                    )}
+                  </div>
                 ) : hasWarning ? (
                   <span className="text-warning-text">
                     {euExcluded.length}{" "}
                     {euExcluded.length === 1 ? "faktura vyloučena" : "faktury vyloučeny"} — zkontrolujte níže
                   </span>
                 ) : (
-                  <span>Žádné EUR faktury odběratelům z EU — hlášení se nepodává</span>
+                  <span>Bez povinnosti hlášení</span>
                 )}
               </div>
 
-              {/* Export button */}
-              {needed && !error && (
+              {/* Export button — jen vydaná strana */}
+              {outgoingNeeded && !error && (
                 <button
                   type="button"
                   onClick={() => handleExport(rok, mesic)}
@@ -158,7 +193,36 @@ export default function VatRecapStatementClient({ months, configMissing }: Props
               )}
             </div>
 
-            {/* Warning rows for excluded invoices */}
+            {/* Detail přijatých faktur (pořízení z EU / přenesená DP) */}
+            {receivedNeeded && (
+              <div className="ml-14 mt-1 space-y-1">
+                {received.costs.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-center gap-2 text-xs text-text-secondary bg-subtle border border-border rounded-lg px-3 py-1.5"
+                  >
+                    <span className="font-medium text-text">{c.invoice_number || "—"}</span>
+                    <span>·</span>
+                    <span>{c.supplier_name || "—"}</span>
+                    <span>·</span>
+                    <span className="tabular-nums">
+                      {c.total.toLocaleString("cs-CZ")} {c.currency === "EUR" ? "€" : "Kč"}
+                    </span>
+                    <span className="ml-2 rounded bg-accent/10 px-1.5 py-0.5 font-medium text-accent">
+                      {costFlag(c)}
+                    </span>
+                    <a
+                      href={`/costs/${c.id}`}
+                      className="ml-auto underline font-medium hover:text-text"
+                    >
+                      Detail
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Warning rows for excluded outgoing invoices */}
             {hasWarning && (
               <div className="ml-14 mt-1 space-y-1">
                 {euExcluded.map(({ invoice, reason }) => (
