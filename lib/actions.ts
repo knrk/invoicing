@@ -21,7 +21,7 @@ import {
   type VatRecapStatementData,
 } from "@/lib/vat-recapitulative-statement"
 import { createClient } from "@/lib/supabase/server"
-import { yearFromDate } from "@/lib/year-filter"
+import { costYearFromFields, yearFromDate } from "@/lib/year-filter"
 import { revalidatePath } from "next/cache"
 import { Resend } from "resend"
 
@@ -358,10 +358,14 @@ export async function sendInvoiceEmail(params: {
 
 export async function getAvailableYears(): Promise<number[]> {
   const supabase = await createClient()
-  const [{ data: invoiceRows }, { data: costRows }] = await Promise.all([
-    supabase.from("invoices").select("issue_date"),
-    supabase.from("costs").select("issue_date, received_date"),
-  ])
+  const [{ data: invoiceRows, error: invoiceError }, { data: costRows, error: costError }] =
+    await Promise.all([
+      supabase.from("invoices").select("issue_date"),
+      supabase.from("costs").select("issue_date, received_date"),
+    ])
+
+  if (invoiceError) console.error("getAvailableYears: invoices query failed", invoiceError)
+  if (costError) console.error("getAvailableYears: costs query failed", costError)
 
   const years = new Set<number>()
   years.add(new Date().getFullYear())
@@ -373,7 +377,7 @@ export async function getAvailableYears(): Promise<number[]> {
   for (const row of costRows ?? []) {
     const issue = typeof row.issue_date === "string" ? row.issue_date : ""
     const received = typeof row.received_date === "string" ? row.received_date : ""
-    const y = yearFromDate(issue) ?? yearFromDate(received)
+    const y = costYearFromFields(issue, received)
     if (y !== null) years.add(y)
   }
 

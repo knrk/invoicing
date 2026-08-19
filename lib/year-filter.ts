@@ -5,9 +5,8 @@ export const YEAR_COOKIE = "year-filter"
 
 /** Parse the 4-digit year from a YYYY-MM-DD string. Returns null for empty/invalid input. */
 export function yearFromDate(dateStr: string): number | null {
-  if (!dateStr) return null
-  const year = Number.parseInt(dateStr.slice(0, 4), 10)
-  return Number.isNaN(year) ? null : year
+  const match = /^(\d{4})-\d{2}-\d{2}$/.exec(dateStr)
+  return match ? Number.parseInt(match[1], 10) : null
 }
 
 /** Year of an issued invoice — always from issue_date (always present). */
@@ -15,9 +14,14 @@ export function invoiceYear(invoice: Invoice): number | null {
   return yearFromDate(invoice.issue_date)
 }
 
+/** Year from raw issue/received date fields — issue_date, fallback received_date. */
+export function costYearFromFields(issueDate: string, receivedDate: string): number | null {
+  return yearFromDate(issueDate) ?? yearFromDate(receivedDate)
+}
+
 /** Year of a received invoice (cost) — issue_date, fallback to received_date. */
 export function costYear(cost: Cost): number | null {
-  return yearFromDate(cost.issue_date) ?? yearFromDate(cost.received_date)
+  return costYearFromFields(cost.issue_date, cost.received_date)
 }
 
 /**
@@ -36,5 +40,5 @@ export function resolveInitialYear(
   }
   const currentYear = new Date().getFullYear()
   if (availableYears.includes(currentYear)) return currentYear
-  return availableYears[0]
+  return availableYears[0] ?? new Date().getFullYear()
 }
