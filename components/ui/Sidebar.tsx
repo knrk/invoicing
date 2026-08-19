@@ -129,25 +129,18 @@ export default function Sidebar() {
         />
       </button>
 
-      <div
-        className={cn(
-          "flex items-center h-14 shrink-0 overflow-hidden",
-          collapsed ? "justify-center px-0" : "gap-2.5 px-4"
-        )}
-      >
-        {!collapsed && (
-          <>
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
-              <ReceiptText className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-[15px] font-bold text-text tracking-tight whitespace-nowrap overflow-hidden">
-              Fakturace
-            </span>
-          </>
-        )}
-      </div>
+      {!collapsed && (
+        <div className="flex items-center h-14 shrink-0 overflow-hidden gap-2.5 px-4">
+          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
+            <ReceiptText className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-[15px] font-bold text-text tracking-tight whitespace-nowrap overflow-hidden">
+            Fakturace
+          </span>
+        </div>
+      )}
 
-      <div className={cn("pt-4 pb-2 shrink-0", collapsed ? "px-2" : "px-3")}>
+      <div className={cn("pb-2 shrink-0", collapsed ? "px-2 pt-3" : "px-3 pt-4")}>
         <Link
           href="/invoice/new"
           title={collapsed ? "Nová faktura" : undefined}
