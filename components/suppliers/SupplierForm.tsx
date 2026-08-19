@@ -87,16 +87,6 @@ export default function SupplierForm({ existing, onDone }: Props) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <Label htmlFor="sf-name">Název</Label>
-        <Input
-          id="sf-name"
-          value={form.name}
-          onChange={(e) => set("name", e.target.value)}
-          placeholder="Název společnosti"
-        />
-      </div>
-
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label htmlFor="sf-ico">IČ</Label>
@@ -114,6 +104,16 @@ export default function SupplierForm({ existing, onDone }: Props) {
           <Label htmlFor="sf-dic">DIČ</Label>
           <Input id="sf-dic" value={form.dic} onChange={(e) => set("dic", e.target.value)} />
         </div>
+      </div>
+
+      <div>
+        <Label htmlFor="sf-name">Název</Label>
+        <Input
+          id="sf-name"
+          value={form.name}
+          onChange={(e) => set("name", e.target.value)}
+          placeholder="Název společnosti"
+        />
       </div>
 
       <div>
