@@ -229,10 +229,10 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
               key={s}
               onClick={() => setStatus(s)}
               className={cn(
-                "rounded-lg px-3 py-1.5 text-sm transition-colors",
+                "cursor-pointer rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
                 status === s
-                  ? "bg-subtle font-semibold text-text"
-                  : "text-text-secondary hover:bg-subtle hover:text-text"
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border bg-surface text-text-secondary hover:bg-subtle hover:text-text"
               )}
             >
               {s === "all" ? "Vše" : s === "unpaid" ? "Nezaplacené" : "Zaplacené"}
@@ -295,9 +295,12 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
                     className="h-4 w-4 cursor-pointer accent-primary"
                   />
                 </TableHead>
-                {["Dodavatel", "Číslo", "Vystaveno", "Splatnost", "Celkem", "Stav", ""].map((h) => (
-                  <TableHead key={h}>{h}</TableHead>
-                ))}
+                <TableHead>Dodavatel</TableHead>
+                <TableHead>Vystaveno</TableHead>
+                <TableHead>Splatnost</TableHead>
+                <TableHead>Stav</TableHead>
+                <TableHead className="text-right">Celkem</TableHead>
+                <TableHead className="w-8" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -323,30 +326,40 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
                         className="h-4 w-4 cursor-pointer accent-primary"
                       />
                     </TableCell>
-                    <TableCell className="text-text">{c.supplier.name || "—"}</TableCell>
-                    <TableCell className="font-mono text-text">{c.invoice_number || "—"}</TableCell>
-                    <TableCell className="tabular-nums text-text-secondary">
+                    <TableCell className="py-4">
+                      <div className="font-semibold text-text">{c.supplier.name || "—"}</div>
+                      <div className="mt-0.5 font-mono text-xs text-text-secondary">
+                        {c.invoice_number || "—"}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs tabular-nums text-text-secondary">
                       {fmtDateCs(c.issue_date)}
                     </TableCell>
                     <TableCell
                       className={cn(
-                        "tabular-nums",
+                        "text-xs tabular-nums",
                         overdueRow ? "font-semibold text-danger" : "text-text-secondary"
                       )}
                     >
                       {fmtDateCs(c.due_date)}
                     </TableCell>
-                    <TableCell className="font-medium tabular-nums text-text">
-                      {fmtNum(c.total)} {symbol(c.currency)}
-                    </TableCell>
                     <TableCell>
                       {c.paid_at ? (
-                        <Badge variant="green">Zaplaceno</Badge>
+                        <Badge variant="green" className="rounded-full normal-case tracking-normal">
+                          Zaplaceno
+                        </Badge>
                       ) : overdueRow ? (
-                        <Badge variant="red">Po splatnosti</Badge>
+                        <Badge variant="red" className="rounded-full normal-case tracking-normal">
+                          Po splatnosti
+                        </Badge>
                       ) : (
-                        <Badge variant="blue">Nezaplaceno</Badge>
+                        <Badge variant="blue" className="rounded-full normal-case tracking-normal">
+                          Nezaplaceno
+                        </Badge>
                       )}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold tabular-nums text-text">
+                      {fmtNum(c.total)} {symbol(c.currency)}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end">
