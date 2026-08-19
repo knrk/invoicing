@@ -118,7 +118,7 @@ export function Calendar({ selected, onSelect, className }: CalendarProps) {
                 "hover:bg-nav-active hover:text-text",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isSelected && "bg-nav-active text-text hover:bg-nav-active hover:text-text",
-                !isSelected && isToday && "bg-accent text-accent-foreground font-semibold",
+                !isSelected && isToday && "border border-nav-active bg-transparent font-semibold",
               )}
               aria-pressed={isSelected}
               aria-label={dateStr}
