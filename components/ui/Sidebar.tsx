@@ -135,13 +135,15 @@ export default function Sidebar() {
           collapsed ? "justify-center px-0" : "gap-2.5 px-4"
         )}
       >
-        <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
-          <ReceiptText className="w-4 h-4 text-white" />
-        </div>
         {!collapsed && (
-          <span className="text-[15px] font-bold text-text tracking-tight whitespace-nowrap overflow-hidden">
-            Fakturace
-          </span>
+          <>
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
+              <ReceiptText className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-[15px] font-bold text-text tracking-tight whitespace-nowrap overflow-hidden">
+              Fakturace
+            </span>
+          </>
         )}
       </div>
 
