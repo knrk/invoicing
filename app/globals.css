@@ -7,49 +7,57 @@
   --font-body: "Roboto", sans-serif;
   --font-mono: monospace;
 
-  --color-page: light-dark(#eceef1, #1e1620);
-  --color-surface: light-dark(#ffffff, #1e1620);
-  --color-subtle: light-dark(#f7f8fa, #1e1620);
-  --color-border: light-dark(#e4e6ea, #2e2333);
-  --color-divider: light-dark(#f0f1f3, #261b2a);
-  --color-text: light-dark(#111827, #ece8e1);
-  --color-text-secondary: light-dark(#6b7280, #a898b0);
-  --color-muted: light-dark(#9ca3af, #7a6d82);
-  --color-accent: light-dark(#f97316, #d2586b);
-  --color-accent-hover: light-dark(#ea6c0a, #b02921);
-  --color-warning-bg: light-dark(#fff7ed, #2e151e);
-  --color-warning-border: light-dark(#fed7aa, #5c2535);
-  --color-warning-text: light-dark(#c2410c, #f4c4af);
-  --color-danger: light-dark(#ef4444, #d2586b);
+  /* --- Semantic surfaces & text --- */
+  --color-page: light-dark(#efefed, #0f1311);
+  --color-surface: light-dark(#ffffff, #171c19);
+  --color-subtle: light-dark(#f3f3f0, #1e2521);
+  --color-border: light-dark(#e6e6e1, #2a322d);
+  --color-divider: light-dark(#eeeeea, #232a26);
+  --color-text: light-dark(#1b1f1e, #e8eae7);
+  --color-text-secondary: light-dark(#6b726e, #9aa39e);
+  --color-muted: light-dark(#9aa09d, #727b76);
+  --color-accent: light-dark(#2e3d39, #5b7a6c);
+  --color-accent-hover: light-dark(#26322e, #6c8c7d);
+  --color-warning-bg: light-dark(#fbf6ec, #2a2416);
+  --color-warning-border: light-dark(#ecd9b0, #4d4326);
+  --color-warning-text: light-dark(#8a6d2f, #e6cf9a);
+  --color-danger: light-dark(#c0392b, #e2726a);
 
-  --radius-input: 8px;
-  --radius-card: 12px;
-  --radius-panel: 16px;
-
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-preview: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-  --shadow-elevated: 0 10px 24px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.05);
-
-  --color-background: light-dark(#ffffff, #1e1620);
-  --color-foreground: light-dark(#111827, #ece8e1);
-  --color-card: light-dark(#ffffff, #1e1620);
-  --color-card-foreground: light-dark(#111827, #ece8e1);
-  --color-popover: light-dark(#ffffff, #261b2a);
-  --color-popover-foreground: light-dark(#111827, #ece8e1);
-  --color-primary: light-dark(#f97316, #d2586b);
+  /* --- shadcn-compatible aliases --- */
+  --color-background: light-dark(#ffffff, #171c19);
+  --color-foreground: light-dark(#1b1f1e, #e8eae7);
+  --color-card: light-dark(#ffffff, #171c19);
+  --color-card-foreground: light-dark(#1b1f1e, #e8eae7);
+  --color-popover: light-dark(#ffffff, #1e2521);
+  --color-popover-foreground: light-dark(#1b1f1e, #e8eae7);
+  --color-primary: light-dark(#2e3d39, #5b7a6c);
   --color-primary-foreground: light-dark(#ffffff, #ffffff);
-  --color-secondary: light-dark(#f7f8fa, #1e1620);
-  --color-secondary-foreground: light-dark(#111827, #ece8e1);
-  --color-muted-bg: light-dark(#f7f8fa, #1e1620);
-  --color-muted-fg: light-dark(#6b7280, #a898b0);
-  --color-accent-bg: light-dark(#fff7ed, #2e151e);
-  --color-accent-fg: light-dark(#111827, #f4c4af);
-  --color-destructive: light-dark(#ef4444, #d2586b);
-  --color-destructive-foreground: light-dark(#ffffff, #1e1620);
-  --color-input: light-dark(#e4e6ea, #2e2333);
-  --color-ring: light-dark(#f97316, #d2586b);
+  --color-secondary: light-dark(#f3f3f0, #1e2521);
+  --color-secondary-foreground: light-dark(#1b1f1e, #e8eae7);
+  --color-muted-bg: light-dark(#f3f3f0, #1e2521);
+  --color-muted-fg: light-dark(#6b726e, #9aa39e);
+  --color-accent-bg: light-dark(#eef2f0, #1e2521);
+  --color-accent-fg: light-dark(#1b1f1e, #caded2);
+  --color-destructive: light-dark(#c0392b, #e2726a);
+  --color-destructive-foreground: light-dark(#ffffff, #ffffff);
+  --color-input: light-dark(#e6e6e1, #2a322d);
+  --color-ring: light-dark(#2e3d39, #5b7a6c);
 
-  --radius: 0.5rem;
+  /* --- Radii: override Tailwind scale so rounded-* cascade --- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 20px;
+  --radius-2xl: 26px;
+  --radius-input: 12px;
+  --radius-card: 20px;
+  --radius-panel: 26px;
+  --radius: 0.75rem;
+
+  /* --- Shadows: soft layered lift --- */
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px -16px rgba(16, 24, 40, 0.12);
+  --shadow-preview: 0 4px 16px -6px rgba(16, 24, 40, 0.12), 0 2px 6px rgba(16, 24, 40, 0.05);
+  --shadow-elevated: 0 12px 32px -12px rgba(16, 24, 40, 0.18), 0 4px 10px rgba(16, 24, 40, 0.06);
 }
 
 :root {
