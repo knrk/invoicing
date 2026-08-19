@@ -4,11 +4,21 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Tabs, type TabItem } from "@/components/ui/Tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { saveConfig } from "@/lib/actions"
 import type { AppConfig } from "@/types"
+import { BadgeEuro, Building2, FileText, Hash, Landmark } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+
+const TAB_ITEMS: TabItem[] = [
+  { id: "supplier", label: "Dodavatel", icon: Building2 },
+  { id: "banking", label: "Banka", icon: Landmark },
+  { id: "invoice", label: "Faktury", icon: Hash },
+  { id: "footer", label: "Patička", icon: FileText },
+  { id: "tax", label: "Souhrnné hlášení", icon: BadgeEuro },
+]
 
 const DEFAULT_CONFIG: Omit<AppConfig, "id" | "updated_at"> = {
   supplier: {
@@ -62,6 +72,7 @@ export default function SettingsForm({
     return rest
   })
   const [saving, setSaving] = useState(false)
+  const [tab, setTab] = useState("supplier")
 
   function setNested<S extends keyof typeof form>(
     section: S,
@@ -86,7 +97,10 @@ export default function SettingsForm({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex items-start gap-6">
+      <div className="flex-1 min-w-0 space-y-4">
+        <Tabs items={TAB_ITEMS} value={tab} onValueChange={setTab} className="mb-2" />
+        {tab === "supplier" && (
       <Card>
         <CardHeader>
           <CardTitle>Dodavatel</CardTitle>
@@ -157,7 +171,8 @@ export default function SettingsForm({
           </div>
         </CardContent>
       </Card>
-
+        )}
+        {tab === "banking" && (
       <Card>
         <CardHeader>
           <CardTitle>Bankovní údaje</CardTitle>
@@ -200,7 +215,9 @@ export default function SettingsForm({
           </div>
         </CardContent>
       </Card>
-
+        )}
+        {tab === "invoice" && (
+          <>
       <Card>
         <CardHeader>
           <CardTitle>Číslování faktur</CardTitle>
@@ -232,7 +249,10 @@ export default function SettingsForm({
           </div>
         </CardContent>
       </Card>
-
+      {children}
+          </>
+        )}
+        {tab === "footer" && (
       <Card>
         <CardHeader>
           <CardTitle>Texty v patičce</CardTitle>
@@ -270,7 +290,8 @@ export default function SettingsForm({
           </div>
         </CardContent>
       </Card>
-
+        )}
+        {tab === "tax" && (
       <Card>
         <CardHeader>
           <CardTitle>Souhrnné hlášení (EPO)</CardTitle>
@@ -325,14 +346,40 @@ export default function SettingsForm({
           </div>
         </CardContent>
       </Card>
+        )}
 
-      {children}
-
-      <div className="flex items-center gap-4 pt-2">
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? "Ukládám..." : "Uložit nastavení"}
-        </Button>
+        <div className="flex items-center gap-4 pt-2">
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Ukládám..." : "Uložit nastavení"}
+          </Button>
+        </div>
       </div>
+
+      <aside className="w-72 shrink-0 space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Přehled</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex justify-between gap-4">
+              <span className="text-text-secondary">Dodavatel</span>
+              <span className="font-medium text-text text-right truncate">
+                {form.supplier.name || "—"}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-text-secondary">IČ</span>
+              <span className="font-medium text-text">{form.supplier.ico || "—"}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-text-secondary">Účet CZK</span>
+              <span className="font-medium text-text text-right truncate">
+                {form.banking.account_czk || "—"}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </aside>
     </div>
   )
 }
