@@ -176,8 +176,8 @@ export default function Sidebar() {
                       href={href}
                       title={collapsed ? label : undefined}
                       className={cn(
-                        "flex items-center rounded-lg text-sm transition-colors",
-                        collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2",
+                        "flex items-center text-sm transition-colors",
+                        collapsed ? "justify-center px-0 py-2 rounded-full aspect-square" : "gap-3 px-3 py-2 rounded-lg",
                         active
                           ? "bg-subtle text-text font-semibold"
                           : "text-text-secondary hover:bg-subtle hover:text-text"
