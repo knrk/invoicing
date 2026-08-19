@@ -29,6 +29,8 @@ import { deleteInvoice, duplicateInvoice, setInvoicePaidAt } from "@/lib/actions
 import { fmtNum, today } from "@/lib/invoice"
 import { exportAllToPDF } from "@/lib/pdf"
 import { cn } from "@/lib/utils"
+import { useYearFilter } from "@/components/year-filter/YearFilterProvider"
+import { invoiceYear } from "@/lib/year-filter"
 import type { AppConfig, Invoice } from "@/types"
 import { CopySlash, HandCoins, LoaderCircle, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -69,12 +71,14 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [exportProgress, setExportProgress] = useState<{ done: number; total: number } | null>(null)
   const [status, setStatus] = useState<"all" | "unpaid" | "paid">("all")
+  const { year } = useYearFilter()
+  const yearInvoices = invoices.filter((inv) => invoiceYear(inv) === year)
 
   async function handleExportAll() {
-    if (!config || invoices.length === 0) return
-    setExportProgress({ done: 0, total: invoices.length })
+    if (!config || yearInvoices.length === 0) return
+    setExportProgress({ done: 0, total: yearInvoices.length })
     try {
-      await exportAllToPDF(invoices, config, (done, total) => setExportProgress({ done, total }))
+      await exportAllToPDF(yearInvoices, config, (done, total) => setExportProgress({ done, total }))
     } finally {
       setExportProgress(null)
     }
@@ -110,17 +114,15 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
     }
   }
 
-  const currentYear = new Date().getFullYear()
-
-  const yearCzk = invoices
-    .filter((inv) => inv.currency === "CZK" && inv.issue_date.startsWith(String(currentYear)))
+  const yearCzk = yearInvoices
+    .filter((inv) => inv.currency === "CZK")
     .reduce((sum, inv) => sum + inv.total, 0)
 
-  const yearEur = invoices
-    .filter((inv) => inv.currency === "EUR" && inv.issue_date.startsWith(String(currentYear)))
+  const yearEur = yearInvoices
+    .filter((inv) => inv.currency === "EUR")
     .reduce((sum, inv) => sum + inv.total, 0)
 
-  const unpaidInvoices = invoices.filter((inv) => !inv.paid_at)
+  const unpaidInvoices = yearInvoices.filter((inv) => !inv.paid_at)
   const expectedAmountCzk = unpaidInvoices
     .filter((inv) => inv.currency === "CZK")
     .reduce((sum, inv) => sum + inv.total, 0)
@@ -135,7 +137,7 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
       .filter(Boolean)
       .join(" / ") || "—"
 
-  const overdueInvoices = invoices.filter((inv) => !inv.paid_at && isPastDue(inv.due_date))
+  const overdueInvoices = yearInvoices.filter((inv) => !inv.paid_at && isPastDue(inv.due_date))
   const overdueCountCzk = overdueInvoices.filter((inv) => inv.currency === "CZK").length
   const overdueCountEur = overdueInvoices.filter((inv) => inv.currency === "EUR").length
   const overdueAmountCzk = overdueInvoices
@@ -145,13 +147,13 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
     .filter((inv) => inv.currency === "EUR")
     .reduce((sum, inv) => sum + inv.total, 0)
 
-  const filtered = invoices.filter((inv) => {
+  const filtered = yearInvoices.filter((inv) => {
     if (status === "unpaid") return !inv.paid_at
     if (status === "paid") return !!inv.paid_at
     return true
   })
 
-  if (invoices.length === 0) {
+  if (yearInvoices.length === 0) {
     return (
       <>
         <div className="flex items-center gap-2.5 mb-8">
@@ -179,13 +181,18 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
               </p>
             </div>
           </div>
-        ) : (
+        ) : invoices.length === 0 ? (
           <div className="bg-surface rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center py-20 gap-3">
             <span className="text-4xl">📄</span>
             <p className="text-sm text-text-secondary">Zatím žádné faktury</p>
             <Button asChild className="mt-1">
               <a href="/invoice/new">Vytvořit první fakturu</a>
             </Button>
+          </div>
+        ) : (
+          <div className="bg-surface rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center py-20 gap-3">
+            <span className="text-4xl">📄</span>
+            <p className="text-sm text-text-secondary">Žádné faktury v roce {year}</p>
           </div>
         )}
       </>
@@ -197,14 +204,14 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
       <div className="flex items-center gap-2.5 mb-8">
         <h1 className="text-2xl font-bold text-text">Vydané faktury</h1>
         <span className="inline-flex items-center rounded-full bg-subtle border border-border px-2 py-0.5 text-xs font-semibold text-text-secondary tabular-nums">
-          {invoices.length}
+          {yearInvoices.length}
         </span>
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <StatCard label={`Fakturace ${currentYear} — CZK`} value={`${fmtNum(yearCzk)} Kč`} />
+        <StatCard label={`Fakturace ${year} — CZK`} value={`${fmtNum(yearCzk)} Kč`} />
         <StatCard
-          label={`Fakturace ${currentYear} — €`}
+          label={`Fakturace ${year} — €`}
           value={yearEur > 0 ? `${fmtNum(yearEur)} €` : "—"}
         />
         <StatCard
@@ -257,7 +264,7 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
           variant="outline"
           size="sm"
           onClick={handleExportAll}
-          disabled={!!exportProgress || invoices.length === 0 || !config}
+          disabled={!!exportProgress || yearInvoices.length === 0 || !config}
         >
           {exportProgress
             ? `Generuji ${exportProgress.done} / ${exportProgress.total}…`
