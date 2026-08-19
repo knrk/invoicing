@@ -9,12 +9,30 @@ import {
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 
-const NAV_ITEMS = [
-  { href: "/",                    label: "Vydané",            icon: FileText  },
-  { href: "/costs",               label: "Přijaté",           icon: Receipt   },
-  { href: "/vat-recapitulative-statement", label: "Souhrnné hlášení", icon: BadgeEuro },
-  { href: "/customers",           label: "Odběratelé",        icon: Contact   },
-  { href: "/suppliers",           label: "Dodavatelé",        icon: Truck     },
+const NAV_SECTIONS: {
+  label: string
+  items: { href: string; label: string; icon: typeof FileText }[]
+}[] = [
+  {
+    label: "Hlavní",
+    items: [
+      { href: "/",      label: "Vydané",  icon: FileText },
+      { href: "/costs", label: "Přijaté", icon: Receipt  },
+    ],
+  },
+  {
+    label: "Přehledy",
+    items: [
+      { href: "/vat-recapitulative-statement", label: "Souhrnné hlášení", icon: BadgeEuro },
+    ],
+  },
+  {
+    label: "Kontakty",
+    items: [
+      { href: "/customers", label: "Odběratelé", icon: Contact },
+      { href: "/suppliers", label: "Dodavatelé", icon: Truck   },
+    ],
+  },
 ]
 
 const BOTTOM_ITEMS = [
@@ -142,36 +160,40 @@ export default function Sidebar() {
       </div>
 
       <nav className={cn("flex-1 py-2 overflow-y-auto overflow-x-hidden", collapsed ? "px-2" : "px-3")}>
-        {!collapsed && (
-          <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-widest px-2 mb-1">
-            Nabídka
-          </p>
-        )}
-        <ul className="space-y-0.5">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-            const active = path === href
-            return (
-              <li key={href}>
-                <Link
-                  href={href}
-                  title={collapsed ? label : undefined}
-                  className={cn(
-                    "flex items-center rounded-lg text-sm transition-colors",
-                    collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2",
-                    active
-                      ? "bg-subtle text-text font-semibold"
-                      : "text-text-secondary hover:bg-subtle hover:text-text"
-                  )}
-                >
-                  <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary" : "")} />
-                  {!collapsed && (
-                    <span className="whitespace-nowrap overflow-hidden">{label}</span>
-                  )}
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.label} className="mb-3">
+            {!collapsed && (
+              <p className="text-[10px] font-semibold text-muted uppercase tracking-[0.12em] px-2 mb-1">
+                {section.label}
+              </p>
+            )}
+            <ul className="space-y-0.5">
+              {section.items.map(({ href, label, icon: Icon }) => {
+                const active = path === href
+                return (
+                  <li key={href}>
+                    <Link
+                      href={href}
+                      title={collapsed ? label : undefined}
+                      className={cn(
+                        "flex items-center rounded-xl text-sm transition-colors",
+                        collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2",
+                        active
+                          ? "bg-primary text-primary-foreground font-semibold shadow-[0_6px_16px_-8px_var(--color-primary)]"
+                          : "text-text-secondary hover:bg-subtle hover:text-text"
+                      )}
+                    >
+                      <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary-foreground" : "")} />
+                      {!collapsed && (
+                        <span className="whitespace-nowrap overflow-hidden">{label}</span>
+                      )}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
       <div className={cn(
@@ -186,14 +208,14 @@ export default function Sidebar() {
               href={href}
               title={collapsed ? label : undefined}
               className={cn(
-                "flex items-center rounded-lg text-sm transition-colors",
+                "flex items-center rounded-xl text-sm transition-colors",
                 collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2",
                 active
-                  ? "bg-subtle text-text font-semibold"
+                  ? "bg-primary text-primary-foreground font-semibold shadow-[0_6px_16px_-8px_var(--color-primary)]"
                   : "text-text-secondary hover:bg-subtle hover:text-text"
               )}
             >
-              <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary" : "")} />
+              <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary-foreground" : "")} />
               {!collapsed && (
                 <span className="whitespace-nowrap overflow-hidden">{label}</span>
               )}
