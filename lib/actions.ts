@@ -21,6 +21,7 @@ import {
   type VatRecapStatementData,
 } from "@/lib/vat-recapitulative-statement"
 import { createClient } from "@/lib/supabase/server"
+import { yearFromDate } from "@/lib/year-filter"
 import { revalidatePath } from "next/cache"
 import { Resend } from "resend"
 
@@ -353,4 +354,28 @@ export async function sendInvoiceEmail(params: {
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Nepodařilo se odeslat e-mail." }
   }
+}
+
+export async function getAvailableYears(): Promise<number[]> {
+  const supabase = await createClient()
+  const [{ data: invoiceRows }, { data: costRows }] = await Promise.all([
+    supabase.from("invoices").select("issue_date"),
+    supabase.from("costs").select("issue_date, received_date"),
+  ])
+
+  const years = new Set<number>()
+  years.add(new Date().getFullYear())
+
+  for (const row of invoiceRows ?? []) {
+    const y = yearFromDate(typeof row.issue_date === "string" ? row.issue_date : "")
+    if (y !== null) years.add(y)
+  }
+  for (const row of costRows ?? []) {
+    const issue = typeof row.issue_date === "string" ? row.issue_date : ""
+    const received = typeof row.received_date === "string" ? row.received_date : ""
+    const y = yearFromDate(issue) ?? yearFromDate(received)
+    if (y !== null) years.add(y)
+  }
+
+  return [...years].sort((a, b) => b - a)
 }
