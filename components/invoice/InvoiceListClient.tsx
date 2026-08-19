@@ -4,6 +4,13 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
+  Empty,
+  EmptyContent,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -32,7 +39,7 @@ import { cn } from "@/lib/utils"
 import { useYearFilter } from "@/components/year-filter/YearFilterProvider"
 import { invoiceYear } from "@/lib/year-filter"
 import type { AppConfig, Invoice } from "@/types"
-import { CopySlash, HandCoins, LoaderCircle, Trash2 } from "lucide-react"
+import { CopySlash, FileText, HandCoins, LoaderCircle, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -182,18 +189,28 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
             </div>
           </div>
         ) : invoices.length === 0 ? (
-          <div className="bg-surface rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center py-20 gap-3">
-            <span className="text-4xl">📄</span>
-            <p className="text-sm text-text-secondary">Zatím žádné faktury</p>
-            <Button asChild className="mt-1">
-              <a href="/invoice/new">Vytvořit první fakturu</a>
-            </Button>
-          </div>
+          <Empty className="border border-dashed border-border bg-surface">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FileText />
+              </EmptyMedia>
+              <EmptyTitle>Zatím žádné faktury</EmptyTitle>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button asChild>
+                <a href="/invoice/new">Vytvořit první fakturu</a>
+              </Button>
+            </EmptyContent>
+          </Empty>
         ) : (
-          <div className="bg-surface rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center py-20 gap-3">
-            <span className="text-4xl">📄</span>
-            <p className="text-sm text-text-secondary">Žádné faktury v roce {year}</p>
-          </div>
+          <Empty className="border border-dashed border-border bg-surface">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FileText />
+              </EmptyMedia>
+              <EmptyTitle>Žádné faktury v roce {year}</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         )}
       </>
     )
@@ -273,9 +290,14 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-xl border border-border bg-surface py-16 text-center text-sm text-text-secondary shadow-card">
-          Žádné faktury neodpovídají filtru
-        </div>
+        <Empty className="border border-dashed border-border bg-surface">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <FileText />
+            </EmptyMedia>
+            <EmptyTitle>Žádné faktury neodpovídají filtru</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       ) : (
       <div className="bg-surface rounded-xl border border-border shadow-card overflow-hidden">
         <Table>

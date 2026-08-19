@@ -4,6 +4,13 @@ import CostUploadDialog from "@/components/costs/CostUploadDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
+  Empty,
+  EmptyContent,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -26,7 +33,7 @@ import { cn } from "@/lib/utils"
 import { useYearFilter } from "@/components/year-filter/YearFilterProvider"
 import { costYear } from "@/lib/year-filter"
 import type { Cost } from "@/types"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Receipt, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -278,21 +285,27 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
       )}
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-surface py-20">
-          <span className="text-4xl">🧾</span>
-          <p className="text-sm text-text-secondary">
-            {costs.length === 0
-              ? "Zatím žádné náklady"
-              : yearCosts.length === 0
-                ? `Žádné náklady v roce ${year}`
-                : "Žádné náklady neodpovídají filtru"}
-          </p>
+        <Empty className="border border-dashed border-border bg-surface">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Receipt />
+            </EmptyMedia>
+            <EmptyTitle>
+              {costs.length === 0
+                ? "Zatím žádné náklady"
+                : yearCosts.length === 0
+                  ? `Žádné náklady v roce ${year}`
+                  : "Žádné náklady neodpovídají filtru"}
+            </EmptyTitle>
+          </EmptyHeader>
           {costs.length === 0 && (
-            <Button variant="dark" size="sm" className="mt-1" onClick={() => setUploadOpen(true)}>
-              Nahrát první fakturu
-            </Button>
+            <EmptyContent>
+              <Button variant="dark" size="sm" onClick={() => setUploadOpen(true)}>
+                Nahrát první fakturu
+              </Button>
+            </EmptyContent>
           )}
-        </div>
+        </Empty>
       ) : (
         <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-card">
           <Table>
