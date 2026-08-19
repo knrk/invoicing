@@ -105,9 +105,9 @@ export default function Sidebar() {
   return (
     <aside
       className={cn(
-        "group relative shrink-0 flex flex-col h-screen bg-surface border-r border-border overflow-visible",
+        "group relative shrink-0 flex flex-col h-screen overflow-visible",
         "transition-[width] duration-200 ease-in-out",
-        collapsed ? "w-[56px]" : "w-[220px]"
+        collapsed ? "w-[64px]" : "w-[232px]"
       )}
     >
       <button
@@ -131,8 +131,8 @@ export default function Sidebar() {
 
       <div
         className={cn(
-          "flex items-center h-14 border-b border-border shrink-0 overflow-hidden",
-          collapsed ? "justify-center px-0" : "gap-2.5 px-5"
+          "flex items-center h-14 shrink-0 overflow-hidden",
+          collapsed ? "justify-center px-0" : "gap-2.5 px-4"
         )}
       >
         <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
@@ -176,7 +176,7 @@ export default function Sidebar() {
                       href={href}
                       title={collapsed ? label : undefined}
                       className={cn(
-                        "flex items-center rounded-xl text-sm transition-colors",
+                        "flex items-center rounded-lg text-sm transition-colors",
                         collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2",
                         active
                           ? "bg-primary text-primary-foreground font-semibold shadow-[0_6px_16px_-8px_var(--color-primary)]"
@@ -197,7 +197,7 @@ export default function Sidebar() {
       </nav>
 
       <div className={cn(
-        "pb-4 border-t border-border pt-3 shrink-0 space-y-0.5",
+        "pb-4 border-t border-divider pt-3 shrink-0 space-y-0.5",
         collapsed ? "px-2" : "px-3"
       )}>
         {BOTTOM_ITEMS.map(({ href, label, icon: Icon }) => {
