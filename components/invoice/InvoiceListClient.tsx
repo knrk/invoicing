@@ -245,13 +245,17 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              {["Číslo", "Odběratel", "Částka", "Splatnost / Zaplaceno", ""].map((h) => (
-                <TableHead key={h}>{h}</TableHead>
-              ))}
+              <TableHead>Odběratel</TableHead>
+              <TableHead>Splatnost / Zaplaceno</TableHead>
+              <TableHead>Stav</TableHead>
+              <TableHead className="text-right">Částka</TableHead>
+              <TableHead className="w-8" />
             </TableRow>
           </TableHeader>
           <TableBody>
-            {invoices.map((inv) => (
+            {invoices.map((inv) => {
+              const overdueRow = !inv.paid_at && isPastDue(inv.due_date)
+              return (
               <TableRow
                 key={inv.id}
                 className="cursor-pointer"
@@ -262,23 +266,38 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
                   if (e.key === "Enter" || e.key === " ") router.push(`/invoice/${inv.id}`)
                 }}
               >
-                <TableCell className="font-mono font-medium text-text">
-                  <span className="inline-flex items-center gap-1.5">
+                <TableCell className="py-4">
+                  <div className="font-semibold text-text">{inv.customer.name || "—"}</div>
+                  <div className="mt-0.5 flex items-center gap-1.5 font-mono text-xs text-text-secondary">
                     {inv.invoice_number.replace(/^[A-Za-z]+/, "")}
                     <Badge
                       variant={inv.language === "cs" ? "blue" : "green"}
-                      className="text-xs px-1 py-0 leading-tight font-sans font-semibold"
+                      className="rounded px-1 py-0 text-[10px] font-sans font-semibold leading-tight normal-case tracking-normal"
                     >
                       {inv.language === "cs" ? "CZ" : "EN"}
                     </Badge>
-                  </span>
-                </TableCell>
-                <TableCell className="text-text">{inv.customer.name || "—"}</TableCell>
-                <TableCell className="font-medium tabular-nums text-text">
-                  {fmtNum(inv.total)} {inv.currency === "CZK" ? "Kč" : "€"}
+                  </div>
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <DuePaidCell invoice={inv} />
+                </TableCell>
+                <TableCell>
+                  {inv.paid_at ? (
+                    <Badge variant="green" className="rounded-full normal-case tracking-normal">
+                      Zaplaceno
+                    </Badge>
+                  ) : overdueRow ? (
+                    <Badge variant="red" className="rounded-full normal-case tracking-normal">
+                      Po splatnosti
+                    </Badge>
+                  ) : (
+                    <Badge variant="blue" className="rounded-full normal-case tracking-normal">
+                      Nezaplaceno
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell className="text-right font-semibold tabular-nums text-text">
+                  {fmtNum(inv.total)} {inv.currency === "CZK" ? "Kč" : "€"}
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-1 justify-end">
@@ -320,7 +339,8 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+              )
+            })}
           </TableBody>
         </Table>
       </div>
@@ -403,7 +423,7 @@ function DuePaidCell({ invoice }: { invoice: Invoice }) {
       <button
         onClick={handleClear}
         title="Kliknutím zrušit označení zaplaceno"
-        className="text-sm font-medium text-emerald-600 hover:text-danger transition-colors tabular-nums"
+        className="text-xs font-medium text-emerald-600 hover:text-danger transition-colors tabular-nums"
       >
         {fmtDateCs(invoice.paid_at)}
       </button>
@@ -416,7 +436,7 @@ function DuePaidCell({ invoice }: { invoice: Invoice }) {
     <div ref={ref} className="relative flex items-center gap-2">
       <span
         className={cn(
-          "text-sm tabular-nums",
+          "text-xs tabular-nums",
           overdue ? "font-bold text-danger" : "text-text-secondary"
         )}
       >
