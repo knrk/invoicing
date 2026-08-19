@@ -179,11 +179,11 @@ export default function Sidebar() {
                         "flex items-center rounded-lg text-sm transition-colors",
                         collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2",
                         active
-                          ? "bg-primary text-primary-foreground font-semibold shadow-[0_6px_16px_-8px_var(--color-primary)]"
+                          ? "bg-subtle text-text font-semibold"
                           : "text-text-secondary hover:bg-subtle hover:text-text"
                       )}
                     >
-                      <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary-foreground" : "")} />
+                      <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary" : "")} />
                       {!collapsed && (
                         <span className="whitespace-nowrap overflow-hidden">{label}</span>
                       )}
@@ -215,7 +215,7 @@ export default function Sidebar() {
                   : "text-text-secondary hover:bg-subtle hover:text-text"
               )}
             >
-              <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary-foreground" : "")} />
+              <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary" : "")} />
               {!collapsed && (
                 <span className="whitespace-nowrap overflow-hidden">{label}</span>
               )}
