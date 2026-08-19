@@ -460,14 +460,16 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
                         placeholder={L.descPlaceholder}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && idx === form.lines.length - 1) addLine()
-                        }}                      />
+                        }}
+                      />
                     </div>
                     <div>
                       <Label className="mb-1.5 block text-xs">Doplňkový popis</Label>
                       <Input
                         value={line.sub_description ?? ""}
                         onChange={(e) => updateLine(line.id, "sub_description", e.target.value)}
-                        placeholder="Volitelný doplňkový popis…"                      />
+                        placeholder="Volitelný doplňkový popis…"
+                      />
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <div>
@@ -478,13 +480,15 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
                           value={line.quantity}
                           onChange={(e) =>
                             updateLine(line.id, "quantity", Number.parseFloat(e.target.value) || 0)
-                          }                        />
+                          }
+                        />
                       </div>
                       <div>
                         <Label className="mb-1.5 block text-xs">Jedn.</Label>
                         <Input
                           value={line.unit}
-                          onChange={(e) => updateLine(line.id, "unit", e.target.value)}                        />
+                          onChange={(e) => updateLine(line.id, "unit", e.target.value)}
+                        />
                       </div>
                       <div>
                         <Label className="mb-1.5 block text-xs">{L.unitPrice}</Label>
@@ -498,7 +502,8 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
                               "unit_price",
                               Number.parseFloat(e.target.value) || 0
                             )
-                          }                        />
+                          }
+                        />
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
