@@ -114,10 +114,10 @@ export function Calendar({ selected, onSelect, className }: CalendarProps) {
               type="button"
               onClick={() => onSelect(dateStr)}
               className={cn(
-                "h-9 w-9 mx-auto rounded-md text-sm font-normal transition-colors",
-                "hover:bg-accent hover:text-accent-foreground",
+                "h-9 w-9 mx-auto rounded-full text-sm font-normal transition-colors",
+                "hover:bg-nav-active hover:text-text",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                isSelected && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                isSelected && "bg-nav-active text-text hover:bg-nav-active hover:text-text",
                 !isSelected && isToday && "bg-accent text-accent-foreground font-semibold",
               )}
               aria-pressed={isSelected}

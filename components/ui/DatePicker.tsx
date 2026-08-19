@@ -32,7 +32,7 @@ export default function DatePicker({ value, language, onChange }: Props) {
           className={cn(
             "flex w-full items-center gap-2 rounded-md border border-input bg-background px-3 h-10",
             "text-sm text-left font-normal text-foreground",
-            "hover:bg-accent hover:text-accent-foreground transition-colors",
+            "hover:bg-nav-active transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             !value && "text-muted-foreground",
           )}
