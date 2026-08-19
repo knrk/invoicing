@@ -181,7 +181,7 @@ export default function GmailIntegrationSettings({ status }: Props) {
 
   return (
     <div className="mt-10 rounded-xl border border-border bg-surface p-6">
-      <h2 className="mb-1 text-[15px] font-semibold text-text">Napojení Gmailu</h2>
+      <h2 className="mb-1 text-base font-semibold text-text">Napojení Gmailu</h2>
       <p className="mb-4 text-sm text-text-secondary">
         Pravidelná kontrola jednoho labelu — PDF přílohy se importují jako náklady.
       </p>

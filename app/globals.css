@@ -22,6 +22,7 @@
   --color-warning-border: light-dark(#ecd9b0, #4d4326);
   --color-warning-text: light-dark(#8a6d2f, #e6cf9a);
   --color-danger: light-dark(#c0392b, #e2726a);
+  --color-nav-active: light-dark(#d8e6f9, #24313d);
 
   /* --- shadcn-compatible aliases --- */
   --color-background: light-dark(#ffffff, #171c19);

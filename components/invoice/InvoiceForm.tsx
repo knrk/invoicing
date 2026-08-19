@@ -95,6 +95,53 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
     toast.error("Vyhledání v ARESu selhalo", { description: message })
   )
 
+  const splitRef = useRef<HTMLDivElement>(null)
+  const [leftWidth, setLeftWidth] = useState(DEFAULT_LEFT_WIDTH)
+  const [resizing, setResizing] = useState(false)
+
+  useEffect(() => {
+    const saved = Number(localStorage.getItem(LEFT_WIDTH_STORAGE_KEY))
+    if (Number.isFinite(saved) && saved > 0) setLeftWidth(clampLeftWidth(saved))
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem(LEFT_WIDTH_STORAGE_KEY, String(leftWidth))
+  }, [leftWidth])
+
+  const startResize = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    if (!splitRef.current) return
+    setResizing(true)
+
+    function onMove(ev: PointerEvent) {
+      const el = splitRef.current
+      if (!el) return
+      setLeftWidth(clampLeftWidth(ev.clientX - el.getBoundingClientRect().left))
+    }
+    function onUp() {
+      setResizing(false)
+      window.removeEventListener("pointermove", onMove)
+      window.removeEventListener("pointerup", onUp)
+      document.body.style.userSelect = ""
+      document.body.style.cursor = ""
+    }
+
+    document.body.style.userSelect = "none"
+    document.body.style.cursor = "col-resize"
+    window.addEventListener("pointermove", onMove)
+    window.addEventListener("pointerup", onUp)
+  }, [])
+
+  const nudgeResize = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "ArrowLeft") {
+      e.preventDefault()
+      setLeftWidth((w) => clampLeftWidth(w - 16))
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault()
+      setLeftWidth((w) => clampLeftWidth(w + 16))
+    }
+  }, [])
+
   const total = useMemo(() => form.lines.reduce((s, l) => s + l.total, 0), [form.lines])
   const formWithTotal = useMemo(() => ({ ...form, total }), [form, total])
 
@@ -167,7 +214,8 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
     }))
   }
 
-  const updateLine = useCallback((id: string, key: keyof InvoiceLine, value: string | number) => {
+  const updateLine = useCallback(
+    (id: string, key: keyof InvoiceLine, value: string | number | boolean) => {
     setForm((f) => ({
       ...f,
       lines: f.lines.map((l) => {
@@ -241,8 +289,11 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
   }
 
   return (
-    <div className="flex h-[calc(100vh-1.5rem)] overflow-hidden">
-      <div className="w-[38%] flex-shrink-0 flex flex-col border-r border-border bg-surface">
+    <div ref={splitRef} className="flex h-[calc(100vh-1.5rem)] overflow-hidden">
+      <div
+        className="flex-shrink-0 flex flex-col bg-surface"
+        style={{ width: leftWidth }}
+      >
         <div className="px-6 pt-6 pb-4 space-y-6 flex-1 overflow-y-auto">
           {customers.length > 0 && (
             <CustomerPicker customers={customers} onSelect={applyCustomer} />
@@ -250,7 +301,7 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
 
           <section>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[16px] font-bold text-text">{L.detailsSection}</h2>
+              <h2 className="text-base font-bold text-text">{L.detailsSection}</h2>
               <div className="flex items-center gap-2">
                 <span className={cn("text-sm font-medium", !isCz && "text-text-secondary")}>
                   CZ
@@ -426,7 +477,7 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
           </section>
 
           <section>
-            <h2 className="text-[16px] font-bold text-text mb-4">{L.linesSection}</h2>
+            <h2 className="text-base font-bold text-text mb-4">{L.linesSection}</h2>
 
             <div className="space-y-3">
               {form.lines.map((line, idx) => (
@@ -552,7 +603,7 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
 
             <div className="mt-4 pt-4 border-t border-border flex justify-between items-center">
               <span className="text-sm font-semibold text-text">{L.total}</span>
-              <span className="text-[20px] font-bold text-text tabular-nums">
+              <span className="text-xl font-bold text-text tabular-nums">
                 {fmtNum(total)} {displayCurrency(form.currency)}
               </span>
             </div>
@@ -569,9 +620,43 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
         </div>
       </div>
 
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Změnit šířku panelu"
+        aria-valuemin={MIN_LEFT_WIDTH}
+        aria-valuemax={MAX_LEFT_WIDTH}
+        aria-valuenow={Math.round(leftWidth)}
+        tabIndex={0}
+        onPointerDown={startResize}
+        onKeyDown={nudgeResize}
+        className={cn(
+          "group relative w-0 flex-shrink-0 cursor-col-resize touch-none outline-none bg-white",
+          "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+        )}
+      >
+        <div
+          className={cn(
+            "absolute inset-y-0 left-1/2 -translate-x-1/2 w-px transition-colors",
+            resizing ? "bg-primary" : "bg-border group-hover:bg-primary/50"
+          )}
+        />
+        <div
+          className={cn(
+            "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+            "flex h-9 w-4 items-center justify-center gap-[3px] rounded-full",
+            "border border-border bg-surface shadow-sm transition-opacity",
+            resizing ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}
+        >
+          <span className="h-3.5 w-px rounded bg-text-secondary/60" />
+          <span className="h-3.5 w-px rounded bg-text-secondary/60" />
+        </div>
+      </div>
+
       <div className="flex-1 flex flex-col bg-page overflow-hidden">
         <div className="flex items-center justify-between px-8 py-4 bg-surface border-b border-border">
-          <span className="text-[15px] font-semibold text-text">Náhled</span>
+          <span className="text-base font-semibold text-text">Náhled</span>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => setEmailOpen(true)}>
               <Send size={16} />
@@ -598,7 +683,7 @@ export default function InvoiceForm({ config, existing, customers = [] }: Props)
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto p-8">
+        <div className="flex-1 overflow-auto p-8 shadow-[inset_0_0_16px_0_rgba(0,0,0,0.15)]">
           <div
             className="shadow-lg rounded overflow-hidden"
             style={{ width: "794px", margin: "0 auto" }}

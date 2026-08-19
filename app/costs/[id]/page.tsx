@@ -13,7 +13,7 @@ export default async function CostDetailPage({ params }: Props) {
 
   return (
     <main className="mx-auto max-w-7xl px-10 py-8">
-      <h1 className="mb-6 text-[22px] font-bold text-text">
+      <h1 className="mb-6 text-2xl font-bold text-text">
         {cost.supplier.name || "Náklad"}
       </h1>
       <CostDetailClient cost={cost} />

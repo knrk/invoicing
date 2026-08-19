@@ -354,32 +354,6 @@ export default function SettingsForm({
           </Button>
         </div>
       </div>
-
-      <aside className="w-72 shrink-0 space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Přehled</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex justify-between gap-4">
-              <span className="text-text-secondary">Dodavatel</span>
-              <span className="font-medium text-text text-right truncate">
-                {form.supplier.name || "—"}
-              </span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-text-secondary">IČ</span>
-              <span className="font-medium text-text">{form.supplier.ico || "—"}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-text-secondary">Účet CZK</span>
-              <span className="font-medium text-text text-right truncate">
-                {form.banking.account_czk || "—"}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </aside>
     </div>
   )
 }

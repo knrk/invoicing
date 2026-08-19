@@ -428,7 +428,7 @@ function StatCard({
   return (
     <div className="rounded-xl border border-border bg-surface px-5 py-4 shadow-elevated">
       <p className="mb-1 text-xs text-text-secondary">{label}</p>
-      <p className={cn("text-[18px] font-bold tabular-nums", danger ? "text-danger" : "text-text")}>
+      <p className={cn("text-lg font-bold tabular-nums", danger ? "text-danger" : "text-text")}>
         {value}
       </p>
     </div>

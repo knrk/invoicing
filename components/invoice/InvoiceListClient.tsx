@@ -148,7 +148,7 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
     return (
       <>
         <div className="flex items-center gap-2.5 mb-8">
-          <h1 className="text-[22px] font-bold text-text">Faktury</h1>
+          <h1 className="text-2xl font-bold text-text">Vydané faktury</h1>
           <span className="inline-flex items-center rounded-full bg-subtle border border-border px-2 py-0.5 text-xs font-semibold text-text-secondary tabular-nums">
             0
           </span>
@@ -189,7 +189,7 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
     <>
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-[22px] font-bold text-text">Faktury</h1>
+          <h1 className="text-2xl font-bold text-text">Vydané faktury</h1>
           <span className="inline-flex items-center rounded-full bg-subtle border border-border px-2 py-0.5 text-xs font-semibold text-text-secondary tabular-nums">
             {invoices.length}
           </span>
@@ -267,7 +267,7 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
                     {inv.invoice_number.replace(/^[A-Za-z]+/, "")}
                     <Badge
                       variant={inv.language === "cs" ? "blue" : "green"}
-                      className="text-[8px] px-1 py-0 leading-tight font-sans font-semibold"
+                      className="text-xs px-1 py-0 leading-tight font-sans font-semibold"
                     >
                       {inv.language === "cs" ? "CZ" : "EN"}
                     </Badge>
@@ -357,7 +357,7 @@ function StatCard({
   return (
     <div className="bg-surface rounded-xl border border-border px-5 py-4 shadow-elevated">
       <p className="text-xs text-text-secondary mb-1">{label}</p>
-      <p className={cn("text-[18px] font-bold tabular-nums", danger ? "text-danger" : "text-text")}>
+      <p className={cn("text-lg font-bold tabular-nums", danger ? "text-danger" : "text-text")}>
         {value}
       </p>
     </div>
