@@ -7,6 +7,7 @@ import {
   Moon, Sun, ChevronLeft, BadgeEuro, Receipt, Truck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import YearSelect from "@/components/year-filter/YearSelect"
 import { useEffect, useState } from "react"
 
 const NAV_SECTIONS: {
@@ -134,9 +135,10 @@ export default function Sidebar() {
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
             <ReceiptText className="w-4 h-4 text-white" />
           </div>
-          <span className="text-base font-bold text-text tracking-tight whitespace-nowrap overflow-hidden">
+          <span className="text-base font-bold text-text tracking-tight whitespace-nowrap overflow-hidden shrink-0">
             Fakturace
           </span>
+          <YearSelect className="ml-auto shrink-0" />
         </div>
       )}
 
