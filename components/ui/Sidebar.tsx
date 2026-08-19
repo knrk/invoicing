@@ -69,8 +69,8 @@ function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
       onClick={toggle}
       title={dark ? "Světlý režim" : "Tmavý režim"}
       className={cn(
-        "flex items-center rounded-lg text-sm w-full text-text-secondary hover:bg-subtle hover:text-text transition-colors",
-        collapsed ? "justify-center px-0 py-2" : "gap-3 px-3 py-2"
+        "flex items-center text-sm w-full text-text-secondary hover:bg-subtle hover:text-text transition-colors",
+        collapsed ? "justify-center px-0 py-2 rounded-full aspect-square" : "gap-3 px-3 py-2 rounded-lg"
       )}
     >
       {dark
@@ -150,8 +150,8 @@ export default function Sidebar() {
           href="/invoice/new"
           title={collapsed ? "Nová faktura" : undefined}
           className={cn(
-            "flex items-center justify-center w-full h-9 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors",
-            !collapsed && "gap-2"
+            "flex items-center justify-center w-full bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors",
+            collapsed ? "aspect-square rounded-full" : "h-9 rounded-lg gap-2"
           )}
         >
           <Plus className="w-4 h-4 shrink-0" />
