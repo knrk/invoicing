@@ -7,6 +7,7 @@ import type { VatRecapStatementData } from "@/lib/vat-recapitulative-statement"
 import type { ReceivedObligationData } from "@/lib/vat-obligation-overview"
 import { Download, CheckCircle2, Circle, AlertCircle, TriangleAlert } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useYearFilter } from "@/components/year-filter/YearFilterProvider"
 
 const CZ_MONTHS = [
   "", "Leden", "Únor", "Březen", "Duben", "Květen", "Červen",
@@ -56,6 +57,8 @@ interface Props {
 
 export default function VatRecapStatementClient({ months, configMissing }: Props) {
   const [exporting, setExporting] = useState<string | null>(null)
+  const { year } = useYearFilter()
+  const visibleMonths = months.filter((m) => m.rok === year)
 
   if (configMissing) {
     return (
@@ -88,9 +91,17 @@ export default function VatRecapStatementClient({ months, configMissing }: Props
     toast.success("XML souhrnného hlášení staženo")
   }
 
+  if (visibleMonths.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-surface py-16 text-center text-sm text-text-secondary shadow-card">
+        Žádné měsíce s povinností hlášení v roce {year}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-3">
-      {months.map(({ rok, mesic, data, received, error }) => {
+      {visibleMonths.map(({ rok, mesic, data, received, error }) => {
         const key = `${rok}-${mesic}`
         const isExporting = exporting === key
 

@@ -4,6 +4,13 @@ import CostUploadDialog from "@/components/costs/CostUploadDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
+  Empty,
+  EmptyContent,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -23,8 +30,10 @@ import { deleteCost, deleteCosts, exportCostsZip } from "@/lib/costs"
 import { syncGmailCosts } from "@/lib/gmail"
 import { fmtNum } from "@/lib/invoice"
 import { cn } from "@/lib/utils"
+import { useYearFilter } from "@/components/year-filter/YearFilterProvider"
+import { costYear } from "@/lib/year-filter"
 import type { Cost } from "@/types"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Receipt, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -85,8 +94,7 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
   const router = useRouter()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [status, setStatus] = useState<StatusFilter>("all")
-  // Přijaté faktury vždy zobrazují jen aktuální rok.
-  const currentYear = String(new Date().getFullYear())
+  const { year } = useYearFilter()
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [exporting, setExporting] = useState<"zip" | null>(null)
@@ -112,13 +120,14 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
     router.refresh()
   }
 
+  const yearCosts = useMemo(() => costs.filter((c) => costYear(c) === year), [costs, year])
+
   const filtered = useMemo(
     () =>
-      costs
+      yearCosts
         .filter((c) => {
           if (status === "unpaid" && c.paid_at) return false
           if (status === "paid" && !c.paid_at) return false
-          if (!c.issue_date.startsWith(currentYear)) return false
           return true
         })
         // Řazení podle data přijetí, nejnovější první; bez data na konec.
@@ -127,10 +136,10 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
           if (!b.received_date) return -1
           return b.received_date.localeCompare(a.received_date)
         }),
-    [costs, status, currentYear]
+    [yearCosts, status]
   )
 
-  const unpaid = costs.filter((c) => !c.paid_at)
+  const unpaid = yearCosts.filter((c) => !c.paid_at)
   const overdue = unpaid.filter((c) => isPastDue(c.due_date))
 
   const allFilteredSelected = filtered.length > 0 && filtered.every((c) => selected.has(c.id))
@@ -184,7 +193,7 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
   async function handleExportZip() {
     setExporting("zip")
     try {
-      const { base64, filename, error } = await exportCostsZip(currentYear)
+      const { base64, filename, error } = await exportCostsZip(String(year))
       if (error || !base64) {
         toast.error("Export ZIP selhal", { description: error ?? "Neznámá chyba" })
         return
@@ -202,8 +211,14 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
 
   return (
     <>
+      <div className="mb-8 flex items-center gap-2.5">
+        <h1 className="text-2xl font-bold text-text">Přijaté faktury</h1>
+        <span className="inline-flex items-center rounded-full border border-border bg-subtle px-2 py-0.5 text-xs font-semibold tabular-nums text-text-secondary">
+          {yearCosts.length}
+        </span>
+      </div>
       <div className="mb-6 grid grid-cols-3 gap-4">
-        <StatCard label="Náklady celkem" value={sumByCurrency(costs)} />
+        <StatCard label="Náklady celkem" value={sumByCurrency(yearCosts)} />
         <StatCard
           label="Nezaplaceno"
           value={
@@ -241,7 +256,7 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportZip} disabled={!!exporting}>
+          <Button variant="outline" size="sm" onClick={handleExportZip} disabled={!!exporting || yearCosts.length === 0}>
             {exporting === "zip" ? "Exportuji…" : "Export ZIP"}
           </Button>
           {gmailReady && (
@@ -270,17 +285,27 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
       )}
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-surface py-20">
-          <span className="text-4xl">🧾</span>
-          <p className="text-sm text-text-secondary">
-            {costs.length === 0 ? "Zatím žádné náklady" : "Žádné náklady neodpovídají filtru"}
-          </p>
+        <Empty className="border border-dashed border-border bg-surface">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Receipt />
+            </EmptyMedia>
+            <EmptyTitle>
+              {costs.length === 0
+                ? "Zatím žádné náklady"
+                : yearCosts.length === 0
+                  ? `Žádné náklady v roce ${year}`
+                  : "Žádné náklady neodpovídají filtru"}
+            </EmptyTitle>
+          </EmptyHeader>
           {costs.length === 0 && (
-            <Button variant="dark" size="sm" className="mt-1" onClick={() => setUploadOpen(true)}>
-              Nahrát první fakturu
-            </Button>
+            <EmptyContent>
+              <Button variant="dark" size="sm" onClick={() => setUploadOpen(true)}>
+                Nahrát první fakturu
+              </Button>
+            </EmptyContent>
           )}
-        </div>
+        </Empty>
       ) : (
         <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-card">
           <Table>
