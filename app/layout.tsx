@@ -15,9 +15,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="cs">
-      <body suppressHydrationWarning className="flex h-screen overflow-hidden">
+      <body suppressHydrationWarning className="flex h-screen overflow-hidden gap-3 p-3">
         <Sidebar />
-        <div className="flex-1 overflow-auto">{children}</div>
+        <div className="flex-1 overflow-auto rounded-2xl">{children}</div>
         <Toaster richColors position="bottom-right" />
       </body>
     </html>

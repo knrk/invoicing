@@ -105,7 +105,7 @@ export default function Sidebar() {
   return (
     <aside
       className={cn(
-        "group relative shrink-0 flex flex-col h-screen overflow-visible",
+        "group relative shrink-0 flex flex-col h-full bg-surface rounded-2xl shadow-card overflow-visible",
         "transition-[width] duration-200 ease-in-out",
         collapsed ? "w-[64px]" : "w-[232px]"
       )}
