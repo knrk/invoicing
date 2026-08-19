@@ -332,12 +332,12 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
                         {c.invoice_number || "—"}
                       </div>
                     </TableCell>
-                    <TableCell className="tabular-nums text-text-secondary">
+                    <TableCell className="text-xs tabular-nums text-text-secondary">
                       {fmtDateCs(c.issue_date)}
                     </TableCell>
                     <TableCell
                       className={cn(
-                        "tabular-nums",
+                        "text-xs tabular-nums",
                         overdueRow ? "font-semibold text-danger" : "text-text-secondary"
                       )}
                     >
