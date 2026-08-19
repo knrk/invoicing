@@ -22,10 +22,15 @@ export default async function RootLayout({
 
   return (
     <html lang="cs">
-      <body suppressHydrationWarning className="flex h-screen overflow-hidden gap-3 p-3">
+      <body suppressHydrationWarning>
         <YearFilterProvider availableYears={availableYears} initialYear={initialYear}>
-          <Sidebar />
-          <div className="flex-1 overflow-auto rounded-2xl">{children}</div>
+          {/* Layout classes live on this wrapper, NOT on <body>: Radix scroll-lock
+              (react-remove-scroll) resets the body's padding/margin while any Select
+              is open, which would otherwise make the whole page jump. */}
+          <div className="flex h-screen overflow-hidden gap-3 p-3">
+            <Sidebar />
+            <div className="flex-1 overflow-auto rounded-2xl">{children}</div>
+          </div>
         </YearFilterProvider>
         <Toaster richColors position="bottom-right" />
       </body>
