@@ -68,6 +68,7 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
   const [duplicating, setDuplicating] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [exportProgress, setExportProgress] = useState<{ done: number; total: number } | null>(null)
+  const [status, setStatus] = useState<"all" | "unpaid" | "paid">("all")
 
   async function handleExportAll() {
     if (!config || invoices.length === 0) return
@@ -144,6 +145,12 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
     .filter((inv) => inv.currency === "EUR")
     .reduce((sum, inv) => sum + inv.total, 0)
 
+  const filtered = invoices.filter((inv) => {
+    if (status === "unpaid") return !inv.paid_at
+    if (status === "paid") return !!inv.paid_at
+    return true
+  })
+
   if (invoices.length === 0) {
     return (
       <>
@@ -187,23 +194,11 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
 
   return (
     <>
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-2.5">
-          <h1 className="text-2xl font-bold text-text">Vydané faktury</h1>
-          <span className="inline-flex items-center rounded-full bg-subtle border border-border px-2 py-0.5 text-xs font-semibold text-text-secondary tabular-nums">
-            {invoices.length}
-          </span>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExportAll}
-          disabled={!!exportProgress || invoices.length === 0 || !config}
-        >
-          {exportProgress
-            ? `Generuji ${exportProgress.done} / ${exportProgress.total}…`
-            : "Exportovat vše (ZIP)"}
-        </Button>
+      <div className="flex items-center gap-2.5 mb-8">
+        <h1 className="text-2xl font-bold text-text">Vydané faktury</h1>
+        <span className="inline-flex items-center rounded-full bg-subtle border border-border px-2 py-0.5 text-xs font-semibold text-text-secondary tabular-nums">
+          {invoices.length}
+        </span>
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
@@ -241,6 +236,40 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
         />
       </div>
 
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {(["all", "unpaid", "paid"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatus(s)}
+              className={cn(
+                "cursor-pointer rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+                status === s
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border bg-surface text-text-secondary hover:bg-subtle hover:text-text"
+              )}
+            >
+              {s === "all" ? "Vše" : s === "unpaid" ? "Nezaplacené" : "Zaplacené"}
+            </button>
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportAll}
+          disabled={!!exportProgress || invoices.length === 0 || !config}
+        >
+          {exportProgress
+            ? `Generuji ${exportProgress.done} / ${exportProgress.total}…`
+            : "Export ZIP"}
+        </Button>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="rounded-xl border border-border bg-surface py-16 text-center text-sm text-text-secondary shadow-card">
+          Žádné faktury neodpovídají filtru
+        </div>
+      ) : (
       <div className="bg-surface rounded-xl border border-border shadow-card overflow-hidden">
         <Table>
           <TableHeader>
@@ -253,7 +282,7 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {invoices.map((inv) => {
+            {filtered.map((inv) => {
               const overdueRow = !inv.paid_at && isPastDue(inv.due_date)
               return (
               <TableRow
@@ -344,6 +373,7 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
           </TableBody>
         </Table>
       </div>
+      )}
 
       <Dialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
         <DialogContent>
