@@ -6,19 +6,50 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useAresLookup } from "@/hooks/use-ares-lookup"
-import { createInvoice, getNextInvoiceSequence, updateInvoice } from "@/lib/actions"
-import { LABELS, addDays, fmtNum, generateId, getCurrency, getDueDays, today } from "@/lib/invoice"
+import {
+	createInvoice,
+	getNextInvoiceSequence,
+	updateInvoice,
+} from "@/lib/actions"
+import {
+	LABELS,
+	addDays,
+	fmtNum,
+	generateId,
+	getCurrency,
+	getDueDays,
+	today,
+} from "@/lib/invoice"
 import { exportToPDF } from "@/lib/pdf"
 import { cn } from "@/lib/utils"
 import type {
-  AppConfig,
-  CustomerRecord,
-  Invoice,
-  InvoiceFormData,
-  InvoiceLine,
-  Language,
+	AppConfig,
+	CustomerRecord,
+	Invoice,
+	InvoiceFormData,
+	InvoiceLine,
+	Language,
 } from "@/types"
-import { LoaderCircle, Send } from "lucide-react"
+import {
+	DndContext,
+	type DragEndEvent,
+	DragOverlay,
+	type DragStartEvent,
+	KeyboardSensor,
+	PointerSensor,
+	closestCenter,
+	useSensor,
+	useSensors,
+} from "@dnd-kit/core"
+import {
+	SortableContext,
+	arrayMove,
+	sortableKeyboardCoordinates,
+	useSortable,
+	verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { GripVertical, LoaderCircle, Send } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -28,49 +59,315 @@ import InvoicePreview from "./InvoicePreview"
 import { SendEmailDialog } from "./SendEmailDialog"
 
 interface Props {
-  config: AppConfig
-  existing?: Invoice
-  customers?: CustomerRecord[]
+	config: AppConfig
+	existing?: Invoice
+	customers?: CustomerRecord[]
 }
 
 function emptyLine(): InvoiceLine {
-  return {
-    id: generateId(),
-    description: "",
-    sub_description: "",
-    is_advance: false,
-    quantity: 1,
-    unit: "h",
-    unit_price: 0,
-    total: 0,
-  }
+	return {
+		id: generateId(),
+		description: "",
+		sub_description: "",
+		is_advance: false,
+		quantity: 1,
+		unit: "h",
+		unit_price: 0,
+		total: 0,
+	}
 }
 
 function initForm(config: AppConfig, existing?: Invoice): InvoiceFormData {
-  if (existing) return { ...existing }
+	if (existing) return { ...existing }
 
-  const lang: Language = "cs"
-  const year = new Date().getFullYear()
-  const invoiceNumber = `${year}01`
-  const t = today()
+	const lang: Language = "cs"
+	const year = new Date().getFullYear()
+	const invoiceNumber = `${year}01`
+	const t = today()
 
-  return {
-    invoice_number: invoiceNumber,
-    language: lang,
-    currency: getCurrency(lang),
-    issue_date: t,
-    due_date: addDays(t, getDueDays(lang, config)),
-    payment_method: "Převodem",
-    variable_symbol: invoiceNumber,
-    reverse_charge: false,
-    customer: { name: "", ico: "", dic: "", street: "", zip: "", city: "", country: "CZ" },
-    lines: [emptyLine()],
-    total: 0,
-  }
+	return {
+		invoice_number: invoiceNumber,
+		language: lang,
+		currency: getCurrency(lang),
+		issue_date: t,
+		due_date: addDays(t, getDueDays(lang, config)),
+		payment_method: "Převodem",
+		variable_symbol: invoiceNumber,
+		reverse_charge: false,
+		customer: {
+			name: "",
+			ico: "",
+			dic: "",
+			street: "",
+			zip: "",
+			city: "",
+			country: "CZ",
+		},
+		lines: [emptyLine()],
+		total: 0,
+	}
 }
 
 function displayCurrency(c: string): string {
-  return c === "CZK" ? "Kč" : c
+	return c === "CZK" ? "Kč" : c
+}
+
+function CollapsedLineContent({
+	line,
+	index,
+	currencyLabel,
+	showHandle,
+}: {
+	line: InvoiceLine
+	index: number
+	currencyLabel: string
+	showHandle: boolean
+}) {
+	return (
+		<div className="flex items-center justify-between px-4 py-2.5">
+			<div className="flex min-w-0 flex-1 items-center gap-1">
+				{showHandle && (
+					<span className="-ml-1 shrink-0 p-1 text-text-secondary">
+						<GripVertical width={14} height={14} />
+					</span>
+				)}
+				<span className="shrink-0 text-xs font-semibold text-text-secondary">
+					#{String(index + 1).padStart(2, "0")}
+				</span>
+				<span className="ml-1 truncate text-sm text-text">
+					{line.description || (
+						<span className="italic text-text-secondary">Bez popisu</span>
+					)}
+				</span>
+			</div>
+			<span
+				className={cn(
+					"ml-2 shrink-0 text-xs font-semibold",
+					line.is_advance ? "text-danger" : "text-text"
+				)}
+			>
+				{line.is_advance ? "−" : ""}
+				{fmtNum(Math.abs(line.total))} {currencyLabel}
+			</span>
+		</div>
+	)
+}
+
+interface SortableLineCardProps {
+	line: InvoiceLine
+	index: number
+	canRemove: boolean
+	draggable: boolean
+	collapsed: boolean
+	isLast: boolean
+	currencyLabel: string
+	labels: {
+		descPlaceholder: string
+		qty: string
+		unitPrice: string
+		total: string
+	}
+	onUpdate: (
+		id: string,
+		key: keyof InvoiceLine,
+		value: string | number | boolean
+	) => void
+	onRemove: (id: string) => void
+	onAddLine: () => void
+}
+
+function SortableLineCard({
+	line,
+	index,
+	canRemove,
+	draggable,
+	collapsed,
+	isLast,
+	currencyLabel,
+	labels,
+	onUpdate,
+	onRemove,
+	onAddLine,
+}: SortableLineCardProps) {
+	const {
+		attributes,
+		listeners,
+		setNodeRef,
+		transform,
+		transition,
+		isDragging,
+	} = useSortable({ id: line.id, disabled: !draggable })
+
+	const style: React.CSSProperties = {
+		transform: CSS.Transform.toString(transform),
+		transition,
+	}
+
+	// While this card is the one being dragged, its slot becomes the drop zone.
+	if (isDragging) {
+		return (
+			<div
+				ref={setNodeRef}
+				style={style}
+				className="flex items-center gap-2 rounded-xl border-2 border-dashed border-accent bg-nav-active px-4 py-2.5"
+			>
+				<GripVertical width={14} height={14} className="shrink-0 text-accent" />
+				<span className="text-sm font-medium text-accent">Pustit sem</span>
+			</div>
+		)
+	}
+
+	// During a drag, every other card collapses to a compact single-line row.
+	if (collapsed) {
+		return (
+			<div
+				ref={setNodeRef}
+				style={style}
+				className="rounded-xl bg-subtle border border-border overflow-hidden"
+			>
+				<CollapsedLineContent
+					line={line}
+					index={index}
+					currencyLabel={currencyLabel}
+					showHandle={draggable}
+				/>
+			</div>
+		)
+	}
+
+	return (
+		<div
+			ref={setNodeRef}
+			style={style}
+			className="rounded-xl bg-subtle border border-border overflow-hidden"
+		>
+			<div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
+				<div className="flex min-w-0 flex-1 items-center gap-1">
+					{draggable && (
+						<button
+							type="button"
+							aria-label="Přetáhnout pro změnu pořadí"
+							className="p-1 -ml-1 shrink-0 text-text-secondary hover:text-text transition-colors rounded cursor-grab touch-none active:cursor-grabbing"
+							{...attributes}
+							{...listeners}
+						>
+							<GripVertical width={14} height={14} />
+						</button>
+					)}
+					<span className="shrink-0 text-xs font-semibold text-text-secondary">
+						#{String(index + 1).padStart(2, "0")}
+					</span>
+				</div>
+				{canRemove && (
+					<button
+						type="button"
+						onClick={() => onRemove(line.id)}
+						className="p-1 text-text-secondary hover:text-danger transition-colors rounded"
+					>
+						<svg
+							width="14"
+							height="14"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+						>
+							<polyline points="3 6 5 6 21 6" />
+							<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+							<path d="M10 11v6" />
+							<path d="M14 11v6" />
+							<path d="M9 6V4h6v2" />
+						</svg>
+					</button>
+				)}
+			</div>
+			<div className="px-4 py-3 space-y-3">
+				<div>
+					<Label className="mb-1.5 block text-xs">Popis</Label>
+					<Input
+						value={line.description}
+						onChange={(e) => onUpdate(line.id, "description", e.target.value)}
+						placeholder={labels.descPlaceholder}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" && isLast) onAddLine()
+						}}
+					/>
+				</div>
+				<div>
+					<Label className="mb-1.5 block text-xs">Doplňkový popis</Label>
+					<Input
+						value={line.sub_description ?? ""}
+						onChange={(e) =>
+							onUpdate(line.id, "sub_description", e.target.value)
+						}
+						placeholder="Volitelný doplňkový popis…"
+					/>
+				</div>
+				<div className="grid grid-cols-3 gap-2">
+					<div>
+						<Label className="mb-1.5 block text-xs">{labels.qty}</Label>
+						<Input
+							type="number"
+							min={0}
+							value={line.quantity}
+							onChange={(e) =>
+								onUpdate(
+									line.id,
+									"quantity",
+									Number.parseFloat(e.target.value) || 0
+								)
+							}
+						/>
+					</div>
+					<div>
+						<Label className="mb-1.5 block text-xs">Jedn.</Label>
+						<Input
+							value={line.unit}
+							onChange={(e) => onUpdate(line.id, "unit", e.target.value)}
+						/>
+					</div>
+					<div>
+						<Label className="mb-1.5 block text-xs">{labels.unitPrice}</Label>
+						<Input
+							type="number"
+							min={0}
+							value={line.unit_price}
+							onChange={(e) =>
+								onUpdate(
+									line.id,
+									"unit_price",
+									Number.parseFloat(e.target.value) || 0
+								)
+							}
+						/>
+					</div>
+				</div>
+				<div className="flex items-center justify-between">
+					<div className="flex items-center gap-2">
+						<Switch
+							size="sm"
+							checked={line.is_advance}
+							onCheckedChange={(v) => onUpdate(line.id, "is_advance", v)}
+						/>
+						<span className="text-xs text-text-secondary">Záloha</span>
+					</div>
+					<div className="text-xs text-text-secondary">
+						{labels.total}:{" "}
+						<span
+							className={
+								line.is_advance
+									? "font-semibold text-danger"
+									: "font-semibold text-text"
+							}
+						>
+							{line.is_advance ? "−" : ""}
+							{fmtNum(Math.abs(line.total))} {currencyLabel}
+						</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	)
 }
 
 const MIN_LEFT_WIDTH = 400
@@ -79,740 +376,771 @@ const DEFAULT_LEFT_WIDTH = 480
 const LEFT_WIDTH_STORAGE_KEY = "invoice-form-left-width"
 
 function clampLeftWidth(w: number): number {
-  return Math.min(MAX_LEFT_WIDTH, Math.max(MIN_LEFT_WIDTH, w))
+	return Math.min(MAX_LEFT_WIDTH, Math.max(MIN_LEFT_WIDTH, w))
 }
 
-export default function InvoiceForm({ config, existing, customers = [] }: Props) {
-  const router = useRouter()
-  const [form, setForm] = useState<InvoiceFormData>(() => initForm(config, existing))
-  const [saving, setSaving] = useState(false)
-  const [exporting, setExporting] = useState(false)
-  const [emailOpen, setEmailOpen] = useState(false)
-  const [editInvoiceNumber, setEditInvoiceNumber] = useState(false)
-  const [editPaymentMethod, setEditPaymentMethod] = useState(false)
-  const [editVariableSymbol, setEditVariableSymbol] = useState(false)
-  const { aresLoading, lookupAres } = useAresLookup((message) =>
-    toast.error("Vyhledání v ARESu selhalo", { description: message })
-  )
+export default function InvoiceForm({
+	config,
+	existing,
+	customers = [],
+}: Props) {
+	const router = useRouter()
+	const [form, setForm] = useState<InvoiceFormData>(() =>
+		initForm(config, existing)
+	)
+	const [saving, setSaving] = useState(false)
+	const [exporting, setExporting] = useState(false)
+	const [emailOpen, setEmailOpen] = useState(false)
+	const [editInvoiceNumber, setEditInvoiceNumber] = useState(false)
+	const [editPaymentMethod, setEditPaymentMethod] = useState(false)
+	const [editVariableSymbol, setEditVariableSymbol] = useState(false)
+	const { aresLoading, lookupAres } = useAresLookup((message) =>
+		toast.error("Vyhledání v ARESu selhalo", { description: message })
+	)
 
-  const splitRef = useRef<HTMLDivElement>(null)
-  const [leftWidth, setLeftWidth] = useState(DEFAULT_LEFT_WIDTH)
-  const [resizing, setResizing] = useState(false)
+	const splitRef = useRef<HTMLDivElement>(null)
+	const [leftWidth, setLeftWidth] = useState(DEFAULT_LEFT_WIDTH)
+	const [resizing, setResizing] = useState(false)
 
-  useEffect(() => {
-    const saved = Number(localStorage.getItem(LEFT_WIDTH_STORAGE_KEY))
-    if (Number.isFinite(saved) && saved > 0) setLeftWidth(clampLeftWidth(saved))
-  }, [])
+	useEffect(() => {
+		const saved = Number(localStorage.getItem(LEFT_WIDTH_STORAGE_KEY))
+		if (Number.isFinite(saved) && saved > 0) setLeftWidth(clampLeftWidth(saved))
+	}, [])
 
-  useEffect(() => {
-    localStorage.setItem(LEFT_WIDTH_STORAGE_KEY, String(leftWidth))
-  }, [leftWidth])
+	useEffect(() => {
+		localStorage.setItem(LEFT_WIDTH_STORAGE_KEY, String(leftWidth))
+	}, [leftWidth])
 
-  const startResize = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    if (!splitRef.current) return
-    setResizing(true)
+	const startResize = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+		e.preventDefault()
+		if (!splitRef.current) return
+		setResizing(true)
 
-    function onMove(ev: PointerEvent) {
-      const el = splitRef.current
-      if (!el) return
-      setLeftWidth(clampLeftWidth(ev.clientX - el.getBoundingClientRect().left))
-    }
-    function onUp() {
-      setResizing(false)
-      window.removeEventListener("pointermove", onMove)
-      window.removeEventListener("pointerup", onUp)
-      document.body.style.userSelect = ""
-      document.body.style.cursor = ""
-    }
+		function onMove(ev: PointerEvent) {
+			const el = splitRef.current
+			if (!el) return
+			setLeftWidth(clampLeftWidth(ev.clientX - el.getBoundingClientRect().left))
+		}
+		function onUp() {
+			setResizing(false)
+			window.removeEventListener("pointermove", onMove)
+			window.removeEventListener("pointerup", onUp)
+			document.body.style.userSelect = ""
+			document.body.style.cursor = ""
+		}
 
-    document.body.style.userSelect = "none"
-    document.body.style.cursor = "col-resize"
-    window.addEventListener("pointermove", onMove)
-    window.addEventListener("pointerup", onUp)
-  }, [])
+		document.body.style.userSelect = "none"
+		document.body.style.cursor = "col-resize"
+		window.addEventListener("pointermove", onMove)
+		window.addEventListener("pointerup", onUp)
+	}, [])
 
-  const nudgeResize = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "ArrowLeft") {
-      e.preventDefault()
-      setLeftWidth((w) => clampLeftWidth(w - 16))
-    } else if (e.key === "ArrowRight") {
-      e.preventDefault()
-      setLeftWidth((w) => clampLeftWidth(w + 16))
-    }
-  }, [])
+	const nudgeResize = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+		if (e.key === "ArrowLeft") {
+			e.preventDefault()
+			setLeftWidth((w) => clampLeftWidth(w - 16))
+		} else if (e.key === "ArrowRight") {
+			e.preventDefault()
+			setLeftWidth((w) => clampLeftWidth(w + 16))
+		}
+	}, [])
 
-  const total = useMemo(() => form.lines.reduce((s, l) => s + l.total, 0), [form.lines])
-  const formWithTotal = useMemo(() => ({ ...form, total }), [form, total])
+	const total = useMemo(
+		() => form.lines.reduce((s, l) => s + l.total, 0),
+		[form.lines]
+	)
+	const formWithTotal = useMemo(() => ({ ...form, total }), [form, total])
 
-  // The invoice's customer snapshot has no e-mail, so match it against the
-  // saved customers (by IČ, then name) to prefill the recipient.
-  const defaultCustomerEmail = useMemo(() => {
-    const match = customers.find(
-      (c) =>
-        (form.customer.ico !== "" && c.ico === form.customer.ico) ||
-        (form.customer.name !== "" && c.name === form.customer.name)
-    )
-    return match?.email ?? ""
-  }, [customers, form.customer.ico, form.customer.name])
+	// The invoice's customer snapshot has no e-mail, so match it against the
+	// saved customers (by IČ, then name) to prefill the recipient.
+	const defaultCustomerEmail = useMemo(() => {
+		const match = customers.find(
+			(c) =>
+				(form.customer.ico !== "" && c.ico === form.customer.ico) ||
+				(form.customer.name !== "" && c.name === form.customer.name)
+		)
+		return match?.email ?? ""
+	}, [customers, form.customer.ico, form.customer.name])
 
-  useEffect(() => {
-    if (existing) return
-    const year = new Date().getFullYear()
-    getNextInvoiceSequence().then((seq) => {
-      const num = `${year}${String(seq).padStart(2, "0")}`
-      setForm((f) => ({
-        ...f,
-        invoice_number: num,
-        variable_symbol: num,
-      }))
-    })
-  }, [existing])
+	useEffect(() => {
+		if (existing) return
+		const year = new Date().getFullYear()
+		getNextInvoiceSequence().then((seq) => {
+			const num = `${year}${String(seq).padStart(2, "0")}`
+			setForm((f) => ({
+				...f,
+				invoice_number: num,
+				variable_symbol: num,
+			}))
+		})
+	}, [existing])
 
-  function setField<K extends keyof InvoiceFormData>(key: K, value: InvoiceFormData[K]) {
-    setForm((f) => ({ ...f, [key]: value }))
-  }
+	function setField<K extends keyof InvoiceFormData>(
+		key: K,
+		value: InvoiceFormData[K]
+	) {
+		setForm((f) => ({ ...f, [key]: value }))
+	}
 
-  function setCustomerField(key: keyof InvoiceFormData["customer"], value: string) {
-    setForm((f) => ({ ...f, customer: { ...f.customer, [key]: value } }))
-  }
+	function setCustomerField(
+		key: keyof InvoiceFormData["customer"],
+		value: string
+	) {
+		setForm((f) => ({ ...f, customer: { ...f.customer, [key]: value } }))
+	}
 
-  async function handleAresLookup() {
-    const data = await lookupAres(form.customer.ico)
-    if (!data) return
-    setForm((f) => ({
-      ...f,
-      customer: {
-        ...f.customer,
-        name: data.obchodniJmeno || f.customer.name,
-        dic: data.dic || f.customer.dic,
-        street: data.street || f.customer.street,
-        zip: data.zip || f.customer.zip,
-        city: data.city || f.customer.city,
-      },
-    }))
-  }
+	async function handleAresLookup() {
+		const data = await lookupAres(form.customer.ico)
+		if (!data) return
+		setForm((f) => ({
+			...f,
+			customer: {
+				...f.customer,
+				name: data.obchodniJmeno || f.customer.name,
+				dic: data.dic || f.customer.dic,
+				street: data.street || f.customer.street,
+				zip: data.zip || f.customer.zip,
+				city: data.city || f.customer.city,
+			},
+		}))
+	}
 
-  async function setLanguage(lang: Language) {
-    const currency = getCurrency(lang)
-    const dueDays = getDueDays(lang, config)
-    const year = new Date().getFullYear()
+	async function setLanguage(lang: Language) {
+		const currency = getCurrency(lang)
+		const dueDays = getDueDays(lang, config)
+		const year = new Date().getFullYear()
 
-    let invoiceNumber = form.invoice_number
-    if (!existing) {
-      const seq = await getNextInvoiceSequence()
-      invoiceNumber = `${year}${String(seq).padStart(2, "0")}`
-    }
+		let invoiceNumber = form.invoice_number
+		if (!existing) {
+			const seq = await getNextInvoiceSequence()
+			invoiceNumber = `${year}${String(seq).padStart(2, "0")}`
+		}
 
-    setForm((f) => ({
-      ...f,
-      language: lang,
-      currency,
-      payment_method: lang === "cs" ? "Převodem" : "Bank transfer",
-      invoice_number: invoiceNumber,
-      due_date: addDays(f.issue_date, dueDays),
-    }))
-  }
+		setForm((f) => ({
+			...f,
+			language: lang,
+			currency,
+			payment_method: lang === "cs" ? "Převodem" : "Bank transfer",
+			invoice_number: invoiceNumber,
+			due_date: addDays(f.issue_date, dueDays),
+		}))
+	}
 
-  const updateLine = useCallback(
-    (id: string, key: keyof InvoiceLine, value: string | number | boolean) => {
-    setForm((f) => ({
-      ...f,
-      lines: f.lines.map((l) => {
-        if (l.id !== id) return l
-        const updated = { ...l, [key]: value }
-        const sign = updated.is_advance ? -1 : 1
-        updated.total = sign * updated.quantity * updated.unit_price
-        return updated
-      }),
-    }))
-  }, [])
+	const updateLine = useCallback(
+		(id: string, key: keyof InvoiceLine, value: string | number | boolean) => {
+			setForm((f) => ({
+				...f,
+				lines: f.lines.map((l) => {
+					if (l.id !== id) return l
+					const updated = { ...l, [key]: value }
+					const sign = updated.is_advance ? -1 : 1
+					updated.total = sign * updated.quantity * updated.unit_price
+					return updated
+				}),
+			}))
+		},
+		[]
+	)
 
-  function addLine() {
-    setForm((f) => ({ ...f, lines: [...f.lines, emptyLine()] }))
-  }
+	function addLine() {
+		setForm((f) => ({ ...f, lines: [...f.lines, emptyLine()] }))
+	}
 
-  function removeLine(id: string) {
-    setForm((f) => ({ ...f, lines: f.lines.filter((l) => l.id !== id) }))
-  }
+	function removeLine(id: string) {
+		setForm((f) => ({ ...f, lines: f.lines.filter((l) => l.id !== id) }))
+	}
 
-  async function handleSave() {
-    setSaving(true)
-    try {
-      if (existing) {
-        const result = await updateInvoice(existing.id, formWithTotal)
-        if (result.error) toast.error("Chyba při ukládání", { description: result.error })
-        else router.refresh()
-      } else {
-        const result = await createInvoice(formWithTotal)
-        if (result.error) toast.error("Chyba při ukládání", { description: result.error })
-        else if (result.data) router.push(`/invoice/${result.data.id}`)
-      }
-    } finally {
-      setSaving(false)
-    }
-  }
+	const sensors = useSensors(
+		useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+	)
 
-  async function handleExportPDF() {
-    setExporting(true)
-    try {
-      await exportToPDF(formWithTotal, config)
-    } finally {
-      setExporting(false)
-    }
-  }
+	const [activeLineId, setActiveLineId] = useState<string | null>(null)
 
-  function applyCustomer(c: CustomerRecord) {
-    setForm((f) => ({
-      ...f,
-      language: c.language,
-      currency: c.currency,
-      payment_method: c.payment_method || (c.language === "cs" ? "Převodem" : "Bank transfer"),
-      customer: {
-        name: c.name,
-        ico: c.ico,
-        dic: c.dic,
-        street: c.street,
-        zip: c.zip,
-        city: c.city,
-        country: c.country,
-      },
-    }))
-  }
+	const handleDragStart = useCallback((event: DragStartEvent) => {
+		setActiveLineId(String(event.active.id))
+	}, [])
 
-  const isCz = form.language === "cs"
-  const showAresLookup =
-    isCz && form.customer.ico.trim() !== "" && form.customer.street.trim() === ""
-  const L = {
-    ...LABELS.cs.form,
-    save: existing ? LABELS.cs.form.save : LABELS.cs.form.saveNew,
-  }
+	const reorderLines = useCallback((event: DragEndEvent) => {
+		setActiveLineId(null)
+		const { active, over } = event
+		if (!over || active.id === over.id) return
+		setForm((f) => {
+			const oldIndex = f.lines.findIndex((l) => l.id === active.id)
+			const newIndex = f.lines.findIndex((l) => l.id === over.id)
+			if (oldIndex === -1 || newIndex === -1) return f
+			return { ...f, lines: arrayMove(f.lines, oldIndex, newIndex) }
+		})
+	}, [])
 
-  return (
-    <div ref={splitRef} className="flex h-[calc(100vh-1.5rem)] overflow-hidden">
-      <div
-        className="flex-shrink-0 flex flex-col bg-surface"
-        style={{ width: leftWidth }}
-      >
-        <div className="px-6 pt-6 pb-4 space-y-6 flex-1 overflow-y-auto">
-          {customers.length > 0 && (
-            <CustomerPicker customers={customers} onSelect={applyCustomer} />
-          )}
+	const handleDragCancel = useCallback(() => setActiveLineId(null), [])
 
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-text">{L.detailsSection}</h2>
-              <div className="flex items-center gap-2">
-                <span className={cn("text-sm font-medium", !isCz && "text-text-secondary")}>
-                  CZ
-                </span>
-                <Switch
-                  size="sm"
-                  checked={!isCz}
-                  onCheckedChange={(checked) => setLanguage(checked ? "en" : "cs")}
-                />
-                <span className={cn("text-sm font-medium", isCz && "text-text-secondary")}>EN</span>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <Field label={L.customerSection} htmlFor="f-customer-name">
-                <Input
-                  id="f-customer-name"
-                  value={form.customer.name}
-                  onChange={(e) => setCustomerField("name", e.target.value)}
-                  placeholder={L.customerName}
-                />
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label={L.ico} htmlFor="f-customer-ico">
-                  <div className="relative">
-                    <Input
-                      id="f-customer-ico"
-                      value={form.customer.ico}
-                      onChange={(e) => setCustomerField("ico", e.target.value)}
-                      className={cn(showAresLookup && "pr-9")}
-                    />
-                    {showAresLookup && (
-                      <AresLookupButton onLookup={handleAresLookup} loading={aresLoading} />
-                    )}
-                  </div>
-                </Field>
-                <Field label={L.dic} htmlFor="f-customer-dic">
-                  <Input
-                    id="f-customer-dic"
-                    value={form.customer.dic}
-                    onChange={(e) => setCustomerField("dic", e.target.value)}
-                  />
-                </Field>
-              </div>
+	async function handleSave() {
+		setSaving(true)
+		try {
+			if (existing) {
+				const result = await updateInvoice(existing.id, formWithTotal)
+				if (result.error)
+					toast.error("Chyba při ukládání", { description: result.error })
+				else router.refresh()
+			} else {
+				const result = await createInvoice(formWithTotal)
+				if (result.error)
+					toast.error("Chyba při ukládání", { description: result.error })
+				else if (result.data) router.push(`/invoice/${result.data.id}`)
+			}
+		} finally {
+			setSaving(false)
+		}
+	}
 
-              <Field label="Adresa" htmlFor="f-customer-street">
-                <Input
-                  id="f-customer-street"
-                  value={form.customer.street}
-                  onChange={(e) => setCustomerField("street", e.target.value)}
-                  placeholder="Ulice a číslo popisné"
-                />
-              </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label={L.zip} htmlFor="f-customer-zip">
-                  <Input
-                    id="f-customer-zip"
-                    value={form.customer.zip}
-                    onChange={(e) => setCustomerField("zip", e.target.value)}
-                  />
-                </Field>
-                <Field label={L.city} htmlFor="f-customer-city">
-                  <Input
-                    id="f-customer-city"
-                    value={form.customer.city}
-                    onChange={(e) => setCustomerField("city", e.target.value)}
-                  />
-                </Field>
-              </div>
-              {!isCz && (
-                <Field label={L.country} htmlFor="f-customer-country">
-                  <Input
-                    id="f-customer-country"
-                    value={form.customer.country}
-                    onChange={(e) => setCustomerField("country", e.target.value)}
-                    placeholder="SK, DE, AT..."
-                  />
-                </Field>
-              )}
+	async function handleExportPDF() {
+		setExporting(true)
+		try {
+			await exportToPDF(formWithTotal, config)
+		} finally {
+			setExporting(false)
+		}
+	}
 
-              <div className="grid grid-cols-2 gap-3">
-                <Field label={L.invoiceNumber} htmlFor="f-invoice-number">
-                  {editInvoiceNumber ? (
-                    <Input
-                      id="f-invoice-number"
-                      autoFocus
-                      value={form.invoice_number}
-                      onChange={(e) => setField("invoice_number", e.target.value)}
-                      onBlur={() => setEditInvoiceNumber(false)}
-                      mono
-                    />
-                  ) : (
-                    <ReadonlyField
-                      value={form.invoice_number}
-                      onEdit={() => setEditInvoiceNumber(true)}
-                      mono
-                    />
-                  )}
-                </Field>
-                <Field label={L.payment} htmlFor="f-payment-method">
-                  {editPaymentMethod ? (
-                    <Input
-                      id="f-payment-method"
-                      autoFocus
-                      value={form.payment_method}
-                      onChange={(e) => setField("payment_method", e.target.value)}
-                      onBlur={() => setEditPaymentMethod(false)}
-                    />
-                  ) : (
-                    <ReadonlyField
-                      value={form.payment_method}
-                      onEdit={() => setEditPaymentMethod(true)}
-                    />
-                  )}
-                </Field>
-              </div>
+	function applyCustomer(c: CustomerRecord) {
+		setForm((f) => ({
+			...f,
+			language: c.language,
+			currency: c.currency,
+			payment_method:
+				c.payment_method ||
+				(c.language === "cs" ? "Převodem" : "Bank transfer"),
+			customer: {
+				name: c.name,
+				ico: c.ico,
+				dic: c.dic,
+				street: c.street,
+				zip: c.zip,
+				city: c.city,
+				country: c.country,
+			},
+		}))
+	}
 
-              {isCz && (
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Variabilní symbol" htmlFor="f-variable-symbol">
-                    {editVariableSymbol ? (
-                      <Input
-                        id="f-variable-symbol"
-                        autoFocus
-                        value={form.variable_symbol}
-                        onChange={(e) => setField("variable_symbol", e.target.value)}
-                        onBlur={() => setEditVariableSymbol(false)}
-                        mono
-                      />
-                    ) : (
-                      <ReadonlyField
-                        value={form.variable_symbol}
-                        onEdit={() => setEditVariableSymbol(true)}
-                        mono
-                      />
-                    )}
-                  </Field>
-                </div>
-              )}
+	const isCz = form.language === "cs"
+	const showAresLookup =
+		isCz &&
+		form.customer.ico.trim() !== "" &&
+		form.customer.street.trim() === ""
+	const L = {
+		...LABELS.cs.form,
+		save: existing ? LABELS.cs.form.save : LABELS.cs.form.saveNew,
+	}
 
-              <div className="grid grid-cols-2 gap-3">
-                <Field label={L.issueDate}>
-                  <DatePicker
-                    value={form.issue_date}
-                    language={form.language}
-                    onChange={(v) => setField("issue_date", v)}
-                  />
-                </Field>
-                <Field label={L.dueDate}>
-                  <DatePicker
-                    value={form.due_date}
-                    language={form.language}
-                    onChange={(v) => setField("due_date", v)}
-                  />
-                </Field>
-              </div>
+	return (
+		<div ref={splitRef} className="flex h-[calc(100vh-1.5rem)] overflow-hidden">
+			<div
+				className="flex-shrink-0 flex flex-col bg-surface"
+				style={{ width: leftWidth }}
+			>
+				<div className="px-6 pt-6 pb-4 space-y-6 flex-1 overflow-y-auto">
+					{customers.length > 0 && (
+						<CustomerPicker customers={customers} onSelect={applyCustomer} />
+					)}
 
-              {!isCz && (
-                <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-text">{L.reverseCharge}</p>
-                    <p className="text-xs text-text-secondary mt-0.5">
-                      Art. 196 Council Directive 2006/112/EC
-                    </p>
-                  </div>
-                  <Switch
-                    size="sm"
-                    checked={form.reverse_charge}
-                    onCheckedChange={(checked) => setField("reverse_charge", checked)}
-                  />
-                </div>
-              )}
-            </div>
-          </section>
+					<section>
+						<div className="flex items-center justify-between mb-4">
+							<h2 className="text-base font-bold text-text">
+								{L.detailsSection}
+							</h2>
+							<div className="flex items-center gap-2">
+								<span
+									className={cn(
+										"text-sm font-medium",
+										!isCz && "text-text-secondary"
+									)}
+								>
+									CZ
+								</span>
+								<Switch
+									size="sm"
+									checked={!isCz}
+									onCheckedChange={(checked) =>
+										setLanguage(checked ? "en" : "cs")
+									}
+								/>
+								<span
+									className={cn(
+										"text-sm font-medium",
+										isCz && "text-text-secondary"
+									)}
+								>
+									EN
+								</span>
+							</div>
+						</div>
+						<div className="space-y-4">
+							<Field label={L.customerSection} htmlFor="f-customer-name">
+								<Input
+									id="f-customer-name"
+									value={form.customer.name}
+									onChange={(e) => setCustomerField("name", e.target.value)}
+									placeholder={L.customerName}
+								/>
+							</Field>
+							<div className="grid grid-cols-2 gap-3">
+								<Field label={L.ico} htmlFor="f-customer-ico">
+									<div className="relative">
+										<Input
+											id="f-customer-ico"
+											value={form.customer.ico}
+											onChange={(e) => setCustomerField("ico", e.target.value)}
+											className={cn(showAresLookup && "pr-9")}
+										/>
+										{showAresLookup && (
+											<AresLookupButton
+												onLookup={handleAresLookup}
+												loading={aresLoading}
+											/>
+										)}
+									</div>
+								</Field>
+								<Field label={L.dic} htmlFor="f-customer-dic">
+									<Input
+										id="f-customer-dic"
+										value={form.customer.dic}
+										onChange={(e) => setCustomerField("dic", e.target.value)}
+									/>
+								</Field>
+							</div>
 
-          <section>
-            <h2 className="text-base font-bold text-text mb-4">{L.linesSection}</h2>
+							<Field label="Adresa" htmlFor="f-customer-street">
+								<Input
+									id="f-customer-street"
+									value={form.customer.street}
+									onChange={(e) => setCustomerField("street", e.target.value)}
+									placeholder="Ulice a číslo popisné"
+								/>
+							</Field>
+							<div className="grid grid-cols-2 gap-3">
+								<Field label={L.zip} htmlFor="f-customer-zip">
+									<Input
+										id="f-customer-zip"
+										value={form.customer.zip}
+										onChange={(e) => setCustomerField("zip", e.target.value)}
+									/>
+								</Field>
+								<Field label={L.city} htmlFor="f-customer-city">
+									<Input
+										id="f-customer-city"
+										value={form.customer.city}
+										onChange={(e) => setCustomerField("city", e.target.value)}
+									/>
+								</Field>
+							</div>
+							{!isCz && (
+								<Field label={L.country} htmlFor="f-customer-country">
+									<Input
+										id="f-customer-country"
+										value={form.customer.country}
+										onChange={(e) =>
+											setCustomerField("country", e.target.value)
+										}
+										placeholder="SK, DE, AT..."
+									/>
+								</Field>
+							)}
 
-            <div className="space-y-3">
-              {form.lines.map((line, idx) => (
-                <div
-                  key={line.id}
-                  className="rounded-xl bg-subtle border border-border overflow-hidden"
-                >
-                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-                    <span className="text-xs font-semibold text-text-secondary">
-                      #{String(idx + 1).padStart(2, "0")}
-                    </span>
-                    {form.lines.length > 1 && (
-                      <button
-                        onClick={() => removeLine(line.id)}
-                        className="p-1 text-text-secondary hover:text-danger transition-colors rounded"
-                      >
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                          <path d="M10 11v6" />
-                          <path d="M14 11v6" />
-                          <path d="M9 6V4h6v2" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                  <div className="px-4 py-3 space-y-3">
-                    <div>
-                      <Label className="mb-1.5 block text-xs">Popis</Label>
-                      <Input
-                        value={line.description}
-                        onChange={(e) => updateLine(line.id, "description", e.target.value)}
-                        placeholder={L.descPlaceholder}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && idx === form.lines.length - 1) addLine()
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <Label className="mb-1.5 block text-xs">Doplňkový popis</Label>
-                      <Input
-                        value={line.sub_description ?? ""}
-                        onChange={(e) => updateLine(line.id, "sub_description", e.target.value)}
-                        placeholder="Volitelný doplňkový popis…"
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <Label className="mb-1.5 block text-xs">{L.qty}</Label>
-                        <Input
-                          type="number"
-                          min={0}
-                          value={line.quantity}
-                          onChange={(e) =>
-                            updateLine(line.id, "quantity", Number.parseFloat(e.target.value) || 0)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Label className="mb-1.5 block text-xs">Jedn.</Label>
-                        <Input
-                          value={line.unit}
-                          onChange={(e) => updateLine(line.id, "unit", e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label className="mb-1.5 block text-xs">{L.unitPrice}</Label>
-                        <Input
-                          type="number"
-                          min={0}
-                          value={line.unit_price}
-                          onChange={(e) =>
-                            updateLine(
-                              line.id,
-                              "unit_price",
-                              Number.parseFloat(e.target.value) || 0
-                            )
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          size="sm"
-                          checked={line.is_advance}
-                          onCheckedChange={(v) => updateLine(line.id, "is_advance", v)}
-                        />
-                        <span className="text-xs text-text-secondary">Záloha</span>
-                      </div>
-                      <div className="text-xs text-text-secondary">
-                        {L.total}:{" "}
-                        <span
-                          className={
-                            line.is_advance
-                              ? "font-semibold text-danger"
-                              : "font-semibold text-text"
-                          }
-                        >
-                          {line.is_advance ? "−" : ""}
-                          {fmtNum(Math.abs(line.total))} {displayCurrency(form.currency)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+							<div className="grid grid-cols-2 gap-3">
+								<Field label={L.invoiceNumber} htmlFor="f-invoice-number">
+									{editInvoiceNumber ? (
+										<Input
+											id="f-invoice-number"
+											autoFocus
+											value={form.invoice_number}
+											onChange={(e) =>
+												setField("invoice_number", e.target.value)
+											}
+											onBlur={() => setEditInvoiceNumber(false)}
+											mono
+										/>
+									) : (
+										<ReadonlyField
+											value={form.invoice_number}
+											onEdit={() => setEditInvoiceNumber(true)}
+											mono
+										/>
+									)}
+								</Field>
+								<Field label={L.payment} htmlFor="f-payment-method">
+									{editPaymentMethod ? (
+										<Input
+											id="f-payment-method"
+											autoFocus
+											value={form.payment_method}
+											onChange={(e) =>
+												setField("payment_method", e.target.value)
+											}
+											onBlur={() => setEditPaymentMethod(false)}
+										/>
+									) : (
+										<ReadonlyField
+											value={form.payment_method}
+											onEdit={() => setEditPaymentMethod(true)}
+										/>
+									)}
+								</Field>
+							</div>
 
-            <button
-              onClick={addLine}
-              className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-accent-hover transition-colors"
-            >
-              <span className="text-base leading-none">+</span> {L.addLine}
-            </button>
+							{isCz && (
+								<div className="grid grid-cols-2 gap-3">
+									<Field label="Variabilní symbol" htmlFor="f-variable-symbol">
+										{editVariableSymbol ? (
+											<Input
+												id="f-variable-symbol"
+												autoFocus
+												value={form.variable_symbol}
+												onChange={(e) =>
+													setField("variable_symbol", e.target.value)
+												}
+												onBlur={() => setEditVariableSymbol(false)}
+												mono
+											/>
+										) : (
+											<ReadonlyField
+												value={form.variable_symbol}
+												onEdit={() => setEditVariableSymbol(true)}
+												mono
+											/>
+										)}
+									</Field>
+								</div>
+							)}
 
-            <div className="mt-4 pt-4 border-t border-border flex justify-between items-center">
-              <span className="text-sm font-semibold text-text">{L.total}</span>
-              <span className="text-xl font-bold text-text tabular-nums">
-                {fmtNum(total)} {displayCurrency(form.currency)}
-              </span>
-            </div>
-          </section>
-        </div>
+							<div className="grid grid-cols-2 gap-3">
+								<Field label={L.issueDate}>
+									<DatePicker
+										value={form.issue_date}
+										language={form.language}
+										onChange={(v) => setField("issue_date", v)}
+									/>
+								</Field>
+								<Field label={L.dueDate}>
+									<DatePicker
+										value={form.due_date}
+										language={form.language}
+										onChange={(v) => setField("due_date", v)}
+									/>
+								</Field>
+							</div>
 
-        <div className="border-t border-border bg-surface px-6 py-4 flex items-center justify-between flex-shrink-0">
-          <Button variant="link" asChild>
-            <Link href="/">{L.cancel}</Link>
-          </Button>
-          <Button variant="dark" onClick={handleSave} disabled={saving}>
-            {saving ? "..." : L.save}
-          </Button>
-        </div>
-      </div>
+							{!isCz && (
+								<div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+									<div>
+										<p className="text-sm font-medium text-text">
+											{L.reverseCharge}
+										</p>
+										<p className="text-xs text-text-secondary mt-0.5">
+											Art. 196 Council Directive 2006/112/EC
+										</p>
+									</div>
+									<Switch
+										size="sm"
+										checked={form.reverse_charge}
+										onCheckedChange={(checked) =>
+											setField("reverse_charge", checked)
+										}
+									/>
+								</div>
+							)}
+						</div>
+					</section>
 
-      <div
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Změnit šířku panelu"
-        aria-valuemin={MIN_LEFT_WIDTH}
-        aria-valuemax={MAX_LEFT_WIDTH}
-        aria-valuenow={Math.round(leftWidth)}
-        tabIndex={0}
-        onPointerDown={startResize}
-        onKeyDown={nudgeResize}
-        className={cn(
-          "group relative w-0 flex-shrink-0 cursor-col-resize touch-none outline-none bg-white",
-          "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
-        )}
-      >
-        <div
-          className={cn(
-            "absolute inset-y-0 left-1/2 -translate-x-1/2 w-px transition-colors",
-            resizing ? "bg-primary" : "bg-border group-hover:bg-primary/50"
-          )}
-        />
-        <div
-          className={cn(
-            "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-            "flex h-9 w-4 items-center justify-center gap-[3px] rounded-full",
-            "border border-border bg-surface shadow-sm transition-opacity",
-            resizing ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-          )}
-        >
-          <span className="h-3.5 w-px rounded bg-text-secondary/60" />
-          <span className="h-3.5 w-px rounded bg-text-secondary/60" />
-        </div>
-      </div>
+					<section>
+						<h2 className="text-base font-bold text-text mb-4">
+							{L.linesSection}
+						</h2>
 
-      <div className="flex-1 flex flex-col bg-page overflow-hidden">
-        <div className="flex items-center justify-between px-8 py-4 bg-surface border-b border-border">
-          <span className="text-base font-semibold text-text">Náhled</span>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setEmailOpen(true)}>
-              <Send size={16} />
-              Zaslat e-mailem
-            </Button>
-            <Button variant="outline" onClick={handleExportPDF} disabled={exporting}>
-              {exporting ? (
-                <LoaderCircle size={16} className="animate-spin" />
-              ) : (
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                </svg>
-              )}
-              {exporting ? "Exportuji..." : L.exportPDF}
-            </Button>
-          </div>
-        </div>
+						<DndContext
+							id="invoice-lines"
+							sensors={sensors}
+							collisionDetection={closestCenter}
+							onDragStart={handleDragStart}
+							onDragEnd={reorderLines}
+							onDragCancel={handleDragCancel}
+						>
+							<SortableContext
+								items={form.lines.map((l) => l.id)}
+								strategy={verticalListSortingStrategy}
+							>
+								<div className="space-y-3">
+									{form.lines.map((line, idx) => (
+										<SortableLineCard
+											key={line.id}
+											line={line}
+											index={idx}
+											canRemove={form.lines.length > 1}
+											draggable={form.lines.length > 1}
+											collapsed={activeLineId !== null}
+											isLast={idx === form.lines.length - 1}
+											currencyLabel={displayCurrency(form.currency)}
+											labels={{
+												descPlaceholder: L.descPlaceholder,
+												qty: L.qty,
+												unitPrice: L.unitPrice,
+												total: L.total,
+											}}
+											onUpdate={updateLine}
+											onRemove={removeLine}
+											onAddLine={addLine}
+										/>
+									))}
+								</div>
+							</SortableContext>
+							<DragOverlay dropAnimation={null}>
+								{activeLineId
+									? (() => {
+											const activeIdx = form.lines.findIndex(
+												(l) => l.id === activeLineId
+											)
+											const activeLine = form.lines[activeIdx]
+											if (!activeLine) return null
+											return (
+												<div className="rounded-xl bg-surface border border-border overflow-hidden shadow-xl ring-1 ring-accent/40">
+													<CollapsedLineContent
+														line={activeLine}
+														index={activeIdx}
+														currencyLabel={displayCurrency(form.currency)}
+														showHandle
+													/>
+												</div>
+											)
+										})()
+									: null}
+							</DragOverlay>
+						</DndContext>
 
-        <div className="flex-1 overflow-auto p-8 shadow-[inset_0_0_16px_0_rgba(0,0,0,0.15)]">
-          <div
-            className="shadow-lg rounded overflow-hidden"
-            style={{ width: "794px", margin: "0 auto" }}
-          >
-            <InvoicePreview invoice={formWithTotal} config={config} />
-          </div>
-        </div>
-      </div>
+						<button
+							onClick={addLine}
+							className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-accent-hover transition-colors"
+						>
+							<span className="text-base leading-none">+</span> {L.addLine}
+						</button>
 
-      <SendEmailDialog
-        open={emailOpen}
-        onOpenChange={setEmailOpen}
-        invoice={formWithTotal}
-        config={config}
-        defaultEmail={defaultCustomerEmail}
-      />
-    </div>
-  )
+						<div className="mt-4 pt-4 border-t border-border flex justify-between items-center">
+							<span className="text-sm font-semibold text-text">{L.total}</span>
+							<span className="text-xl font-bold text-text tabular-nums">
+								{fmtNum(total)} {displayCurrency(form.currency)}
+							</span>
+						</div>
+					</section>
+				</div>
+
+				<div className="border-t border-border bg-surface px-6 py-4 flex items-center justify-between flex-shrink-0">
+					<Button variant="link" asChild>
+						<Link href="/">{L.cancel}</Link>
+					</Button>
+					<Button variant="dark" onClick={handleSave} disabled={saving}>
+						{saving ? "..." : L.save}
+					</Button>
+				</div>
+			</div>
+
+			<div
+				role="separator"
+				aria-orientation="vertical"
+				aria-label="Změnit šířku panelu"
+				aria-valuemin={MIN_LEFT_WIDTH}
+				aria-valuemax={MAX_LEFT_WIDTH}
+				aria-valuenow={Math.round(leftWidth)}
+				tabIndex={0}
+				onPointerDown={startResize}
+				onKeyDown={nudgeResize}
+				className={cn(
+					"group relative w-0 flex-shrink-0 cursor-col-resize touch-none outline-none bg-white",
+					"focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+				)}
+			>
+				<div
+					className={cn(
+						"absolute inset-y-0 left-1/2 -translate-x-1/2 w-px transition-colors",
+						resizing ? "bg-primary" : "bg-border group-hover:bg-primary/50"
+					)}
+				/>
+				<div
+					className={cn(
+						"absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+						"flex h-9 w-4 items-center justify-center gap-[3px] rounded-full",
+						"border border-border bg-surface shadow-sm transition-opacity",
+						resizing ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+					)}
+				>
+					<span className="h-3.5 w-px rounded bg-text-secondary/60" />
+					<span className="h-3.5 w-px rounded bg-text-secondary/60" />
+				</div>
+			</div>
+
+			<div className="flex-1 flex flex-col bg-page overflow-hidden">
+				<div className="flex items-center justify-between px-8 py-4 bg-surface border-b border-border">
+					<span className="text-base font-semibold text-text">Náhled</span>
+					<div className="flex items-center gap-2">
+						<Button variant="outline" onClick={() => setEmailOpen(true)}>
+							<Send size={16} />
+							Zaslat e-mailem
+						</Button>
+						<Button
+							variant="outline"
+							onClick={handleExportPDF}
+							disabled={exporting}
+						>
+							{exporting ? (
+								<LoaderCircle size={16} className="animate-spin" />
+							) : (
+								<svg
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+								>
+									<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+									<polyline points="14 2 14 8 20 8" />
+								</svg>
+							)}
+							{exporting ? "Exportuji..." : L.exportPDF}
+						</Button>
+					</div>
+				</div>
+
+				<div className="flex-1 overflow-auto p-8 shadow-[inset_0_0_16px_0_rgba(0,0,0,0.15)]">
+					<div
+						className="shadow-lg rounded overflow-hidden"
+						style={{ width: "794px", margin: "0 auto" }}
+					>
+						<InvoicePreview invoice={formWithTotal} config={config} />
+					</div>
+				</div>
+			</div>
+
+			<SendEmailDialog
+				open={emailOpen}
+				onOpenChange={setEmailOpen}
+				invoice={formWithTotal}
+				config={config}
+				defaultEmail={defaultCustomerEmail}
+			/>
+		</div>
+	)
 }
 
 function Field({
-  label,
-  htmlFor,
-  children,
+	label,
+	htmlFor,
+	children,
 }: { label: string; htmlFor?: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <Label htmlFor={htmlFor}>{label}</Label>
-      {children}
-    </div>
-  )
+	return (
+		<div>
+			<Label htmlFor={htmlFor}>{label}</Label>
+			{children}
+		</div>
+	)
 }
 
 function ReadonlyField({
-  value,
-  onEdit,
-  mono,
+	value,
+	onEdit,
+	mono,
 }: { value: string; onEdit: () => void; mono?: boolean }) {
-  return (
-    <div className="group flex items-center gap-2 px-3 py-2.5 rounded-lg bg-subtle border border-transparent">
-      <span className={cn("flex-1 text-sm text-text", mono && "font-mono")}>{value || "—"}</span>
-      <button
-        onClick={onEdit}
-        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 text-text-secondary hover:text-text rounded"
-        title="Upravit"
-      >
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-        </svg>
-      </button>
-    </div>
-  )
+	return (
+		<div className="group flex items-center gap-2 px-3 py-2.5 rounded-lg bg-subtle border border-transparent">
+			<span className={cn("flex-1 text-sm text-text", mono && "font-mono")}>
+				{value || "—"}
+			</span>
+			<button
+				onClick={onEdit}
+				className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 text-text-secondary hover:text-text rounded"
+				title="Upravit"
+			>
+				<svg
+					width="13"
+					height="13"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					strokeWidth="2"
+				>
+					<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+					<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+				</svg>
+			</button>
+		</div>
+	)
 }
 
 function CustomerPicker({
-  customers,
-  onSelect,
+	customers,
+	onSelect,
 }: {
-  customers: CustomerRecord[]
-  onSelect: (c: CustomerRecord) => void
+	customers: CustomerRecord[]
+	onSelect: (c: CustomerRecord) => void
 }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+	const [open, setOpen] = useState(false)
+	const ref = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    function onPointerDown(e: PointerEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener("pointerdown", onPointerDown)
-    return () => document.removeEventListener("pointerdown", onPointerDown)
-  }, [])
+	useEffect(() => {
+		function onPointerDown(e: PointerEvent) {
+			if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+		}
+		document.addEventListener("pointerdown", onPointerDown)
+		return () => document.removeEventListener("pointerdown", onPointerDown)
+	}, [])
 
-  return (
-    <section ref={ref} className="relative">
-      <Label className="mb-1.5 block">Odběratel</Label>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={cn(
-          "w-full flex items-center justify-between gap-2",
-          "h-10 px-3 rounded-md border text-sm bg-background",
-          "transition-colors",
-          open
-            ? "border-ring ring-2 ring-ring/30 text-foreground"
-            : "border-input text-text-secondary hover:border-ring/60 hover:text-foreground"
-        )}
-      >
-        <span>Vybrat odběratele…</span>
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          className={cn("shrink-0 transition-transform", open && "rotate-180")}
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
+	return (
+		<section ref={ref} className="relative">
+			<Label className="mb-1.5 block">Odběratel</Label>
+			<button
+				type="button"
+				onClick={() => setOpen((v) => !v)}
+				className={cn(
+					"w-full flex items-center justify-between gap-2",
+					"h-10 px-3 rounded-md border text-sm bg-background",
+					"transition-colors",
+					open
+						? "border-ring ring-2 ring-ring/30 text-foreground"
+						: "border-input text-text-secondary hover:border-ring/60 hover:text-foreground"
+				)}
+			>
+				<span>Vybrat odběratele…</span>
+				<svg
+					width="14"
+					height="14"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					strokeWidth="2"
+					className={cn("shrink-0 transition-transform", open && "rotate-180")}
+				>
+					<polyline points="6 9 12 15 18 9" />
+				</svg>
+			</button>
 
-      {open && (
-        <div className="absolute z-50 top-full mt-1 w-full bg-background border border-border rounded-lg shadow-lg overflow-hidden py-1">
-          {customers.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => {
-                onSelect(c)
-                setOpen(false)
-              }}
-              className="w-full text-left px-3 py-2 text-sm text-text hover:bg-subtle transition-colors flex items-center gap-2"
-            >
-              <span className="flex-1 truncate font-medium">{c.name}</span>
-              <span className="shrink-0 text-xs text-text-secondary uppercase tracking-wide">
-                {c.language === "cs" ? "CZ" : "EN"}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-    </section>
-  )
+			{open && (
+				<div className="absolute z-50 top-full mt-1 w-full bg-background border border-border rounded-lg shadow-lg overflow-hidden py-1">
+					{customers.map((c) => (
+						<button
+							key={c.id}
+							type="button"
+							onClick={() => {
+								onSelect(c)
+								setOpen(false)
+							}}
+							className="w-full text-left px-3 py-2 text-sm text-text hover:bg-subtle transition-colors flex items-center gap-2"
+						>
+							<span className="flex-1 truncate font-medium">{c.name}</span>
+							<span className="shrink-0 text-xs text-text-secondary uppercase tracking-wide">
+								{c.language === "cs" ? "CZ" : "EN"}
+							</span>
+						</button>
+					))}
+				</div>
+			)}
+		</section>
+	)
 }
