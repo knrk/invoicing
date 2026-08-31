@@ -4,11 +4,13 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   FileText, Settings, Contact, Plus, ReceiptText,
-  Moon, Sun, ChevronLeft, BadgeEuro, Receipt, Truck,
+  Moon, Sun, ChevronLeft, BadgeEuro, Receipt, Truck, LogOut,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import YearSelect from "@/components/year-filter/YearSelect"
 import { useEffect, useState } from "react"
+import { useRole } from "@/components/auth/RoleProvider"
+import { logout } from "@/lib/auth"
 
 const NAV_SECTIONS: {
   label: string
@@ -89,6 +91,8 @@ function DarkModeToggle({ collapsed }: { collapsed: boolean }) {
 
 export default function Sidebar() {
   const path = usePathname()
+  const { role, email } = useRole()
+  const isAdmin = role === "admin"
   const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
@@ -142,19 +146,21 @@ export default function Sidebar() {
         </div>
       )}
 
-      <div className={cn("pb-2 shrink-0", collapsed ? "px-2 pt-3" : "px-3 pt-4")}>
-        <Link
-          href="/invoice/new"
-          title={collapsed ? "Nová faktura" : undefined}
-          className={cn(
-            "flex items-center justify-center w-full bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors",
-            collapsed ? "aspect-square rounded-full" : "h-9 rounded-lg gap-2"
-          )}
-        >
-          <Plus className="w-4 h-4 shrink-0" />
-          {!collapsed && <span className="whitespace-nowrap">Nová faktura</span>}
-        </Link>
-      </div>
+      {isAdmin && (
+        <div className={cn("pb-2 shrink-0", collapsed ? "px-2 pt-3" : "px-3 pt-4")}>
+          <Link
+            href="/invoice/new"
+            title={collapsed ? "Nová faktura" : undefined}
+            className={cn(
+              "flex items-center justify-center w-full bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors",
+              collapsed ? "aspect-square rounded-full" : "h-9 rounded-lg gap-2"
+            )}
+          >
+            <Plus className="w-4 h-4 shrink-0" />
+            {!collapsed && <span className="whitespace-nowrap">Nová faktura</span>}
+          </Link>
+        </div>
+      )}
 
       <nav className={cn("flex-1 py-2 overflow-y-auto overflow-x-hidden", collapsed ? "px-2" : "px-3")}>
         {NAV_SECTIONS.map((section, i) => (
@@ -200,7 +206,7 @@ export default function Sidebar() {
         "pb-2 border-t border-divider pt-3 shrink-0 space-y-0.5",
         collapsed ? "px-2" : "px-3"
       )}>
-        {BOTTOM_ITEMS.map(({ href, label, icon: Icon }) => {
+        {BOTTOM_ITEMS.filter(() => isAdmin).map(({ href, label, icon: Icon }) => {
           const active = path === href
           return (
             <Link
@@ -222,6 +228,30 @@ export default function Sidebar() {
             </Link>
           )
         })}
+
+        {!collapsed && (
+          <div className="px-3 pt-1 pb-1">
+            <p className="text-xs text-muted truncate">{email}</p>
+            <p className="text-[11px] text-muted/80">
+              {isAdmin ? "Administrátor" : "Účetní"}
+            </p>
+          </div>
+        )}
+        <form action={logout}>
+          <button
+            type="submit"
+            title="Odhlásit se"
+            className={cn(
+              "flex items-center text-sm w-full text-text-secondary hover:bg-subtle hover:text-text transition-colors",
+              collapsed
+                ? "justify-center px-0 py-2 rounded-full aspect-square"
+                : "gap-3 px-3 py-2 rounded-lg"
+            )}
+          >
+            <LogOut className="w-4 h-4 shrink-0" />
+            {!collapsed && <span className="whitespace-nowrap overflow-hidden">Odhlásit se</span>}
+          </button>
+        </form>
 
         <DarkModeToggle collapsed={collapsed} />
       </div>
