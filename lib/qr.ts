@@ -94,6 +94,7 @@ export async function generateQRCode(
 
   const blob = await qr.getRawData("png")
   if (!blob) throw new Error("QR generation failed")
+  if (!(blob instanceof Blob)) throw new Error("QR generation returned unexpected data")
 
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob)
