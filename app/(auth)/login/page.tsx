@@ -22,6 +22,25 @@ export default function LoginPage() {
           <div className="auth-orb-wrap">
             <div className="auth-orb-img" />
             <div className="auth-orb-glass" />
+            {/* SVG "dissolve" filter — organic liquid edge for the glass band */}
+            <svg width="0" height="0" aria-hidden="true" className="absolute">
+              <filter id="glassDissolve" x="-20%" y="-20%" width="140%" height="140%">
+                <feTurbulence
+                  type="fractalNoise"
+                  baseFrequency="0.012 0.02"
+                  numOctaves={2}
+                  seed={7}
+                  result="noise"
+                />
+                <feDisplacementMap
+                  in="SourceGraphic"
+                  in2="noise"
+                  scale={16}
+                  xChannelSelector="R"
+                  yChannelSelector="G"
+                />
+              </filter>
+            </svg>
           </div>
         </div>
 
