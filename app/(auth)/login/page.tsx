@@ -1,9 +1,8 @@
-import { ReceiptText, ShieldCheck } from "lucide-react"
+import { ReceiptText } from "lucide-react"
 import LoginForm from "@/components/auth/LoginForm"
 
 export default function LoginPage() {
   return (
-    <>
       <div className="auth-card w-full max-w-4xl grid md:grid-cols-2 gap-2 p-2">
         {/* Left hero — hidden on mobile */}
         <div className="auth-hero hidden md:flex flex-col justify-between p-9 text-white min-h-[560px]">
@@ -43,11 +42,5 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-
-      <div className="auth-badge auth-muted flex items-center gap-2.5 px-4 py-2.5 text-xs">
-        <ShieldCheck className="w-4 h-4 text-[#7c5cff]" />
-        Zabezpečené přihlášení přes Supabase Auth
-      </div>
-    </>
   )
 }
