@@ -49,6 +49,12 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (!user && !isPublic) {
+    // API routes must answer with their own 401/403 (JSON), not an HTML redirect
+    // to /login — a fetch() client (e.g. IČO autofill) would otherwise receive the
+    // login page instead of a proper status. They still got their session refreshed.
+    if (pathname.startsWith("/api")) {
+      return response
+    }
     return redirectTo("/login")
   }
 

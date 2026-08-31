@@ -97,6 +97,7 @@ function gmailCostForm(note: string, receivedDate: string): CostFormData {
 }
 
 export async function getGmailAuthUrl(): Promise<string> {
+  await requireAdmin()
   return buildAuthUrl()
 }
 
@@ -161,6 +162,11 @@ export async function listGmailLabels(): Promise<{
   error?: string
   needsReconnect?: boolean
 }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
   const supabase = await createClient()
   try {
     const token = await accessTokenFromStore(supabase)
