@@ -154,7 +154,6 @@ body {
 
 .auth-card {
   position: relative;
-  zoom: 0.75;
   border-radius: 42px;
   corner-shape: squircle;
   background: #ffffff;
