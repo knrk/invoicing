@@ -1,5 +1,6 @@
 "use server"
 
+import { requireAdmin } from "@/lib/auth"
 import { addDays, today } from "@/lib/invoice"
 import {
   type AppConfig,
@@ -37,6 +38,12 @@ export async function getConfig(): Promise<AppConfig | null> {
 export async function saveConfig(
   config: Omit<AppConfig, "id" | "updated_at">
 ): Promise<{ error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const parsed = AppConfigSchema.omit({ id: true, updated_at: true }).safeParse(config)
   if (!parsed.success) {
     return { error: formatZodError(parsed.error) }
@@ -106,6 +113,12 @@ export async function getNextInvoiceSequence(): Promise<number> {
 export async function createInvoice(
   formData: InvoiceFormData
 ): Promise<{ data?: Invoice; error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const parsed = InvoiceFormDataSchema.safeParse(formData)
   if (!parsed.success) {
     return { error: formatZodError(parsed.error) }
@@ -133,6 +146,12 @@ export async function updateInvoice(
   id: string,
   formData: InvoiceFormData
 ): Promise<{ error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const parsed = InvoiceFormDataSchema.safeParse(formData)
   if (!parsed.success) {
     return { error: formatZodError(parsed.error) }
@@ -151,6 +170,12 @@ export async function updateInvoice(
 }
 
 export async function deleteInvoice(id: string): Promise<{ error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const supabase = await createClient()
   const { error } = await supabase.from("invoices").delete().eq("id", id)
   if (error) return { error: error.message }
@@ -162,6 +187,12 @@ export async function setInvoicePaidAt(
   id: string,
   paidAt: string | null
 ): Promise<{ error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const supabase = await createClient()
   const { error } = await supabase
     .from("invoices")
@@ -188,6 +219,12 @@ export async function getCustomers(): Promise<CustomerRecord[]> {
 export async function createCustomer(
   form: CustomerRecordForm
 ): Promise<{ data?: CustomerRecord; error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const parsed = CustomerRecordFormSchema.safeParse(form)
   if (!parsed.success) return { error: formatZodError(parsed.error) }
 
@@ -211,6 +248,12 @@ export async function updateCustomer(
   id: string,
   form: CustomerRecordForm
 ): Promise<{ error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const parsed = CustomerRecordFormSchema.safeParse(form)
   if (!parsed.success) return { error: formatZodError(parsed.error) }
 
@@ -226,6 +269,12 @@ export async function updateCustomer(
 }
 
 export async function deleteCustomer(id: string): Promise<{ error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const supabase = await createClient()
   const { error } = await supabase.from("customers").delete().eq("id", id)
   if (error) return { error: error.message }
@@ -265,6 +314,12 @@ export async function exportVatRecapStatementXml(
 }
 
 export async function duplicateInvoice(id: string): Promise<{ data?: Invoice; error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const supabase = await createClient()
 
   const { data: originalRaw, error: fetchError } = await supabase
@@ -325,6 +380,12 @@ export async function sendInvoiceEmail(params: {
   pdfBase64: string
   filename: string
 }): Promise<{ error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const { to, subject, body, pdfBase64, filename } = params
 
   const apiKey = process.env.RESEND_API_KEY
