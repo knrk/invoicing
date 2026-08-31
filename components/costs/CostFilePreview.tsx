@@ -1,5 +1,6 @@
 "use client"
 
+import { useIsAdmin } from "@/components/auth/RoleProvider"
 import { readFileAsBase64, validatePdfFile } from "@/components/costs/pdf-file"
 import { Button } from "@/components/ui/button"
 import { getCostFileUrl, getCostHtml, uploadCostFile } from "@/lib/costs"
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function CostFilePreview({ costId, hasFile, fileName }: Props) {
+  const isAdmin = useIsAdmin()
   const router = useRouter()
   const isHtml = (fileName ?? "").toLowerCase().endsWith(".html")
   const [url, setUrl] = useState<string | null>(null)
@@ -82,14 +84,16 @@ export default function CostFilePreview({ costId, hasFile, fileName }: Props) {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-text">Příloha</span>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={uploading}
-          onClick={() => inputRef.current?.click()}
-        >
-          {uploading ? "Nahrávám…" : hasFile ? "Vyměnit za PDF" : "Nahrát PDF"}
-        </Button>
+        {isAdmin && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={uploading}
+            onClick={() => inputRef.current?.click()}
+          >
+            {uploading ? "Nahrávám…" : hasFile ? "Vyměnit za PDF" : "Nahrát PDF"}
+          </Button>
+        )}
         <input
           ref={inputRef}
           type="file"

@@ -1,10 +1,15 @@
 import GmailIntegrationSettings from "@/components/costs/GmailIntegrationSettings"
 import SettingsForm from "@/components/invoice/SettingsForm"
 import { getConfig } from "@/lib/actions"
+import { getUserRole } from "@/lib/auth"
 import { getGmailStatus } from "@/lib/gmail"
+import { redirect } from "next/navigation"
 import { Suspense } from "react"
 
 export default async function SettingsPage() {
+  const role = await getUserRole()
+  if (role !== "admin") redirect("/")
+
   const [config, gmailStatus] = await Promise.all([getConfig(), getGmailStatus()])
   return (
     <main className="max-w-3xl mx-auto px-10 py-8">

@@ -1,5 +1,6 @@
 "use client"
 
+import { useIsAdmin } from "@/components/auth/RoleProvider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -72,6 +73,7 @@ interface Props {
 }
 
 export default function InvoiceListClient({ invoices, config, dbError }: Props) {
+  const isAdmin = useIsAdmin()
   const router = useRouter()
   const [deleting, setDeleting] = useState<string | null>(null)
   const [duplicating, setDuplicating] = useState<string | null>(null)
@@ -196,11 +198,13 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
               </EmptyMedia>
               <EmptyTitle>Zatím žádné faktury</EmptyTitle>
             </EmptyHeader>
-            <EmptyContent>
-              <Button asChild>
-                <a href="/invoice/new">Vytvořit první fakturu</a>
-              </Button>
-            </EmptyContent>
+            {isAdmin && (
+              <EmptyContent>
+                <Button asChild>
+                  <a href="/invoice/new">Vytvořit první fakturu</a>
+                </Button>
+              </EmptyContent>
+            )}
           </Empty>
         ) : (
           <Empty className="border border-dashed border-border bg-surface">
@@ -337,7 +341,7 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
                   </div>
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
-                  <DuePaidCell invoice={inv} />
+                  <DuePaidCell invoice={inv} isAdmin={isAdmin} />
                 </TableCell>
                 <TableCell>
                   {inv.paid_at ? (
@@ -358,43 +362,45 @@ export default function InvoiceListClient({ invoices, config, dbError }: Props) 
                   {fmtNum(inv.total)} {inv.currency === "CZK" ? "Kč" : "€"}
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center gap-1 justify-end">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDuplicate(inv.id)}
-                            disabled={duplicating === inv.id}
-                            className="cursor-pointer"
-                          >
-                            {duplicating === inv.id ? (
-                              <LoaderCircle size={16} className="animate-spin" />
-                            ) : (
-                              <CopySlash size={16} />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Duplikovat</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setConfirmDelete(inv.id)}
-                            className="cursor-pointer text-danger hover:text-danger hover:bg-danger/10"
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Smazat</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex items-center gap-1 justify-end">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDuplicate(inv.id)}
+                              disabled={duplicating === inv.id}
+                              className="cursor-pointer"
+                            >
+                              {duplicating === inv.id ? (
+                                <LoaderCircle size={16} className="animate-spin" />
+                              ) : (
+                                <CopySlash size={16} />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Duplikovat</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setConfirmDelete(inv.id)}
+                              className="cursor-pointer text-danger hover:text-danger hover:bg-danger/10"
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Smazat</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
               )
@@ -443,7 +449,7 @@ function StatCard({
   )
 }
 
-function DuePaidCell({ invoice }: { invoice: Invoice }) {
+function DuePaidCell({ invoice, isAdmin }: { invoice: Invoice; isAdmin: boolean }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -478,6 +484,13 @@ function DuePaidCell({ invoice }: { invoice: Invoice }) {
   }
 
   if (invoice.paid_at) {
+    if (!isAdmin) {
+      return (
+        <span className="text-xs font-medium text-emerald-600 tabular-nums">
+          {fmtDateCs(invoice.paid_at)}
+        </span>
+      )
+    }
     return (
       <button
         onClick={handleClear}
@@ -501,19 +514,21 @@ function DuePaidCell({ invoice }: { invoice: Invoice }) {
       >
         {fmtDateCs(invoice.due_date)}
       </span>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => setOpen((v) => !v)}
-              className="w-fit cursor-pointer text-primary transition-opacity hover:opacity-70"
-            >
-              <HandCoins size={16} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>Označit jako zaplaceno</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      {isAdmin && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setOpen((v) => !v)}
+                className="w-fit cursor-pointer text-primary transition-opacity hover:opacity-70"
+              >
+                <HandCoins size={16} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Označit jako zaplaceno</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
 
       {open && (
         <div className="absolute top-full left-0 z-50 mt-1 rounded-md border border-border bg-popover shadow-md">
