@@ -18,29 +18,9 @@ export default function LoginPage() {
           </span>
         </div>
 
-        <div className="relative z-10 flex justify-center py-6">
+        <div className="relative z-0 flex justify-center py-6">
           <div className="auth-orb-wrap">
             <div className="auth-orb-img" />
-            <div className="auth-orb-glass" />
-            {/* SVG "dissolve" filter — organic liquid edge for the glass band */}
-            <svg width="0" height="0" aria-hidden="true" className="absolute">
-              <filter id="glassDissolve" x="-20%" y="-20%" width="140%" height="140%">
-                <feTurbulence
-                  type="fractalNoise"
-                  baseFrequency="0.012 0.02"
-                  numOctaves={2}
-                  seed={7}
-                  result="noise"
-                />
-                <feDisplacementMap
-                  in="SourceGraphic"
-                  in2="noise"
-                  scale={16}
-                  xChannelSelector="R"
-                  yChannelSelector="G"
-                />
-              </filter>
-            </svg>
           </div>
         </div>
 
@@ -51,6 +31,28 @@ export default function LoginPage() {
             místě, přehledně a rychle.
           </p>
         </div>
+
+        {/* static, full-width frosted glass band covering the lower half of the panel */}
+        <div className="auth-orb-glass" />
+        {/* SVG "dissolve" filter — organic liquid edge for the glass band */}
+        <svg width="0" height="0" aria-hidden="true" className="absolute">
+          <filter id="glassDissolve" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.012 0.02"
+              numOctaves={2}
+              seed={7}
+              result="noise"
+            />
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="noise"
+              scale={16}
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
+        </svg>
       </div>
 
       {/* Right panel — grey-tinted form */}
