@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { requireEnv } from "@/lib/supabase/env"
 
 // Paths that never require a session.
 const PUBLIC_PREFIXES = ["/login", "/auth/callback"]
@@ -8,8 +9,8 @@ export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
     {
       cookies: {
         getAll() {
@@ -37,16 +38,22 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl
   const isPublic = PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))
 
-  if (!user && !isPublic) {
+  const redirectTo = (target: string) => {
     const url = request.nextUrl.clone()
-    url.pathname = "/login"
-    return NextResponse.redirect(url)
+    url.pathname = target
+    const redirectResponse = NextResponse.redirect(url)
+    for (const cookie of response.cookies.getAll()) {
+      redirectResponse.cookies.set(cookie)
+    }
+    return redirectResponse
+  }
+
+  if (!user && !isPublic) {
+    return redirectTo("/login")
   }
 
   if (user && pathname === "/login") {
-    const url = request.nextUrl.clone()
-    url.pathname = "/"
-    return NextResponse.redirect(url)
+    return redirectTo("/")
   }
 
   return response

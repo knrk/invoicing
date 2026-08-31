@@ -14,6 +14,6 @@ export const config = {
      * API routes are intentionally INCLUDED so they refresh the session too;
      * each route additionally checks auth/role itself (later task).
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|otf|eot|css|js|map|txt|xml|json)$).*)",
   ],
 }

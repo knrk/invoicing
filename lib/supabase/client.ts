@@ -1,10 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr"
-
-function requireEnv(name: string): string {
-  const value = process.env[name]
-  if (!value) throw new Error(`Missing required environment variable: ${name}`)
-  return value
-}
+import { requireEnv } from "@/lib/supabase/env"
 
 export function createClient() {
   return createBrowserClient(

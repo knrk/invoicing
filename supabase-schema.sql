@@ -270,6 +270,21 @@ as $$
   );
 $$;
 
+-- Access helper: true when the caller has an assigned role (admin or accountant).
+-- role NULL = no access. SECURITY INVOKER, reads only the caller's own profile row.
+create or replace function public.has_access()
+returns boolean
+language sql
+security invoker
+stable
+set search_path = public
+as $$
+  select coalesce(
+    (select role in ('admin','accountant') from public.profiles where id = (select auth.uid())),
+    false
+  );
+$$;
+
 -- 4) Rewrite data-table policies: drop anon-full-access, add
 --    authenticated-read + admin-only-write. Applied to every data table.
 do $$
@@ -285,9 +300,9 @@ begin
     execute format('drop policy if exists %I on public.%I;', t||'_read',  t);
     execute format('drop policy if exists %I on public.%I;', t||'_write', t);
 
-    -- any signed-in user may read shared company data
+    -- any signed-in user with an assigned role may read shared company data
     execute format(
-      'create policy %I on public.%I for select to authenticated using (true);',
+      'create policy %I on public.%I for select to authenticated using (public.has_access());',
       t||'_read', t);
     -- only admins may insert/update/delete
     execute format(
@@ -301,6 +316,36 @@ begin
 end $$;
 
 -- 5) RPC used by invoice numbering: allow authenticated, drop anon.
+-- Harden the invoice-sequence RPC: it is SECURITY DEFINER (bypasses RLS), so it
+-- must reject non-admin callers explicitly. Pin search_path while here.
+create or replace function public.increment_invoice_sequence()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  new_seq integer;
+begin
+  if not public.is_admin() then
+    raise exception 'forbidden: admin role required';
+  end if;
+
+  update config
+  set
+    invoice = jsonb_set(
+      invoice,
+      '{last_sequence}',
+      to_jsonb((coalesce(invoice->>'last_sequence', '0')::integer) + 1)
+    ),
+    updated_at = now()
+  where id = 1;
+
+  select (invoice->>'last_sequence')::integer into new_seq from config where id = 1;
+  return new_seq;
+end;
+$$;
+
 revoke execute on function public.increment_invoice_sequence() from anon;
 grant execute on function public.increment_invoice_sequence() to authenticated;
 
@@ -314,7 +359,7 @@ drop policy if exists "admin update costs files" on storage.objects;
 drop policy if exists "admin delete costs files" on storage.objects;
 
 create policy "auth read costs files" on storage.objects
-  for select to authenticated using (bucket_id = 'costs');
+  for select to authenticated using (bucket_id = 'costs' and public.has_access());
 create policy "admin insert costs files" on storage.objects
   for insert to authenticated with check (bucket_id = 'costs' and public.is_admin());
 create policy "admin update costs files" on storage.objects
