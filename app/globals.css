@@ -157,8 +157,6 @@ body {
   border-radius: 42px;
   corner-shape: squircle;
   background: #ffffff;
-  /* crisp white rim + soft semi-transparent halo */
-  border: 1.5px solid rgba(255, 255, 255, 0.9);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
     0 0 0 1px rgba(255, 255, 255, 0.5),
@@ -216,37 +214,41 @@ body {
   position: absolute;
   inset: 0;
   border-radius: 50%;
+  overflow: hidden;
   background:
-    radial-gradient(23% 21% at 32% 23%, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0) 60%),
-    radial-gradient(55% 45% at 68% 38%, rgba(255, 255, 255, 0.22), transparent 60%),
-    radial-gradient(62% 60% at 26% 80%, rgba(92, 232, 228, 0.55), transparent 58%),
-    radial-gradient(85% 85% at 70% 72%, #ff4d95 0%, #d21f74 60%, #9d1a5c 100%);
+    radial-gradient(56% 52% at 66% 26%, #4aa6ff 0%, rgba(74, 166, 255, 0) 60%),
+    radial-gradient(50% 48% at 28% 40%, #b45cff 0%, rgba(180, 92, 255, 0) 58%),
+    radial-gradient(54% 52% at 34% 62%, #ff4d63 0%, rgba(255, 77, 99, 0) 58%),
+    radial-gradient(58% 56% at 74% 74%, #ffb020 0%, rgba(255, 176, 32, 0) 60%),
+    radial-gradient(46% 44% at 58% 90%, #ffd23f 0%, rgba(255, 210, 63, 0) 60%),
+    conic-gradient(from 205deg at 52% 50%, #ffd23f, #ff8a3d, #ff3d7a, #9b4dff, #3d7bff, #34c8ff, #ffd23f);
   box-shadow:
-    inset -8px -12px 30px rgba(120, 0, 60, 0.5),
-    inset 10px 12px 26px rgba(255, 255, 255, 0.5),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.25),
-    0 30px 50px -22px rgba(180, 20, 90, 0.5);
+    inset -10px -14px 40px rgba(50, 12, 70, 0.35),
+    inset 12px 14px 40px rgba(255, 255, 255, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+    0 32px 54px -22px rgba(120, 60, 170, 0.45);
 }
-.auth-orb-glass {
+/* blurred, rotated smear of the swirl → liquid-glass depth */
+.auth-orb::before {
+  content: "";
   position: absolute;
-  left: -7%;
-  right: -7%;
-  bottom: -3%;
-  height: 62%;
-  border-radius: 46% 46% 50% 50% / 34% 34% 50% 50%;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.55) 0%,
-    rgba(208, 240, 240, 0.4) 42%,
-    rgba(255, 255, 255, 0.32) 100%
-  );
-  backdrop-filter: blur(7px) saturate(135%);
-  -webkit-backdrop-filter: blur(7px) saturate(135%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-top: 1.5px solid rgba(255, 255, 255, 0.9);
-  box-shadow:
-    inset 0 3px 10px rgba(255, 255, 255, 0.6),
-    0 14px 26px -14px rgba(60, 120, 120, 0.4);
+  inset: -25%;
+  background: inherit;
+  filter: blur(10px) saturate(150%);
+  opacity: 0.4;
+  transform: rotate(12deg);
+}
+/* big soft specular highlight, top-left */
+.auth-orb::after {
+  content: "";
+  position: absolute;
+  left: 16%;
+  top: 9%;
+  width: 44%;
+  height: 34%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 72%);
+  filter: blur(3px);
 }
 .auth-orb-wrap::after {
   content: "";

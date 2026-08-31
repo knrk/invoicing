@@ -23,7 +23,6 @@ export default function LoginPage() {
         <div className="relative z-10 flex justify-center py-6">
           <div className="auth-orb-wrap">
             <div className="auth-orb" />
-            <div className="auth-orb-glass" />
           </div>
         </div>
 
