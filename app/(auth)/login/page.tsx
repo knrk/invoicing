@@ -10,9 +10,14 @@ export default function LoginPage() {
 
         <div className="relative z-10 flex items-center gap-2.5">
           <div className="auth-logo-badge w-9 h-9 flex items-center justify-center">
-            <ReceiptText className="w-5 h-5 text-[#d81f80]" />
+            <ReceiptText className="w-5 h-5 text-white" />
           </div>
-          <span className="auth-title text-lg font-bold tracking-tight">Fakturace</span>
+          <span
+            className="text-lg font-bold tracking-tight text-white"
+            style={{ fontFamily: "var(--font-heading), sans-serif" }}
+          >
+            Fakturace
+          </span>
         </div>
 
         <div className="relative z-10 flex justify-center py-6">
