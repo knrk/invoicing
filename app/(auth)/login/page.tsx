@@ -6,8 +6,6 @@ export default function LoginPage() {
     <div className="auth-card w-full max-w-4xl grid md:grid-cols-2 gap-2 p-2">
       {/* Left panel — white, glass sphere. Hidden on mobile */}
       <div className="auth-hero hidden md:flex flex-col justify-between p-9 min-h-[560px]">
-        <span className="auth-hero-word">FAKTURACE</span>
-
         <div className="relative z-10 flex items-center gap-2.5">
           <div className="auth-logo-badge w-9 h-9 flex items-center justify-center">
             <ReceiptText className="w-5 h-5 text-white" />
@@ -22,7 +20,8 @@ export default function LoginPage() {
 
         <div className="relative z-10 flex justify-center py-6">
           <div className="auth-orb-wrap">
-            <div className="auth-orb" />
+            <div className="auth-orb-img" />
+            <div className="auth-orb-glass" />
           </div>
         </div>
 

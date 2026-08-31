@@ -188,20 +188,6 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.7);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
-.auth-hero-word {
-  position: absolute;
-  top: 40%;
-  left: -1%;
-  font-family: var(--font-heading), sans-serif;
-  font-weight: 800;
-  font-size: clamp(3.5rem, 9vw, 6rem);
-  line-height: 0.9;
-  letter-spacing: -0.03em;
-  color: rgba(255, 255, 255, 0.85);
-  user-select: none;
-  pointer-events: none;
-  white-space: nowrap;
-}
 
 /* glass sphere, lower half wrapped in a frosted "liquid glass" veil */
 .auth-orb-wrap {
@@ -210,45 +196,36 @@ body {
   aspect-ratio: 1;
   animation: authFloat 6s ease-in-out infinite;
 }
-.auth-orb {
+/* sphere rendered from the supplied image (drop a transparent PNG at public/sphere.png).
+   Using background-image so a missing file degrades to nothing, not a broken-image icon. */
+.auth-orb-img {
   position: absolute;
   inset: 0;
-  border-radius: 50%;
-  overflow: hidden;
-  background:
-    radial-gradient(56% 52% at 66% 26%, #4aa6ff 0%, rgba(74, 166, 255, 0) 60%),
-    radial-gradient(50% 48% at 28% 40%, #b45cff 0%, rgba(180, 92, 255, 0) 58%),
-    radial-gradient(54% 52% at 34% 62%, #ff4d63 0%, rgba(255, 77, 99, 0) 58%),
-    radial-gradient(58% 56% at 74% 74%, #ffb020 0%, rgba(255, 176, 32, 0) 60%),
-    radial-gradient(46% 44% at 58% 90%, #ffd23f 0%, rgba(255, 210, 63, 0) 60%),
-    conic-gradient(from 205deg at 52% 50%, #ffd23f, #ff8a3d, #ff3d7a, #9b4dff, #3d7bff, #34c8ff, #ffd23f);
+  background: url("/sphere.png") center / contain no-repeat;
+  filter: drop-shadow(0 26px 34px rgba(120, 60, 170, 0.35));
+}
+/* frosted liquid-glass overlay across the lower half of the sphere */
+.auth-orb-glass {
+  position: absolute;
+  z-index: 2;
+  left: -6%;
+  right: -6%;
+  bottom: -1%;
+  height: 56%;
+  border-radius: 46% 46% 50% 50% / 30% 30% 50% 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.38) 0%,
+    rgba(255, 255, 255, 0.18) 48%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  backdrop-filter: blur(8px) saturate(130%);
+  -webkit-backdrop-filter: blur(8px) saturate(130%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-top: 1.5px solid rgba(255, 255, 255, 0.85);
   box-shadow:
-    inset -10px -14px 40px rgba(50, 12, 70, 0.35),
-    inset 12px 14px 40px rgba(255, 255, 255, 0.3),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
-    0 32px 54px -22px rgba(120, 60, 170, 0.45);
-}
-/* blurred, rotated smear of the swirl → liquid-glass depth */
-.auth-orb::before {
-  content: "";
-  position: absolute;
-  inset: -25%;
-  background: inherit;
-  filter: blur(10px) saturate(150%);
-  opacity: 0.4;
-  transform: rotate(12deg);
-}
-/* big soft specular highlight, top-left */
-.auth-orb::after {
-  content: "";
-  position: absolute;
-  left: 16%;
-  top: 9%;
-  width: 44%;
-  height: 34%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 72%);
-  filter: blur(3px);
+    inset 0 3px 12px rgba(255, 255, 255, 0.55),
+    0 12px 24px -14px rgba(80, 60, 140, 0.35);
 }
 .auth-orb-wrap::after {
   content: "";
