@@ -32,8 +32,15 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* static, full-width frosted glass band covering the lower half of the panel */}
-        <div className="auth-orb-glass" />
+        {/* static, full-width frosted glass band covering the lower half of the panel.
+            backdrop-filter is inline because the CSS build strips `url(#...)` from it. */}
+        <div
+          className="auth-orb-glass"
+          style={{
+            backdropFilter: "url(#nav-liquid-glass) blur(7px) saturate(1.4)",
+            WebkitBackdropFilter: "blur(7px) saturate(1.4)",
+          }}
+        />
         {/* Apple-style liquid-glass refraction filter (chromatic edge dispersion) */}
         <svg className="absolute size-0" aria-hidden="true" focusable="false" width="0" height="0">
           <defs>
