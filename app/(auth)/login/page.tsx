@@ -1,50 +1,53 @@
-import { ReceiptText } from "lucide-react"
+import { ReceiptText, ShieldCheck } from "lucide-react"
 import LoginForm from "@/components/auth/LoginForm"
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl grid md:grid-cols-2 rounded-panel overflow-hidden bg-surface shadow-elevated">
+    <>
+      <div className="auth-card w-full max-w-4xl grid md:grid-cols-2 gap-2 p-2">
         {/* Left hero — hidden on mobile */}
-        <div className="hidden md:flex flex-col justify-between p-10 bg-primary text-primary-foreground">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center">
+        <div className="auth-hero hidden md:flex flex-col justify-between p-9 text-white min-h-[560px]">
+          <span className="auth-hero-word">FAKTURACE</span>
+
+          <div className="relative z-10 flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
               <ReceiptText className="w-5 h-5" />
             </div>
             <span className="text-lg font-bold tracking-tight">Fakturace</span>
           </div>
-          <div>
+
+          <div className="relative z-10 flex justify-center py-4">
+            <div className="auth-orb" />
+          </div>
+
+          <div className="relative z-10">
             <h1
-              className="text-3xl font-extrabold leading-tight"
-              style={{ fontFamily: "var(--font-heading)" }}
+              className="text-[1.7rem] leading-tight font-extrabold"
+              style={{ fontFamily: "var(--font-heading), sans-serif" }}
             >
-              Fakturační systém
+              Chytrá fakturace
             </h1>
-            <p className="mt-3 text-sm text-primary-foreground/80 max-w-xs">
-              Vydané i přijaté faktury, souhrnné hlášení a evidence kontaktů na jednom místě.
+            <p className="mt-2 text-sm text-white/85 max-w-xs">
+              Vydané i přijaté faktury, souhrnné hlášení a evidence kontaktů — na jednom
+              místě, přehledně a rychle.
             </p>
           </div>
-          <span className="text-xs text-primary-foreground/60">
-            © {new Date().getFullYear()} Fakturace
-          </span>
         </div>
 
         {/* Right — form */}
-        <div className="p-8 sm:p-10 flex flex-col justify-center">
-          <h2
-            className="text-2xl font-bold text-text"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            Vítejte zpět
-          </h2>
-          <p className="mt-1 text-sm text-text-secondary">
-            Přihlaste se pro přístup do aplikace
-          </p>
+        <div className="px-7 py-9 sm:px-10 sm:py-11 flex flex-col justify-center">
+          <h2 className="auth-title text-[1.6rem] font-extrabold">Vítejte zpět</h2>
+          <p className="auth-subtitle mt-1 text-sm">Přihlaste se pro přístup do aplikace</p>
           <div className="mt-8">
             <LoginForm />
           </div>
         </div>
       </div>
-    </div>
+
+      <div className="auth-badge auth-muted flex items-center gap-2.5 px-4 py-2.5 text-xs">
+        <ShieldCheck className="w-4 h-4 text-[#7c5cff]" />
+        Zabezpečené přihlášení přes Supabase Auth
+      </div>
+    </>
   )
 }

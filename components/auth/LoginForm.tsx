@@ -2,9 +2,6 @@
 
 import { useState } from "react"
 import { Eye, EyeOff, Lock, Mail } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/client"
 
 export default function LoginForm() {
@@ -46,10 +43,12 @@ export default function LoginForm() {
   return (
     <form onSubmit={handlePasswordLogin} className="space-y-5">
       <div className="space-y-1.5">
-        <Label htmlFor="email">E-mail</Label>
+        <label htmlFor="email" className="auth-label block">
+          E-mail
+        </label>
         <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-          <Input
+          <Mail className="auth-icon absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" />
+          <input
             id="email"
             type="email"
             autoComplete="email"
@@ -57,16 +56,18 @@ export default function LoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="vy@example.com"
-            className="pl-9"
+            className="auth-input"
           />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="password">Heslo</Label>
+        <label htmlFor="password" className="auth-label block">
+          Heslo
+        </label>
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-          <Input
+          <Lock className="auth-icon absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" />
+          <input
             id="password"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
@@ -74,12 +75,12 @@ export default function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="pl-9 pr-9"
+            className="auth-input"
           />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text"
+            className="auth-icon absolute right-3.5 top-1/2 -translate-y-1/2 hover:opacity-70 transition-opacity"
             aria-label={showPassword ? "Skrýt heslo" : "Zobrazit heslo"}
           >
             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -88,32 +89,34 @@ export default function LoginForm() {
       </div>
 
       {error && (
-        <p className="text-sm text-danger" role="alert">
+        <p className="auth-error text-sm font-medium" role="alert">
           {error}
         </p>
       )}
 
-      <Button type="submit" size="lg" className="w-full" disabled={loading}>
+      <button
+        type="submit"
+        disabled={loading}
+        className="auth-btn-primary w-full h-11 text-sm font-semibold flex items-center justify-center"
+      >
         {loading ? "Přihlašuji…" : "Přihlásit se"}
-      </Button>
+      </button>
 
-      <div className="flex items-center gap-3 text-xs text-muted">
-        <span className="flex-1 h-px bg-border" />
+      <div className="flex items-center gap-3 text-xs auth-muted">
+        <span className="auth-divider-line flex-1 h-px" />
         nebo pokračovat přes
-        <span className="flex-1 h-px bg-border" />
+        <span className="auth-divider-line flex-1 h-px" />
       </div>
 
-      <Button
+      <button
         type="button"
-        variant="outline"
-        size="lg"
-        className="w-full"
         onClick={handleGoogleLogin}
         disabled={loading}
+        className="auth-btn-google w-full h-11 text-sm font-semibold flex items-center justify-center gap-2.5"
       >
         <GoogleIcon />
         Google
-      </Button>
+      </button>
     </form>
   )
 }
