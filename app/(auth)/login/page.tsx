@@ -37,8 +37,8 @@ export default function LoginPage() {
         <div
           className="auth-orb-glass"
           style={{
-            backdropFilter: "url(#nav-liquid-glass) blur(7px) saturate(1.4)",
-            WebkitBackdropFilter: "blur(7px) saturate(1.4)",
+            backdropFilter: "url(#nav-liquid-glass) blur(3px) saturate(1.4)",
+            WebkitBackdropFilter: "blur(3px) saturate(1.4)",
           }}
         />
         {/* Apple-style liquid-glass refraction filter (chromatic edge dispersion) */}
