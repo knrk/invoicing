@@ -265,6 +265,184 @@ export async function checkGmail(): Promise<GmailCheckResult> {
   return { added, errors }
 }
 
+// Načte frontu čekajících faktur pro UI (nejnovější první).
+export async function listPendingGmail(): Promise<GmailPending[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("gmail_pending")
+    .select("*")
+    .order("created_at", { ascending: false })
+  if (error || !data) return []
+  return data.flatMap((row) => {
+    const parsed = GmailPendingSchema.safeParse(row)
+    return parsed.success ? [parsed.data] : []
+  })
+}
+
+// Schválí čekající fakturu: založí náklad, lazy stáhne+nahraje přílohu a zapíše
+// rozhodnutí. Claim guard (smazání pending řádku) brání dvojímu zpracování;
+// při chybě před založením nákladu se řádek vrátí do fronty.
+export async function approvePending(
+  id: string,
+  form: CostFormData
+): Promise<{ error?: string; needsReconnect?: boolean }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
+  const parsed = CostFormDataSchema.safeParse(form)
+  if (!parsed.success) return { error: formatZodError(parsed.error) }
+
+  const supabase = await createClient()
+
+  // Claim: odeber řádek z fronty. Když už není, někdo rozhodl dřív → hotovo.
+  const { data: claimed } = await supabase
+    .from("gmail_pending")
+    .delete()
+    .eq("id", id)
+    .select("*")
+    .single()
+  if (!claimed) return {}
+
+  const restore = async () => {
+    await supabase.from("gmail_pending").insert(claimed)
+  }
+
+  const { data: integ } = await supabase
+    .from("gmail_integration")
+    .select("refresh_token")
+    .eq("id", 1)
+    .single()
+  if (!integ?.refresh_token) {
+    await restore()
+    return { error: "Gmail není připojen" }
+  }
+
+  let token: string
+  try {
+    token = await refreshAccessToken(integ.refresh_token)
+  } catch (err) {
+    await restore()
+    if (err instanceof GmailAuthError) {
+      return { needsReconnect: true, error: "Přístup vypršel, připoj Gmail znovu." }
+    }
+    return { error: err instanceof Error ? err.message : "Chyba přístupu ke Gmailu" }
+  }
+
+  const created = await createCost(parsed.data)
+  if (created.error || !created.data) {
+    await restore()
+    return { error: created.error ?? "Vytvoření nákladu selhalo" }
+  }
+  const costId = created.data.id
+
+  // Náklad založen → rozhodnutí zapíšeme vždy (upload přílohy je měkká chyba).
+  try {
+    if (claimed.has_pdf) {
+      const base64 = await getAttachmentBase64(token, claimed.message_id, claimed.attachment_id)
+      const up = await uploadCostFile(costId, claimed.attachment_name ?? "faktura.pdf", base64)
+      if (up.error) return { error: `Náklad uložen, ale PDF se nenahrálo: ${up.error}` }
+    } else {
+      const message = await getMessage(token, claimed.message_id)
+      const html = extractHtmlBody(message)
+      if (html) {
+        const base64 = Buffer.from(html, "utf8").toString("base64")
+        const up = await uploadCostFile(costId, "faktura.html", base64, "text/html; charset=utf-8")
+        if (up.error) return { error: `Náklad uložen, ale tělo se nenahrálo: ${up.error}` }
+      }
+    }
+  } catch (err) {
+    return { error: `Náklad uložen, ale příloha se nenahrála: ${err instanceof Error ? err.message : "chyba"}` }
+  } finally {
+    await supabase.from("gmail_processed").insert({
+      message_id: claimed.message_id,
+      attachment_id: claimed.attachment_id,
+      decision: "approved",
+      cost_id: costId,
+    })
+    revalidatePath("/costs")
+    revalidatePath("/")
+  }
+
+  return {}
+}
+
+// Odmítne čekající fakturu: zapíše rozhodnutí 'rejected' a odebere z fronty.
+export async function rejectPending(id: string): Promise<{ error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
+  const supabase = await createClient()
+  const { data: claimed } = await supabase
+    .from("gmail_pending")
+    .delete()
+    .eq("id", id)
+    .select("message_id, attachment_id")
+    .single()
+  if (!claimed) return {}
+
+  const { error } = await supabase.from("gmail_processed").insert({
+    message_id: claimed.message_id,
+    attachment_id: claimed.attachment_id,
+    decision: "rejected",
+    cost_id: null,
+  })
+  if (error) return { error: error.message }
+
+  revalidatePath("/costs")
+  return {}
+}
+
+// Lazy náhled přílohy čekající faktury (bez uploadu do Storage).
+export async function getPendingAttachmentPreview(id: string): Promise<GmailPendingPreview> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
+  const supabase = await createClient()
+  const { data: row } = await supabase
+    .from("gmail_pending")
+    .select("message_id, attachment_id, has_pdf")
+    .eq("id", id)
+    .single()
+  if (!row) return { error: "Položka už není ve frontě" }
+
+  const { data: integ } = await supabase
+    .from("gmail_integration")
+    .select("refresh_token")
+    .eq("id", 1)
+    .single()
+  if (!integ?.refresh_token) return { error: "Gmail není připojen" }
+
+  let token: string
+  try {
+    token = await refreshAccessToken(integ.refresh_token)
+  } catch (err) {
+    if (err instanceof GmailAuthError) {
+      return { error: "Přístup vypršel, připoj Gmail znovu.", needsReconnect: true }
+    }
+    return { error: err instanceof Error ? err.message : "Chyba přístupu ke Gmailu" }
+  }
+
+  try {
+    if (row.has_pdf) {
+      const base64 = await getAttachmentBase64(token, row.message_id, row.attachment_id)
+      return { kind: "pdf", base64 }
+    }
+    const message = await getMessage(token, row.message_id)
+    return { kind: "html", html: extractHtmlBody(message) ?? "" }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Náhled se nepodařil" }
+  }
+}
+
 // Smaže dosavadní Gmail náklady + frontu + dedup log a spustí check znovu
 // (vše spadne zpět do fronty ke schválení). Ruční uploady (source='upload') nechává.
 export async function reimportAllGmail(): Promise<GmailCheckResult> {
