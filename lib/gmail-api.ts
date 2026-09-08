@@ -120,6 +120,20 @@ export interface GmailSyncResult {
   error?: string
 }
 
+// Výsledek checku: kolik NOVÝCH čekajících faktur přibylo do fronty.
+export interface GmailCheckResult {
+  added: number
+  errors: string[]
+  needsReconnect?: boolean
+  error?: string
+}
+
+// Náhled přílohy čekající faktury (lazy, bez uploadu do Storage).
+export type GmailPendingPreview =
+  | { kind: "pdf"; base64: string }
+  | { kind: "html"; html: string }
+  | { error: string; needsReconnect?: boolean }
+
 export async function listLabels(accessToken: string): Promise<GmailLabel[]> {
   const data = await gmailGet<{ labels: GmailLabel[] }>(accessToken, "/labels")
   return data.labels ?? []

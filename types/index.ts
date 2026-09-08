@@ -10,6 +10,7 @@ export type {
   Invoice,
   CostFormData,
   Cost,
+  GmailPending,
   SupplierRecord,
   SupplierRecordForm,
 } from "@/lib/schemas"
