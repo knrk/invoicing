@@ -205,10 +205,18 @@ create table if not exists gmail_pending (
   created_at timestamptz not null default now(),
   unique (message_id, attachment_id)
 );
+-- RLS dle auth modelu (viz supabase/migrations/20260831_auth.sql): čtení pro
+-- přihlášené s rolí, zápis jen admin. Vyžaduje funkce has_access()/is_admin().
 alter table gmail_pending enable row level security;
 drop policy if exists "anon full access gmail_pending" on gmail_pending;
-create policy "anon full access gmail_pending" on gmail_pending
-  for all to anon using (true) with check (true);
+drop policy if exists gmail_pending_read on gmail_pending;
+drop policy if exists gmail_pending_write on gmail_pending;
+create policy gmail_pending_read on gmail_pending
+  for select to authenticated using (public.has_access());
+create policy gmail_pending_write on gmail_pending
+  for all to authenticated using (public.is_admin()) with check (public.is_admin());
+revoke all on gmail_pending from anon;
+grant select, insert, update, delete on gmail_pending to authenticated;
 
 -- ==========================================================================
 -- Evidence dodavatelů (obdoba odběratelů; přepoužití + reporty)
