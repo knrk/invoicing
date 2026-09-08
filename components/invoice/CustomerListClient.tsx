@@ -1,5 +1,6 @@
 "use client"
 
+import { useIsAdmin } from "@/components/auth/RoleProvider"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -10,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { deleteCustomer } from "@/lib/actions"
+import { cn } from "@/lib/utils"
 import type { CustomerRecord } from "@/types"
 import { Building2, Globe, MoreVertical, Pencil, Plus, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -22,6 +24,7 @@ interface Props {
 }
 
 export default function CustomerListClient({ customers }: Props) {
+  const isAdmin = useIsAdmin()
   const router = useRouter()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [addOpen, setAddOpen] = useState(false)
@@ -55,23 +58,32 @@ export default function CustomerListClient({ customers }: Props) {
   return (
     <div>
       <div className="grid grid-cols-4 gap-3">
-        <button
-          onClick={() => setAddOpen(true)}
-          className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-transparent px-4 py-8 text-text-secondary hover:border-ring/50 hover:text-text hover:bg-subtle transition-colors cursor-pointer min-h-[110px]"
-        >
-          <Plus className="h-5 w-5" />
-          <span className="text-xs font-medium">Přidat odběratele</span>
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setAddOpen(true)}
+            className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-transparent px-4 py-8 text-text-secondary hover:border-ring/50 hover:text-text hover:bg-subtle transition-colors cursor-pointer min-h-[110px]"
+          >
+            <Plus className="h-5 w-5" />
+            <span className="text-xs font-medium">Přidat odběratele</span>
+          </button>
+        )}
 
         {customers.map((c) => (
           <div
             key={c.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => setEditingId(c.id)}
-            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setEditingId(c.id)}
+            role={isAdmin ? "button" : undefined}
+            tabIndex={isAdmin ? 0 : undefined}
+            onClick={isAdmin ? () => setEditingId(c.id) : undefined}
+            onKeyDown={
+              isAdmin
+                ? (e) => (e.key === "Enter" || e.key === " ") && setEditingId(c.id)
+                : undefined
+            }
             onMouseLeave={() => hideMenu(c.id)}
-            className="group relative flex flex-col gap-3 rounded-xl border border-border bg-surface px-4 py-4 cursor-pointer hover:border-ring/50 hover:bg-subtle transition-colors"
+            className={cn(
+              "group relative flex flex-col gap-3 rounded-xl border border-border bg-surface px-4 py-4 transition-colors",
+              isAdmin && "cursor-pointer hover:border-ring/50 hover:bg-subtle"
+            )}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-subtle group-hover:bg-background text-text-secondary transition-colors shrink-0">
@@ -82,17 +94,19 @@ export default function CustomerListClient({ customers }: Props) {
                 )}
               </div>
 
-              <button
-                id={`trigger-${c.id}`}
-                {...{ popoverTarget: `ctx-${c.id}` }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  positionMenu(c.id)
-                }}
-                className="p-1 rounded text-text-secondary hover:text-text hover:bg-border transition-colors opacity-0 group-hover:opacity-100 shrink-0"
-              >
-                <MoreVertical className="h-3.5 w-3.5" />
-              </button>
+              {isAdmin && (
+                <button
+                  id={`trigger-${c.id}`}
+                  {...{ popoverTarget: `ctx-${c.id}` }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    positionMenu(c.id)
+                  }}
+                  className="p-1 rounded text-text-secondary hover:text-text hover:bg-border transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                >
+                  <MoreVertical className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
 
             <div>
@@ -104,34 +118,36 @@ export default function CustomerListClient({ customers }: Props) {
               </p>
             </div>
 
-            <div
-              id={`ctx-${c.id}`}
-              {...{ popover: "auto" }}
-              data-ctx-menu
-              onClick={(e) => e.stopPropagation()}
-              className="rounded-lg border border-border bg-popover text-popover-foreground shadow-lg py-1 min-w-[148px]"
-            >
-              <button
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-text hover:bg-subtle transition-colors"
-                onClick={() => {
-                  hideMenu(c.id)
-                  setEditingId(c.id)
-                }}
+            {isAdmin && (
+              <div
+                id={`ctx-${c.id}`}
+                {...{ popover: "auto" }}
+                data-ctx-menu
+                onClick={(e) => e.stopPropagation()}
+                className="rounded-lg border border-border bg-popover text-popover-foreground shadow-lg py-1 min-w-[148px]"
               >
-                <Pencil className="h-3.5 w-3.5 text-text-secondary shrink-0" />
-                Upravit
-              </button>
-              <button
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-danger hover:bg-subtle transition-colors"
-                onClick={() => {
-                  hideMenu(c.id)
-                  setConfirmDelete(c.id)
-                }}
-              >
-                <Trash2 className="h-3.5 w-3.5 shrink-0" />
-                Smazat
-              </button>
-            </div>
+                <button
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-text hover:bg-subtle transition-colors"
+                  onClick={() => {
+                    hideMenu(c.id)
+                    setEditingId(c.id)
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5 text-text-secondary shrink-0" />
+                  Upravit
+                </button>
+                <button
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-danger hover:bg-subtle transition-colors"
+                  onClick={() => {
+                    hideMenu(c.id)
+                    setConfirmDelete(c.id)
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                  Smazat
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>

@@ -1,5 +1,6 @@
 "use client"
 
+import { useIsAdmin } from "@/components/auth/RoleProvider"
 import CostUploadDialog from "@/components/costs/CostUploadDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -91,6 +92,7 @@ interface Props {
 }
 
 export default function CostListClient({ costs, gmailReady = false }: Props) {
+  const isAdmin = useIsAdmin()
   const router = useRouter()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [status, setStatus] = useState<StatusFilter>("all")
@@ -259,18 +261,20 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
           <Button variant="outline" size="sm" onClick={handleExportZip} disabled={!!exporting || yearCosts.length === 0}>
             {exporting === "zip" ? "Exportuji…" : "Export ZIP"}
           </Button>
-          {gmailReady && (
+          {gmailReady && isAdmin && (
             <Button variant="outline" size="sm" onClick={handleGmailSync} disabled={syncing}>
               {syncing ? "Kontroluji…" : "Zkontrolovat Gmail"}
             </Button>
           )}
-          <Button variant="dark" size="sm" onClick={() => setUploadOpen(true)}>
-            <Plus className="mr-1 h-4 w-4" /> Nahrát fakturu
-          </Button>
+          {isAdmin && (
+            <Button variant="dark" size="sm" onClick={() => setUploadOpen(true)}>
+              <Plus className="mr-1 h-4 w-4" /> Nahrát fakturu
+            </Button>
+          )}
         </div>
       </div>
 
-      {selected.size > 0 && (
+      {isAdmin && selected.size > 0 && (
         <div className="mb-3 flex items-center justify-between rounded-lg border border-border bg-subtle px-4 py-2">
           <span className="text-sm text-text">Vybráno {selected.size}</span>
           <div className="flex items-center gap-2">
@@ -298,7 +302,7 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
                   : "Žádné náklady neodpovídají filtru"}
             </EmptyTitle>
           </EmptyHeader>
-          {costs.length === 0 && (
+          {costs.length === 0 && isAdmin && (
             <EmptyContent>
               <Button variant="dark" size="sm" onClick={() => setUploadOpen(true)}>
                 Nahrát první fakturu
@@ -388,14 +392,16 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setConfirmDelete(c.id)}
-                          className="cursor-pointer text-danger hover:bg-danger/10 hover:text-danger"
-                        >
-                          <Trash2 size={16} />
-                        </Button>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setConfirmDelete(c.id)}
+                            className="cursor-pointer text-danger hover:bg-danger/10 hover:text-danger"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

@@ -1,5 +1,6 @@
 "use client"
 
+import { useIsAdmin } from "@/components/auth/RoleProvider"
 import CostFilePreview from "@/components/costs/CostFilePreview"
 import CostForm from "@/components/costs/CostForm"
 import { Button } from "@/components/ui/button"
@@ -41,6 +42,7 @@ function costToForm(cost: Cost): CostFormData {
 }
 
 export default function CostDetailClient({ cost }: Props) {
+  const isAdmin = useIsAdmin()
   const router = useRouter()
   const [form, setForm] = useState<CostFormData>(() => costToForm(cost))
   const [saving, setSaving] = useState(false)
@@ -91,28 +93,32 @@ export default function CostDetailClient({ cost }: Props) {
         <Button variant="outline" size="sm" onClick={() => router.push("/costs")}>
           ← Zpět
         </Button>
-        <div className="flex items-center gap-2">
-          <Button variant={paid ? "outline" : "dark"} size="sm" onClick={togglePaid} disabled={togglingPaid}>
-            {togglingPaid ? "…" : paid ? "Zrušit zaplaceno" : "Označit zaplaceno"}
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setConfirmDelete(true)}
-          >
-            Smazat
-          </Button>
-        </div>
+        {isAdmin && (
+          <div className="flex items-center gap-2">
+            <Button variant={paid ? "outline" : "dark"} size="sm" onClick={togglePaid} disabled={togglingPaid}>
+              {togglingPaid ? "…" : paid ? "Zrušit zaplaceno" : "Označit zaplaceno"}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setConfirmDelete(true)}
+            >
+              Smazat
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-border bg-surface p-5">
           <CostForm value={form} onChange={setForm} />
-          <div className="mt-4 flex justify-end">
-            <Button variant="dark" onClick={handleSave} disabled={saving}>
-              {saving ? "Ukládám…" : "Uložit změny"}
-            </Button>
-          </div>
+          {isAdmin && (
+            <div className="mt-4 flex justify-end">
+              <Button variant="dark" onClick={handleSave} disabled={saving}>
+                {saving ? "Ukládám…" : "Uložit změny"}
+              </Button>
+            </div>
+          )}
         </div>
         <CostFilePreview costId={cost.id} hasFile={!!cost.file_path} fileName={cost.file_name} />
       </div>

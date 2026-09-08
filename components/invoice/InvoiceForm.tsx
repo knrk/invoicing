@@ -1,5 +1,6 @@
 "use client"
 
+import { useIsAdmin } from "@/components/auth/RoleProvider"
 import DatePicker from "@/components/ui/DatePicker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -384,6 +385,7 @@ export default function InvoiceForm({
 	existing,
 	customers = [],
 }: Props) {
+	const isAdmin = useIsAdmin()
 	const router = useRouter()
 	const [form, setForm] = useState<InvoiceFormData>(() =>
 		initForm(config, existing)
@@ -936,9 +938,11 @@ export default function InvoiceForm({
 					<Button variant="link" asChild>
 						<Link href="/">{L.cancel}</Link>
 					</Button>
-					<Button variant="dark" onClick={handleSave} disabled={saving}>
-						{saving ? "..." : L.save}
-					</Button>
+					{isAdmin && (
+						<Button variant="dark" onClick={handleSave} disabled={saving}>
+							{saving ? "..." : L.save}
+						</Button>
+					)}
 				</div>
 			</div>
 
@@ -980,10 +984,12 @@ export default function InvoiceForm({
 				<div className="flex items-center justify-between px-8 py-4 bg-surface border-b border-border">
 					<span className="text-base font-semibold text-text">Náhled</span>
 					<div className="flex items-center gap-2">
-						<Button variant="outline" onClick={() => setEmailOpen(true)}>
-							<Send size={16} />
-							Zaslat e-mailem
-						</Button>
+						{isAdmin && (
+							<Button variant="outline" onClick={() => setEmailOpen(true)}>
+								<Send size={16} />
+								Zaslat e-mailem
+							</Button>
+						)}
 						<Button
 							variant="outline"
 							onClick={handleExportPDF}

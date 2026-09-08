@@ -1,6 +1,11 @@
+import { getSessionUser } from "@/lib/auth"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ ico: string }> }) {
+  if (!(await getSessionUser())) {
+    return new Response("Unauthorized", { status: 401 })
+  }
+
   const { ico } = await params
   const clean = ico.trim().replace(/\s+/g, "")
   if (!clean) return NextResponse.json({ error: "Chybí IČ" }, { status: 400 })

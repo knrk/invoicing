@@ -1,5 +1,6 @@
 "use server"
 
+import { requireAdmin } from "@/lib/auth"
 import {
   type Cost,
   type CostFormData,
@@ -71,6 +72,12 @@ export async function getCost(id: string): Promise<Cost | null> {
 }
 
 export async function createCost(form: CostFormData): Promise<{ data?: Cost; error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const parsed = CostFormDataSchema.safeParse(form)
   if (!parsed.success) return { error: formatZodError(parsed.error) }
 
@@ -92,6 +99,12 @@ export async function createCost(form: CostFormData): Promise<{ data?: Cost; err
 }
 
 export async function updateCost(id: string, form: CostFormData): Promise<{ error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const parsed = CostFormDataSchema.safeParse(form)
   if (!parsed.success) return { error: formatZodError(parsed.error) }
 
@@ -109,6 +122,12 @@ export async function updateCost(id: string, form: CostFormData): Promise<{ erro
 }
 
 export async function setCostPaidAt(id: string, paidAt: string | null): Promise<{ error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const supabase = await createClient()
   const { error } = await supabase
     .from("costs")
@@ -121,6 +140,12 @@ export async function setCostPaidAt(id: string, paidAt: string | null): Promise<
 }
 
 export async function deleteCost(id: string): Promise<{ error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const supabase = await createClient()
   const { data: existing } = await supabase.from("costs").select("file_path").eq("id", id).single()
   const { error } = await supabase.from("costs").delete().eq("id", id)
@@ -142,6 +167,12 @@ function toStorageName(name: string): string {
 }
 
 export async function deleteCosts(ids: string[]): Promise<{ deleted: number; error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { deleted: 0, error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   if (ids.length === 0) return { deleted: 0 }
   const supabase = await createClient()
 
@@ -167,6 +198,12 @@ export async function uploadCostFile(
   base64: string,
   contentType = "application/pdf"
 ): Promise<{ error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const supabase = await createClient()
   const path = `${costId}/${toStorageName(fileName)}`
   const bytes = Buffer.from(base64, "base64")

@@ -1,5 +1,6 @@
 "use server"
 
+import { requireAdmin } from "@/lib/auth"
 import {
   formatZodError,
   type SupplierRecord,
@@ -26,6 +27,12 @@ export async function getSuppliers(): Promise<SupplierRecord[]> {
 export async function createSupplier(
   form: SupplierRecordForm
 ): Promise<{ data?: SupplierRecord; error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const parsed = SupplierRecordFormSchema.safeParse(form)
   if (!parsed.success) return { error: formatZodError(parsed.error) }
 
@@ -48,6 +55,12 @@ export async function updateSupplier(
   id: string,
   form: SupplierRecordForm
 ): Promise<{ error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const parsed = SupplierRecordFormSchema.safeParse(form)
   if (!parsed.success) return { error: formatZodError(parsed.error) }
 
@@ -62,6 +75,12 @@ export async function updateSupplier(
 }
 
 export async function deleteSupplier(id: string): Promise<{ error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
   const supabase = await createClient()
   const { error } = await supabase.from("suppliers").delete().eq("id", id)
   if (error) return { error: error.message }
@@ -81,6 +100,8 @@ export async function upsertSupplierFromCost(supplier: {
   city: string
   country: string
 }): Promise<void> {
+  await requireAdmin()
+
   const ico = supplier.ico.trim()
   const dic = supplier.dic.trim()
   const name = supplier.name.trim()
