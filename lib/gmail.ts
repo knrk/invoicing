@@ -21,7 +21,7 @@ import {
   listLabels,
   refreshAccessToken,
 } from "@/lib/gmail-api"
-import { buildPendingDrafts, pendingKey, receivedDateFromMessage } from "@/lib/gmail-parse"
+import { buildPendingDrafts, isFromYear, pendingKey, receivedDateFromMessage } from "@/lib/gmail-parse"
 import {
   type CostFormData,
   CostFormDataSchema,
@@ -159,12 +159,14 @@ export async function disconnectGmail(): Promise<{ error?: string }> {
 // Zjistí, které zprávy se mají zpracovat.
 // - Máme historyId → inkrementální dotaz (jen labelAdded/messagesAdded od minule).
 //   Vypršel-li (404), spadneme na plný resync.
-// - Nemáme historyId (první běh) → plný resync celého labelu.
+// - Nemáme historyId (první běh) → plný resync labelu, omezený `fullResyncQuery`
+//   (např. `after:2026/1/1`, aby se netahaly starší roky).
 // `nextHistoryId` = kam posunout kotvu PO čistém běhu (bez chyb).
 async function resolveCandidateMessages(
   token: string,
   labelId: string,
-  historyId: string | null
+  historyId: string | null,
+  fullResyncQuery?: string
 ): Promise<{ messageIds: string[]; nextHistoryId: string | null }> {
   if (historyId) {
     try {
@@ -176,7 +178,7 @@ async function resolveCandidateMessages(
     }
   }
   const nextHistoryId = await getProfileHistoryId(token)
-  const messageIds = await listAllMessageIds(token, labelId)
+  const messageIds = await listAllMessageIds(token, labelId, fullResyncQuery)
   return { messageIds, nextHistoryId }
 }
 
@@ -220,10 +222,18 @@ export async function checkGmail(): Promise<GmailCheckResult> {
   ])
   const savedSuppliers = await getSuppliers()
 
+  // Bereme jen faktury z aktuálního kalendářního roku (podle data přijetí).
+  const currentYear = new Date().getFullYear()
+
   let messageIds: string[]
   let nextHistoryId: string | null
   try {
-    const resolved = await resolveCandidateMessages(token, integ.label_id, integ.history_id ?? null)
+    const resolved = await resolveCandidateMessages(
+      token,
+      integ.label_id,
+      integ.history_id ?? null,
+      `after:${currentYear}/1/1`
+    )
     messageIds = resolved.messageIds
     nextHistoryId = resolved.nextHistoryId
   } catch (err) {
@@ -235,6 +245,8 @@ export async function checkGmail(): Promise<GmailCheckResult> {
   for (const msgId of messageIds) {
     try {
       const message = await getMessage(token, msgId)
+      // Pojistka i pro inkrementální/history cestu (ta dotaz `after:` nemá).
+      if (!isFromYear(message.internalDate, currentYear)) continue
       const drafts = buildPendingDrafts(message, savedSuppliers, known)
       for (const draft of drafts) {
         const { error } = await supabase

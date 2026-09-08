@@ -27,6 +27,12 @@ export function receivedDateFromMessage(internalDate: string | undefined): strin
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
+// True, když e-mail (podle internalDate) spadá do daného kalendářního roku.
+// Chybějící internalDate → bereme dnešek (tj. aktuální rok).
+export function isFromYear(internalDate: string | undefined, year: number): boolean {
+  return receivedDateFromMessage(internalDate).startsWith(`${year}-`)
+}
+
 // Dodavatel z odesílatele: sedí-li e-mail/doména na uloženého dodavatele,
 // předvyplní se celý; jinak jen název z odesílatele.
 export function supplierFromSender(

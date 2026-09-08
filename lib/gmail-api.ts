@@ -132,15 +132,18 @@ export async function listLabels(accessToken: string): Promise<GmailLabel[]> {
 }
 
 // Vrátí ID VŠECH zpráv v daném labelu (plně stránkuje). Použité při plném
-// resyncu — když nemáme historyId nebo když ten vypršel.
+// resyncu — když nemáme historyId nebo když ten vypršel. `query` je volitelný
+// Gmail vyhledávací dotaz (např. `after:2026/1/1`), aby se netahaly staré roky.
 export async function listAllMessageIds(
   accessToken: string,
-  labelId: string
+  labelId: string,
+  query?: string
 ): Promise<string[]> {
   const ids: string[] = []
   let pageToken: string | undefined
   do {
     const params = new URLSearchParams({ labelIds: labelId, maxResults: "500" })
+    if (query) params.set("q", query)
     if (pageToken) params.set("pageToken", pageToken)
     const data = await gmailGet<{
       messages?: { id: string }[]

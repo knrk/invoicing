@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { GmailMessage } from "@/lib/gmail-api"
-import { buildPendingDrafts, pendingKey } from "@/lib/gmail-parse"
+import { buildPendingDrafts, isFromYear, pendingKey } from "@/lib/gmail-parse"
 
 const b64url = (s: string) => Buffer.from(s, "utf8").toString("base64url")
 
@@ -65,5 +65,21 @@ describe("buildPendingDrafts", () => {
 
   it("bez PDF a bez těla nevytvoří nic", () => {
     expect(buildPendingDrafts(msgNoContent(), [], new Set())).toHaveLength(0)
+  })
+})
+
+describe("isFromYear", () => {
+  // internalDate 1700000000000 = 2023-11-14
+  it("sedí na rok e-mailu", () => {
+    expect(isFromYear("1700000000000", 2023)).toBe(true)
+  })
+
+  it("odmítne jiný rok", () => {
+    expect(isFromYear("1700000000000", 2024)).toBe(false)
+    expect(isFromYear("1700000000000", 2022)).toBe(false)
+  })
+
+  it("chybějící internalDate bere jako aktuální rok", () => {
+    expect(isFromYear(undefined, new Date().getFullYear())).toBe(true)
   })
 })
