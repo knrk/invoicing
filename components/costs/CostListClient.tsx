@@ -2,6 +2,7 @@
 
 import { useIsAdmin } from "@/components/auth/RoleProvider"
 import CostUploadDialog from "@/components/costs/CostUploadDialog"
+import PendingGmailList from "@/components/costs/PendingGmailList"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,12 +29,12 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { deleteCost, deleteCosts, exportCostsZip } from "@/lib/costs"
-import { syncGmailCosts } from "@/lib/gmail"
+import { checkGmail } from "@/lib/gmail"
 import { fmtNum } from "@/lib/invoice"
 import { cn } from "@/lib/utils"
 import { useYearFilter } from "@/components/year-filter/YearFilterProvider"
 import { costYear } from "@/lib/year-filter"
-import type { Cost } from "@/types"
+import type { Cost, GmailPending } from "@/types"
 import { Plus, Receipt, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
@@ -89,9 +90,10 @@ function base64ToBytes(base64: string): Uint8Array {
 interface Props {
   costs: Cost[]
   gmailReady?: boolean
+  pending?: GmailPending[]
 }
 
-export default function CostListClient({ costs, gmailReady = false }: Props) {
+export default function CostListClient({ costs, gmailReady = false, pending = [] }: Props) {
   const isAdmin = useIsAdmin()
   const router = useRouter()
   const [uploadOpen, setUploadOpen] = useState(false)
@@ -107,17 +109,21 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
 
   async function handleGmailSync() {
     setSyncing(true)
-    const res = await syncGmailCosts()
+    const res = await checkGmail()
     setSyncing(false)
+    if (res.needsReconnect) {
+      toast.error("Přístup vypršel", { description: "Připoj Gmail znovu v Nastavení." })
+      return
+    }
     if (res.error) {
       toast.error("Kontrola Gmailu selhala", { description: res.error })
       return
     }
-    toast.success(`Hotovo: ${res.imported} nových, ${res.skipped} přeskočeno`)
+    toast.success(
+      res.added > 0 ? `Nalezeno ${res.added} nových faktur ke schválení` : "Žádné nové faktury"
+    )
     if (res.errors.length) {
-      toast.error("Některé přílohy se nenahrály", {
-        description: res.errors.slice(0, 3).join("; "),
-      })
+      toast.error("Některé zprávy se nenačetly", { description: res.errors.slice(0, 3).join("; ") })
     }
     router.refresh()
   }
@@ -238,6 +244,8 @@ export default function CostListClient({ costs, gmailReady = false }: Props) {
           value={overdue.length === 0 ? "Vše v pořádku" : sumByCurrency(overdue)}
         />
       </div>
+
+      {isAdmin && <PendingGmailList pending={pending} />}
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">

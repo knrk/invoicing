@@ -18,11 +18,11 @@ import {
 } from "@/components/ui/select"
 import {
   backfillGmailReceivedDates,
+  checkGmail,
   disconnectGmail,
   listGmailLabels,
   reimportAllGmail,
   setGmailLabel,
-  syncGmailCosts,
 } from "@/lib/gmail"
 import type { GmailLabel, GmailStatus } from "@/lib/gmail-api"
 import { cn } from "@/lib/utils"
@@ -108,7 +108,7 @@ export default function GmailIntegrationSettings({ status }: Props) {
 
   async function handleSync() {
     setSyncing(true)
-    const res = await syncGmailCosts()
+    const res = await checkGmail()
     setSyncing(false)
     if (res.needsReconnect) {
       setNeedsReconnect(true)
@@ -120,11 +120,10 @@ export default function GmailIntegrationSettings({ status }: Props) {
       return
     }
     toast.success(
-      `Hotovo: ${res.imported} nových, ${res.skipped} přeskočeno` +
-        (res.errors.length ? `, ${res.errors.length} chyb` : "")
+      res.added > 0 ? `Nalezeno ${res.added} nových faktur ke schválení` : "Žádné nové faktury"
     )
     if (res.errors.length) {
-      toast.error("Některé přílohy se nenahrály", { description: res.errors.slice(0, 3).join("; ") })
+      toast.error("Některé zprávy se nenačetly", { description: res.errors.slice(0, 3).join("; ") })
     }
     router.refresh()
   }
@@ -163,7 +162,7 @@ export default function GmailIntegrationSettings({ status }: Props) {
       toast.error("Přeimport selhal", { description: res.error })
       return
     }
-    toast.success(`Přeimportováno: ${res.imported} nákladů`)
+    toast.success(`Přeimport hotov: ${res.added} faktur ke schválení`)
     if (res.errors.length) {
       toast.error("Některé se nepodařily", { description: res.errors.slice(0, 3).join("; ") })
     }
