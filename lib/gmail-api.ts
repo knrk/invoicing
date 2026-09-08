@@ -112,14 +112,6 @@ export interface GmailStatus {
   lastSyncAt: string | null
 }
 
-export interface GmailSyncResult {
-  imported: number
-  skipped: number
-  errors: string[]
-  needsReconnect?: boolean
-  error?: string
-}
-
 // Výsledek checku: kolik NOVÝCH čekajících faktur přibylo do fronty.
 export interface GmailCheckResult {
   added: number
