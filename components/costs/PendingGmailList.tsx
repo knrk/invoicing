@@ -13,7 +13,7 @@ import {
 import { approvePending, getPendingAttachmentPreview, rejectPending } from "@/lib/gmail"
 import type { CostFormData, GmailPending } from "@/types"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { toast } from "sonner"
 
 interface Props {
@@ -33,17 +33,23 @@ export default function PendingGmailList({ pending }: Props) {
   const [preview, setPreview] = useState<Preview>({ kind: "loading" })
   const [busy, setBusy] = useState(false)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
+  // Generace požadavku na náhled — zahodí odpověď staršího řádku, když už je
+  // otevřený jiný (nebo zavřeno), aby náhled neseděl na jiné faktuře než formulář.
+  const previewReq = useRef(0)
 
   async function openRow(row: GmailPending) {
+    const req = ++previewReq.current
     setActive(row)
     setForm(row.parsed)
     setPreview({ kind: "loading" })
     const res = await getPendingAttachmentPreview(row.id)
+    if (previewReq.current !== req) return
     if ("error" in res) setPreview({ kind: "error", message: res.error })
     else setPreview(res)
   }
 
   function close() {
+    previewReq.current++
     setActive(null)
     setForm(null)
   }
