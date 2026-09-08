@@ -9,6 +9,10 @@ const GMAIL_BASE = "https://gmail.googleapis.com/gmail/v1/users/me"
 
 export class GmailAuthError extends Error {}
 
+// startHistoryId je starší než retence Gmailu (~týden) → History API vrací 404.
+// Volající na to spadne na plný resync celého labelu.
+export class GmailHistoryExpiredError extends Error {}
+
 function requireEnv(name: string): string {
   const value = process.env[name]
   if (!value) throw new Error(`Chybí proměnná prostředí: ${name}`)
@@ -87,6 +91,13 @@ export async function getProfileEmail(accessToken: string): Promise<string> {
   return data.emailAddress
 }
 
+// Aktuální historyId schránky — kotva pro první inkrementální běh (bereme ji
+// PŘED plným resyncem, aby se okno nepřekrylo se zprávami olabelovanými během něj).
+export async function getProfileHistoryId(accessToken: string): Promise<string> {
+  const data = await gmailGet<{ historyId: string }>(accessToken, "/profile")
+  return data.historyId
+}
+
 export interface GmailLabel {
   id: string
   name: string
@@ -114,19 +125,16 @@ export async function listLabels(accessToken: string): Promise<GmailLabel[]> {
   return data.labels ?? []
 }
 
-// Vrátí ID zpráv v daném labelu (stránkuje, s horním limitem kvůli zátěži).
-// `query` je volitelný Gmail search dotaz (např. "after:2026/01/01").
-export async function listMessageIds(
+// Vrátí ID VŠECH zpráv v daném labelu (plně stránkuje). Použité při plném
+// resyncu — když nemáme historyId nebo když ten vypršel.
+export async function listAllMessageIds(
   accessToken: string,
-  labelId: string,
-  query = "",
-  maxMessages = 200
+  labelId: string
 ): Promise<string[]> {
   const ids: string[] = []
   let pageToken: string | undefined
   do {
-    const params = new URLSearchParams({ labelIds: labelId, maxResults: "100" })
-    if (query) params.set("q", query)
+    const params = new URLSearchParams({ labelIds: labelId, maxResults: "500" })
     if (pageToken) params.set("pageToken", pageToken)
     const data = await gmailGet<{
       messages?: { id: string }[]
@@ -134,8 +142,57 @@ export async function listMessageIds(
     }>(accessToken, `/messages?${params.toString()}`)
     for (const m of data.messages ?? []) ids.push(m.id)
     pageToken = data.nextPageToken
-  } while (pageToken && ids.length < maxMessages)
-  return ids.slice(0, maxMessages)
+  } while (pageToken)
+  return ids
+}
+
+// Inkrementální seznam zpráv přidaných / nově olabelovaných od `startHistoryId`
+// (Gmail History API). Vrací dedup ID zpráv a nejnovější historyId jako novou
+// kotvu. Když je `startHistoryId` starší než retence Gmailu, API vrátí 404 →
+// GmailHistoryExpiredError.
+export async function listHistory(
+  accessToken: string,
+  startHistoryId: string,
+  labelId: string
+): Promise<{ messageIds: string[]; latestHistoryId: string | null }> {
+  const ids = new Set<string>()
+  let latestHistoryId: string | null = null
+  let pageToken: string | undefined
+  do {
+    const params = new URLSearchParams({
+      startHistoryId,
+      labelId,
+      historyTypes: "messageAdded",
+    })
+    params.append("historyTypes", "labelAdded")
+    if (pageToken) params.set("pageToken", pageToken)
+    const res = await fetch(`${GMAIL_BASE}/history?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (res.status === 404) {
+      throw new GmailHistoryExpiredError(`historyId ${startHistoryId} vypršel`)
+    }
+    if (!res.ok) {
+      throw new Error(`Gmail API /history → ${res.status}: ${await res.text()}`)
+    }
+    const data = (await res.json()) as {
+      history?: {
+        messagesAdded?: { message: { id: string } }[]
+        labelsAdded?: { message: { id: string } }[]
+      }[]
+      historyId?: string
+      nextPageToken?: string
+    }
+    for (const h of data.history ?? []) {
+      for (const m of h.messagesAdded ?? []) ids.add(m.message.id)
+      for (const m of h.labelsAdded ?? []) ids.add(m.message.id)
+    }
+    // historyId je nejnovější stav schránky (vrací se i pro prázdnou historii) →
+    // kotvu posuneme, i když nic nepřibylo.
+    if (data.historyId) latestHistoryId = data.historyId
+    pageToken = data.nextPageToken
+  } while (pageToken)
+  return { messageIds: [...ids], latestHistoryId }
 }
 
 interface MessagePart {
