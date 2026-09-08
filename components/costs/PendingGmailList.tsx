@@ -84,10 +84,10 @@ export default function PendingGmailList({ pending }: Props) {
   if (pending.length === 0) return null
 
   return (
-    <div className="mb-6 overflow-hidden rounded-xl border border-border bg-surface shadow-card">
-      <div className="flex items-center gap-2 border-b border-border px-5 py-3">
+    <div className="mb-6 overflow-hidden rounded-xl border border-warning-border bg-warning-bg shadow-card">
+      <div className="flex items-center gap-2 border-b border-warning-border px-5 py-3">
         <h2 className="text-base font-semibold text-text">Ke schválení z Gmailu</h2>
-        <span className="inline-flex items-center rounded-full border border-border bg-subtle px-2 py-0.5 text-xs font-semibold tabular-nums text-text-secondary">
+        <span className="inline-flex items-center rounded-full border border-warning-border bg-surface px-2 py-0.5 text-xs font-semibold tabular-nums text-warning-text">
           {pending.length}
         </span>
       </div>
