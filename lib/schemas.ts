@@ -55,11 +55,6 @@ export const AppConfigSchema = z.object({
 })
 
 export type AppConfig = z.infer<typeof AppConfigSchema>
-type SupplierConfig = z.infer<typeof SupplierConfigSchema>
-type BankingConfig = z.infer<typeof BankingConfigSchema>
-type InvoiceConfig = z.infer<typeof InvoiceConfigSchema>
-type FooterConfig = z.infer<typeof FooterConfigSchema>
-type TaxConfig = z.infer<typeof TaxConfigSchema>
 
 const CustomerSchema = z.object({
   name: z.string().min(1, "Název odběratele je povinný"),
@@ -210,7 +205,6 @@ export const GmailPendingSchema = z.object({
 
 export type Language = z.infer<typeof LanguageSchema>
 export type Currency = z.infer<typeof CurrencySchema>
-type Customer = z.infer<typeof CustomerSchema>
 export type CustomerRecord = z.infer<typeof CustomerRecordSchema>
 export type CustomerRecordForm = z.infer<typeof CustomerRecordFormSchema>
 export type InvoiceLine = z.infer<typeof InvoiceLineSchema>
