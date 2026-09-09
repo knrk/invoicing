@@ -6,95 +6,34 @@ import {
   buildAuthUrl,
   exchangeCodeForTokens,
   extractHtmlBody,
-  extractPdfAttachments,
   getAttachmentBase64,
-  getBodyText,
-  getHeader,
   getMessage,
   getProfileEmail,
   getProfileHistoryId,
   GmailAuthError,
+  type GmailCheckResult,
   GmailHistoryExpiredError,
   type GmailLabel,
-  type GmailMessage,
+  type GmailPendingPreview,
   type GmailStatus,
-  type GmailSyncResult,
   listAllMessageIds,
   listHistory,
   listLabels,
-  parseEmailFields,
-  parseSender,
   refreshAccessToken,
 } from "@/lib/gmail-api"
-import { today } from "@/lib/invoice"
-import type { CostFormData, SupplierRecord } from "@/lib/schemas"
+import { buildPendingDrafts, isFromYear, pendingKey, receivedDateFromMessage } from "@/lib/gmail-parse"
+import {
+  type CostFormData,
+  CostFormDataSchema,
+  formatZodError,
+  type GmailPending,
+  GmailPendingSchema,
+} from "@/lib/schemas"
 import { createClient } from "@/lib/supabase/server"
 import { getSuppliers } from "@/lib/suppliers"
 import { revalidatePath } from "next/cache"
 
 type Supabase = Awaited<ReturnType<typeof createClient>>
-
-// Datum přijetí e-mailu (internalDate = ms epoch) → "YYYY-MM-DD" (lokálně).
-function receivedDateFromMessage(internalDate: string | undefined): string {
-  if (!internalDate) return today()
-  const ms = Number(internalDate)
-  if (!Number.isFinite(ms)) return today()
-  const d = new Date(ms)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-}
-
-// Dodavatel z odesílatele: když e-mail/doména sedí na uloženého dodavatele,
-// předvyplní se celý; jinak jen název z odesílatele.
-function supplierFromSender(
-  saved: SupplierRecord[],
-  sender: { name: string; email: string }
-): CostFormData["supplier"] {
-  const email = sender.email
-  const domain = email.includes("@") ? email.split("@")[1] : ""
-  const match =
-    (email ? saved.find((s) => s.email.toLowerCase() === email) : undefined) ??
-    (domain
-      ? saved.find((s) => s.email && s.email.toLowerCase().split("@")[1] === domain)
-      : undefined)
-  if (match) {
-    return {
-      name: match.name,
-      ico: match.ico,
-      dic: match.dic,
-      street: match.street,
-      zip: match.zip,
-      city: match.city,
-      country: match.country,
-    }
-  }
-  return {
-    name: sender.name || sender.email,
-    ico: "",
-    dic: "",
-    street: "",
-    zip: "",
-    city: "",
-    country: "CZ",
-  }
-}
-
-function gmailCostForm(note: string, receivedDate: string): CostFormData {
-  return {
-    supplier: { name: "", ico: "", dic: "", street: "", zip: "", city: "", country: "CZ" },
-    invoice_number: "",
-    variable_symbol: "",
-    currency: "CZK",
-    issue_date: "",
-    due_date: "",
-    received_date: receivedDate,
-    total: 0,
-    vat_amount: null,
-    reverse_charge: false,
-    is_eu_supplier: false,
-    note,
-    source: "gmail",
-  }
-}
 
 export async function getGmailAuthUrl(): Promise<string> {
   await requireAdmin()
@@ -217,99 +156,17 @@ export async function disconnectGmail(): Promise<{ error?: string }> {
   return {}
 }
 
-// Zpracuje jednu zprávu: PDF přílohy → náklady, jinak HTML tělo → náklad.
-// Idempotentní přes `processed` (ledger `gmail_processed`). Mutuje `processed`.
-async function processOneMessage(
-  supabase: Supabase,
-  token: string,
-  message: GmailMessage,
-  savedSuppliers: SupplierRecord[],
-  processed: Set<string>
-): Promise<{ imported: number; skipped: number; errors: string[] }> {
-  const msgId = message.id
-  let imported = 0
-  let skipped = 0
-  const errors: string[] = []
-
-  const from = getHeader(message, "From")
-  const subject = getHeader(message, "Subject")
-  const received = receivedDateFromMessage(message.internalDate)
-  const note = `Z Gmailu — ${subject || "(bez předmětu)"} — ${from}`
-  const fields = parseEmailFields(subject, getBodyText(message))
-  const form: CostFormData = {
-    ...gmailCostForm(note, received),
-    supplier: supplierFromSender(savedSuppliers, parseSender(from)),
-    invoice_number: fields.invoice_number,
-    variable_symbol: fields.variable_symbol,
-    total: fields.total ?? 0,
-    currency: fields.currency ?? "CZK",
-    due_date: fields.due_date,
-  }
-  const pdfs = extractPdfAttachments(message)
-
-  if (pdfs.length > 0) {
-    for (const pdf of pdfs) {
-      const key = `${msgId}:${pdf.attachmentId}`
-      if (processed.has(key)) {
-        skipped++
-        continue
-      }
-      const base64 = await getAttachmentBase64(token, msgId, pdf.attachmentId)
-      const created = await createCost(form)
-      if (created.error || !created.data) {
-        errors.push(`${pdf.filename}: ${created.error ?? "vytvoření selhalo"}`)
-        continue
-      }
-      const up = await uploadCostFile(created.data.id, pdf.filename, base64)
-      if (up.error) errors.push(`${pdf.filename}: ${up.error}`)
-      await supabase.from("gmail_processed").insert({
-        message_id: msgId,
-        attachment_id: pdf.attachmentId,
-        cost_id: created.data.id,
-      })
-      processed.add(key)
-      imported++
-    }
-  } else {
-    // Bez PDF přílohy → faktura je v těle e-mailu (HTML), např. Apple.
-    const key = `${msgId}:body`
-    if (processed.has(key)) return { imported, skipped: skipped + 1, errors }
-    const html = extractHtmlBody(message)
-    if (!html) return { imported, skipped, errors }
-    const created = await createCost(form)
-    if (created.error || !created.data) {
-      errors.push(`${subject || msgId}: ${created.error ?? "vytvoření selhalo"}`)
-      return { imported, skipped, errors }
-    }
-    const base64 = Buffer.from(html, "utf8").toString("base64")
-    const up = await uploadCostFile(
-      created.data.id,
-      "faktura.html",
-      base64,
-      "text/html; charset=utf-8"
-    )
-    if (up.error) errors.push(`${subject || msgId}: ${up.error}`)
-    await supabase.from("gmail_processed").insert({
-      message_id: msgId,
-      attachment_id: "body",
-      cost_id: created.data.id,
-    })
-    processed.add(key)
-    imported++
-  }
-
-  return { imported, skipped, errors }
-}
-
 // Zjistí, které zprávy se mají zpracovat.
 // - Máme historyId → inkrementální dotaz (jen labelAdded/messagesAdded od minule).
 //   Vypršel-li (404), spadneme na plný resync.
-// - Nemáme historyId (první běh) → plný resync celého labelu.
+// - Nemáme historyId (první běh) → plný resync labelu, omezený `fullResyncQuery`
+//   (např. `after:2026/1/1`, aby se netahaly starší roky).
 // `nextHistoryId` = kam posunout kotvu PO čistém běhu (bez chyb).
 async function resolveCandidateMessages(
   token: string,
   labelId: string,
-  historyId: string | null
+  historyId: string | null,
+  fullResyncQuery?: string
 ): Promise<{ messageIds: string[]; nextHistoryId: string | null }> {
   if (historyId) {
     try {
@@ -321,23 +178,18 @@ async function resolveCandidateMessages(
     }
   }
   const nextHistoryId = await getProfileHistoryId(token)
-  const messageIds = await listAllMessageIds(token, labelId)
+  const messageIds = await listAllMessageIds(token, labelId, fullResyncQuery)
   return { messageIds, nextHistoryId }
 }
 
-// Stáhne nově olabelované faktury a založí z nich náklady. Inkrementální přes
-// Gmail History API — nedotahuje už zpracované. Čistá funkce volatelná z
-// tlačítka i z budoucího Vercel Cronu.
-export async function syncGmailCosts(): Promise<GmailSyncResult> {
+// Vyhledá nové faktury v labelu a založí je do fronty ke schválení
+// (gmail_pending). Nezapisuje do costs ani nenahrává přílohy — to až schválení.
+// Inkrementální přes History API; dedup = gmail_processed ∪ gmail_pending.
+export async function checkGmail(): Promise<GmailCheckResult> {
   try {
     await requireAdmin()
   } catch (e) {
-    return {
-      imported: 0,
-      skipped: 0,
-      errors: [],
-      error: e instanceof Error ? e.message : "Nemáte oprávnění.",
-    }
+    return { added: 0, errors: [], error: e instanceof Error ? e.message : "Nemáte oprávnění." }
   }
 
   const supabase = await createClient()
@@ -346,76 +198,73 @@ export async function syncGmailCosts(): Promise<GmailSyncResult> {
     .select("refresh_token, label_id, history_id")
     .eq("id", 1)
     .single()
-  if (!integ?.refresh_token) {
-    return { imported: 0, skipped: 0, errors: [], error: "Gmail není připojen" }
-  }
-  if (!integ.label_id) {
-    return { imported: 0, skipped: 0, errors: [], error: "Není zvolený label" }
-  }
+  if (!integ?.refresh_token) return { added: 0, errors: [], error: "Gmail není připojen" }
+  if (!integ.label_id) return { added: 0, errors: [], error: "Není zvolený label" }
 
   let token: string
   try {
     token = await refreshAccessToken(integ.refresh_token)
   } catch (err) {
     if (err instanceof GmailAuthError) {
-      return {
-        imported: 0,
-        skipped: 0,
-        errors: [],
-        needsReconnect: true,
-        error: "Přístup vypršel, připoj Gmail znovu.",
-      }
+      return { added: 0, errors: [], needsReconnect: true, error: "Přístup vypršel, připoj Gmail znovu." }
     }
-    return {
-      imported: 0,
-      skipped: 0,
-      errors: [],
-      error: err instanceof Error ? err.message : "Chyba přístupu ke Gmailu",
-    }
+    return { added: 0, errors: [], error: err instanceof Error ? err.message : "Chyba přístupu ke Gmailu" }
   }
 
-  const { data: processedRows } = await supabase
-    .from("gmail_processed")
-    .select("message_id, attachment_id")
-  const processed = new Set(
-    (processedRows ?? []).map((r) => `${r.message_id}:${r.attachment_id}`)
-  )
+  // Známé dvojice = už rozhodnuté (gmail_processed) + už čekající (gmail_pending).
+  const [{ data: processedRows }, { data: pendingRows }] = await Promise.all([
+    supabase.from("gmail_processed").select("message_id, attachment_id"),
+    supabase.from("gmail_pending").select("message_id, attachment_id"),
+  ])
+  const known = new Set<string>([
+    ...(processedRows ?? []).map((r) => pendingKey(r.message_id, r.attachment_id)),
+    ...(pendingRows ?? []).map((r) => pendingKey(r.message_id, r.attachment_id)),
+  ])
   const savedSuppliers = await getSuppliers()
+
+  // Bereme jen faktury z aktuálního kalendářního roku (podle data přijetí).
+  const currentYear = new Date().getFullYear()
 
   let messageIds: string[]
   let nextHistoryId: string | null
   try {
-    const resolved = await resolveCandidateMessages(token, integ.label_id, integ.history_id ?? null)
+    const resolved = await resolveCandidateMessages(
+      token,
+      integ.label_id,
+      integ.history_id ?? null,
+      `after:${currentYear}/1/1`
+    )
     messageIds = resolved.messageIds
     nextHistoryId = resolved.nextHistoryId
   } catch (err) {
-    return {
-      imported: 0,
-      skipped: 0,
-      errors: [],
-      error: err instanceof Error ? err.message : "Nepodařilo se načíst zprávy",
-    }
+    return { added: 0, errors: [], error: err instanceof Error ? err.message : "Nepodařilo se načíst zprávy" }
   }
 
-  let imported = 0
-  let skipped = 0
+  let added = 0
   const errors: string[] = []
   for (const msgId of messageIds) {
     try {
       const message = await getMessage(token, msgId)
-      const r = await processOneMessage(supabase, token, message, savedSuppliers, processed)
-      imported += r.imported
-      skipped += r.skipped
-      errors.push(...r.errors)
+      // Pojistka i pro inkrementální/history cestu (ta dotaz `after:` nemá).
+      if (!isFromYear(message.internalDate, currentYear)) continue
+      const drafts = buildPendingDrafts(message, savedSuppliers, known)
+      for (const draft of drafts) {
+        const { error } = await supabase
+          .from("gmail_pending")
+          .upsert(draft, { onConflict: "message_id,attachment_id", ignoreDuplicates: true })
+        if (error) {
+          errors.push(`${draft.attachment_name ?? msgId}: ${error.message}`)
+          continue
+        }
+        known.add(pendingKey(draft.message_id, draft.attachment_id))
+        added++
+      }
     } catch (err) {
       errors.push(`Zpráva ${msgId}: ${err instanceof Error ? err.message : "chyba"}`)
     }
   }
 
-  // Kotvu posuň jen po čistém běhu. Když něco selhalo, historyId necháme být →
-  // příští běh zopakuje stejné okno a ledger přeskočí, co už prošlo (nic se
-  // neztratí). Pozn.: při plném resyncu (historyId bylo null) tím pádem zůstane
-  // null i nadále, takže selhání retryuje další plný resync.
+  // Kotvu posuň jen po čistém běhu (nerozhodnuté položky bezpečně žijí v pending).
   const patch: { last_sync_at: string; updated_at: string; history_id?: string } = {
     last_sync_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -424,23 +273,195 @@ export async function syncGmailCosts(): Promise<GmailSyncResult> {
   await supabase.from("gmail_integration").update(patch).eq("id", 1)
 
   revalidatePath("/costs")
-  revalidatePath("/")
   revalidatePath("/settings")
-  return { imported, skipped, errors }
+  return { added, errors }
 }
 
-// Smaže dosavadní Gmail náklady + dedup log a naimportuje vše znovu (s aktuální
-// logikou předvyplnění). Ruční uploady (source='upload') nechává být.
-export async function reimportAllGmail(): Promise<GmailSyncResult> {
+// Načte frontu čekajících faktur pro UI (nejnovější první).
+export async function listPendingGmail(): Promise<GmailPending[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("gmail_pending")
+    .select("*")
+    .order("created_at", { ascending: false })
+  if (error || !data) return []
+  return data.flatMap((row) => {
+    const parsed = GmailPendingSchema.safeParse(row)
+    return parsed.success ? [parsed.data] : []
+  })
+}
+
+// Schválí čekající fakturu: založí náklad, lazy stáhne+nahraje přílohu a zapíše
+// rozhodnutí. Claim guard (smazání pending řádku) brání dvojímu zpracování;
+// při chybě před založením nákladu se řádek vrátí do fronty.
+export async function approvePending(
+  id: string,
+  form: CostFormData
+): Promise<{ error?: string; needsReconnect?: boolean }> {
   try {
     await requireAdmin()
   } catch (e) {
-    return {
-      imported: 0,
-      skipped: 0,
-      errors: [],
-      error: e instanceof Error ? e.message : "Nemáte oprávnění.",
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
+  const parsed = CostFormDataSchema.safeParse(form)
+  if (!parsed.success) return { error: formatZodError(parsed.error) }
+
+  const supabase = await createClient()
+
+  // Claim: odeber řádek z fronty. Když už není, někdo rozhodl dřív → hotovo.
+  const { data: claimed } = await supabase
+    .from("gmail_pending")
+    .delete()
+    .eq("id", id)
+    .select("*")
+    .single()
+  if (!claimed) return {}
+
+  const restore = async () => {
+    await supabase.from("gmail_pending").insert(claimed)
+  }
+
+  const { data: integ } = await supabase
+    .from("gmail_integration")
+    .select("refresh_token")
+    .eq("id", 1)
+    .single()
+  if (!integ?.refresh_token) {
+    await restore()
+    return { error: "Gmail není připojen" }
+  }
+
+  let token: string
+  try {
+    token = await refreshAccessToken(integ.refresh_token)
+  } catch (err) {
+    await restore()
+    if (err instanceof GmailAuthError) {
+      return { needsReconnect: true, error: "Přístup vypršel, připoj Gmail znovu." }
     }
+    return { error: err instanceof Error ? err.message : "Chyba přístupu ke Gmailu" }
+  }
+
+  const created = await createCost(parsed.data)
+  if (created.error || !created.data) {
+    await restore()
+    return { error: created.error ?? "Vytvoření nákladu selhalo" }
+  }
+  const costId = created.data.id
+
+  // Náklad založen → rozhodnutí zapíšeme vždy (upload přílohy je měkká chyba).
+  try {
+    if (claimed.has_pdf) {
+      const base64 = await getAttachmentBase64(token, claimed.message_id, claimed.attachment_id)
+      const up = await uploadCostFile(costId, claimed.attachment_name ?? "faktura.pdf", base64)
+      if (up.error) return { error: `Náklad uložen, ale PDF se nenahrálo: ${up.error}` }
+    } else {
+      const message = await getMessage(token, claimed.message_id)
+      const html = extractHtmlBody(message)
+      if (html) {
+        const base64 = Buffer.from(html, "utf8").toString("base64")
+        const up = await uploadCostFile(costId, "faktura.html", base64, "text/html; charset=utf-8")
+        if (up.error) return { error: `Náklad uložen, ale tělo se nenahrálo: ${up.error}` }
+      }
+    }
+  } catch (err) {
+    return { error: `Náklad uložen, ale příloha se nenahrála: ${err instanceof Error ? err.message : "chyba"}` }
+  } finally {
+    await supabase.from("gmail_processed").insert({
+      message_id: claimed.message_id,
+      attachment_id: claimed.attachment_id,
+      decision: "approved",
+      cost_id: costId,
+    })
+    revalidatePath("/costs")
+    revalidatePath("/")
+  }
+
+  return {}
+}
+
+// Odmítne čekající fakturu: zapíše rozhodnutí 'rejected' a odebere z fronty.
+export async function rejectPending(id: string): Promise<{ error?: string }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
+  const supabase = await createClient()
+  const { data: claimed } = await supabase
+    .from("gmail_pending")
+    .delete()
+    .eq("id", id)
+    .select("message_id, attachment_id")
+    .single()
+  if (!claimed) return {}
+
+  const { error } = await supabase.from("gmail_processed").insert({
+    message_id: claimed.message_id,
+    attachment_id: claimed.attachment_id,
+    decision: "rejected",
+    cost_id: null,
+  })
+  if (error) return { error: error.message }
+
+  revalidatePath("/costs")
+  return {}
+}
+
+// Lazy náhled přílohy čekající faktury (bez uploadu do Storage).
+export async function getPendingAttachmentPreview(id: string): Promise<GmailPendingPreview> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
+  const supabase = await createClient()
+  const { data: row } = await supabase
+    .from("gmail_pending")
+    .select("message_id, attachment_id, has_pdf")
+    .eq("id", id)
+    .single()
+  if (!row) return { error: "Položka už není ve frontě" }
+
+  const { data: integ } = await supabase
+    .from("gmail_integration")
+    .select("refresh_token")
+    .eq("id", 1)
+    .single()
+  if (!integ?.refresh_token) return { error: "Gmail není připojen" }
+
+  let token: string
+  try {
+    token = await refreshAccessToken(integ.refresh_token)
+  } catch (err) {
+    if (err instanceof GmailAuthError) {
+      return { error: "Přístup vypršel, připoj Gmail znovu.", needsReconnect: true }
+    }
+    return { error: err instanceof Error ? err.message : "Chyba přístupu ke Gmailu" }
+  }
+
+  try {
+    if (row.has_pdf) {
+      const base64 = await getAttachmentBase64(token, row.message_id, row.attachment_id)
+      return { kind: "pdf", base64 }
+    }
+    const message = await getMessage(token, row.message_id)
+    return { kind: "html", html: extractHtmlBody(message) ?? "" }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Náhled se nepodařil" }
+  }
+}
+
+// Smaže dosavadní Gmail náklady + frontu + dedup log a spustí check znovu
+// (vše spadne zpět do fronty ke schválení). Ruční uploady (source='upload') nechává.
+export async function reimportAllGmail(): Promise<GmailCheckResult> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { added: 0, errors: [], error: e instanceof Error ? e.message : "Nemáte oprávnění." }
   }
 
   const supabase = await createClient()
@@ -458,17 +479,17 @@ export async function reimportAllGmail(): Promise<GmailSyncResult> {
     if (paths.length > 0) await supabase.storage.from("costs").remove(paths)
   }
 
-  // Vyčisti dedup log (message_id je vždy neprázdné → smaže vše).
+  // Vyčisti frontu i dedup log (message_id je vždy neprázdné → smaže vše).
+  await supabase.from("gmail_pending").delete().not("message_id", "is", null)
   await supabase.from("gmail_processed").delete().not("message_id", "is", null)
 
-  // Vynuluj kotvu, ať následný sync udělá plný resync celého labelu (ne jen
-  // inkrementální okno od posledního historyId).
+  // Vynuluj kotvu → následný check udělá plný resync celého labelu.
   await supabase
     .from("gmail_integration")
     .update({ history_id: null, updated_at: new Date().toISOString() })
     .eq("id", 1)
 
-  return syncGmailCosts()
+  return checkGmail()
 }
 
 // Jednorázově doplní datum přijetí u již naimportovaných Gmail nákladů podle

@@ -193,6 +193,21 @@ export const CostSchema = CostFormDataSchema.extend({
   updated_at: z.string(),
 })
 
+// Čekající Gmail faktura ve frontě ke schválení. `parsed` = editovatelný draft
+// ve tvaru CostFormData; ostatní pole jsou pro zobrazení v seznamu.
+export const GmailPendingSchema = z.object({
+  id: z.string().uuid(),
+  message_id: z.string(),
+  attachment_id: z.string(),
+  parsed: CostFormDataSchema,
+  email_subject: z.string().default(""),
+  email_from: z.string().default(""),
+  received_date: z.string().nullable().default(null),
+  attachment_name: z.string().nullable().default(null),
+  has_pdf: z.boolean().default(false),
+  created_at: z.string(),
+})
+
 export type Language = z.infer<typeof LanguageSchema>
 export type Currency = z.infer<typeof CurrencySchema>
 type Customer = z.infer<typeof CustomerSchema>
@@ -203,6 +218,7 @@ export type InvoiceFormData = z.infer<typeof InvoiceFormDataSchema>
 export type Invoice = z.infer<typeof InvoiceSchema>
 export type CostFormData = z.infer<typeof CostFormDataSchema>
 export type Cost = z.infer<typeof CostSchema>
+export type GmailPending = z.infer<typeof GmailPendingSchema>
 export type SupplierRecord = z.infer<typeof SupplierRecordSchema>
 export type SupplierRecordForm = z.infer<typeof SupplierRecordFormSchema>
 

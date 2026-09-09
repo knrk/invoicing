@@ -112,13 +112,19 @@ export interface GmailStatus {
   lastSyncAt: string | null
 }
 
-export interface GmailSyncResult {
-  imported: number
-  skipped: number
+// Výsledek checku: kolik NOVÝCH čekajících faktur přibylo do fronty.
+export interface GmailCheckResult {
+  added: number
   errors: string[]
   needsReconnect?: boolean
   error?: string
 }
+
+// Náhled přílohy čekající faktury (lazy, bez uploadu do Storage).
+export type GmailPendingPreview =
+  | { kind: "pdf"; base64: string }
+  | { kind: "html"; html: string }
+  | { error: string; needsReconnect?: boolean }
 
 export async function listLabels(accessToken: string): Promise<GmailLabel[]> {
   const data = await gmailGet<{ labels: GmailLabel[] }>(accessToken, "/labels")
@@ -126,15 +132,18 @@ export async function listLabels(accessToken: string): Promise<GmailLabel[]> {
 }
 
 // Vrátí ID VŠECH zpráv v daném labelu (plně stránkuje). Použité při plném
-// resyncu — když nemáme historyId nebo když ten vypršel.
+// resyncu — když nemáme historyId nebo když ten vypršel. `query` je volitelný
+// Gmail vyhledávací dotaz (např. `after:2026/1/1`), aby se netahaly staré roky.
 export async function listAllMessageIds(
   accessToken: string,
-  labelId: string
+  labelId: string,
+  query?: string
 ): Promise<string[]> {
   const ids: string[] = []
   let pageToken: string | undefined
   do {
     const params = new URLSearchParams({ labelIds: labelId, maxResults: "500" })
+    if (query) params.set("q", query)
     if (pageToken) params.set("pageToken", pageToken)
     const data = await gmailGet<{
       messages?: { id: string }[]
