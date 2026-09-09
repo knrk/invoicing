@@ -77,7 +77,8 @@ export default function GmailIntegrationSettings({ status }: Props) {
       toast.success("Gmail připojen")
       toastedParam.current = true
     } else if (g === "error") {
-      toast.error("Připojení Gmailu selhalo")
+      const reason = searchParams.get("reason")
+      toast.error(reason ? `Připojení Gmailu selhalo: ${reason}` : "Připojení Gmailu selhalo")
       toastedParam.current = true
     }
   }, [searchParams])
