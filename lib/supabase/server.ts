@@ -2,11 +2,17 @@ import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { requireEnv } from "@/lib/supabase/env"
 
-const supabaseUrl = requireEnv("NEXT_PUBLIC_SUPABASE_URL")
-const supabaseKey = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
-
 export async function createClient() {
+  // Touch cookies() first so a static prerender bails to dynamic rendering here,
+  // before we read env. Combined with reading env inside the function (never at
+  // module top-level), this keeps `next build` from requiring the Supabase env
+  // vars at build time: importing the module can't throw, and any page using
+  // this client becomes dynamic before the env read runs. The vars are then only
+  // required at request time.
   const cookieStore = await cookies()
+
+  const supabaseUrl = requireEnv("NEXT_PUBLIC_SUPABASE_URL")
+  const supabaseKey = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
 
   return createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
