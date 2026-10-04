@@ -63,6 +63,7 @@ Set these in the Vercel project (Project → Settings → Environment Variables)
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (browser + server + proxy) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/publishable key |
+| `CRON_SECRET` | Random string (≥16 chars); Vercel Cron sends it as a Bearer token to `/api/cron/keepalive` (daily Supabase keep-alive ping) |
 | `RESEND_API_KEY` | Invoice email sending (existing) |
 | `RESEND_FROM` | Invoice email sender (existing) |
 | `GOOGLE_CLIENT_ID` | Gmail **import** integration (existing, unrelated to login) |
