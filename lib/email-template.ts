@@ -45,3 +45,28 @@ S pozdravem,
 ${supplier}`,
   }
 }
+
+const CZ_MONTHS_GENITIVE = [
+  "", "leden", "únor", "březen", "duben", "květen", "červen",
+  "červenec", "srpen", "září", "říjen", "listopad", "prosinec",
+]
+
+/** Default předmět + zpráva e-mailu účetní s PDF fakturami vystavenými do EU. */
+export function buildAccountantEmailTemplate(
+  rok: number,
+  mesic: number,
+  config: AppConfig
+): EmailTemplate {
+  const period = `${CZ_MONTHS_GENITIVE[mesic]} ${rok}`
+  return {
+    subject: `Faktury vystavené do EU za ${period}`,
+    body: `Dobrý den,
+
+v příloze zasílám faktury vystavené do EU za ${period} (podklady k souhrnnému hlášení).
+
+Děkuji.
+
+S pozdravem,
+${config.supplier.name}`,
+  }
+}

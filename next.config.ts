@@ -25,6 +25,11 @@ const nextConfig: NextConfig = {
   // react-pdf is loaded via dynamic import (client-side only),
   // so no canvas stub or special bundler config is needed.
   turbopack: {},
+  experimental: {
+    // E-mail účetní nese víc PDF faktur jako base64; výchozí limit 1 MB nestačí.
+    // Vercel stropuje request body na 4,5 MB.
+    serverActions: { bodySizeLimit: "4mb" },
+  },
   poweredByHeader: false,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }]

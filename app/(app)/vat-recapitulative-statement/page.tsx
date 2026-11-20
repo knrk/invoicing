@@ -1,4 +1,4 @@
-import { getConfig, getInvoices } from "@/lib/actions"
+import { getConfig, getInvoices, getVatReportSends } from "@/lib/actions"
 import { getCosts } from "@/lib/costs"
 import {
   buildReceivedObligationData,
@@ -8,10 +8,11 @@ import { buildVatRecapStatementData } from "@/lib/vat-recapitulative-statement"
 import VatRecapStatementClient from "@/components/vat-recapitulative-statement/VatRecapStatementClient"
 
 export default async function VatRecapitulativeStatementPage() {
-  const [invoices, costs, config] = await Promise.all([
+  const [invoices, costs, config, sends] = await Promise.all([
     getInvoices(),
     getCosts(),
     getConfig(),
+    getVatReportSends(),
   ])
 
   const months = completedMonths(invoices, costs)
@@ -34,14 +35,20 @@ export default async function VatRecapitulativeStatementPage() {
   )
 
   return (
-    <main className="max-w-3xl mx-auto px-10 py-8">
+    <main className="max-w-5xl mx-auto px-10 py-8">
       <h1 className="text-2xl font-bold text-text mb-2">Souhrnné hlášení</h1>
-      <p className="text-sm text-text-secondary mb-8">
-        Přehled měsíců s povinností hlášení. Vydané faktury v EUR odběratelům z EU jdou do
-        souhrnného hlášení (XML). Přijaté faktury od dodavatelů z EU nebo v režimu přenesené
-        daňové povinnosti patří do přiznání k DPH (samovyměření) — zde slouží jen jako kontrola.
+      <p className="text-sm text-text-secondary mb-8 max-w-2xl">
+        Doklady jsou k měsíci přiřazeny podle data zdanitelného plnění. Vydané faktury v EUR
+        odběratelům z EU jdou do souhrnného hlášení (XML). Přijaté faktury od dodavatelů z EU
+        nebo v režimu přenesené daňové povinnosti patří do přiznání k DPH (samovyměření) — zde
+        slouží jen jako kontrola.
       </p>
-      <VatRecapStatementClient months={monthData} configMissing={!config} />
+      <VatRecapStatementClient
+        months={monthData}
+        configMissing={!config}
+        config={config}
+        sends={sends}
+      />
     </main>
   )
 }

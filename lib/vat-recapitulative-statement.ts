@@ -173,19 +173,20 @@ export function generateVatRecapStatementXml(
   const today = fmtDate(new Date())
 
   // Parse supplier street into ulice + c_pop + c_or
-  // "Rezlerova 310"   → ulice="Rezlerova"  c_pop="310"  c_or=""
-  // "Rezlerova 310/2" → ulice="Rezlerova"  c_pop="310"  c_or="2"
-  // "Novákova 14a"    → ulice="Novákova"   c_pop="14a"  c_or=""
-  const streetMatch = supplier.street.match(/^(.+?)\s+(\d+[a-zA-Z]?)(?:\/\d+[a-zA-Z]?)?$/)
+  // "Rezlerova 310"   → ulice="Rezlerova"  c_pop="310"  c_orient=""
+  // "Rezlerova 310/2" → ulice="Rezlerova"  c_pop="310"  c_orient="2"
+  // "Novákova 14a"    → ulice="Novákova"   c_pop="14a"  c_orient=""
+  const streetMatch = supplier.street.match(/^(.+?)\s+(\d+[a-zA-Z]?)(?:\/(\d+[a-zA-Z]?))?$/)
   const ulice = streetMatch ? streetMatch[1] : supplier.street
   const c_pop = streetMatch ? streetMatch[2] : ""
+  const c_orient = streetMatch?.[3] ?? ""
 
   // DIC without CZ prefix for VetaP
   const dic = supplier.dic.replace(/^CZ/i, "")
 
   const vetaD = `<VetaD k_uladis="DPH" dokument="SHV" rok="${data.rok}" shvies_forma="R" d_poddp="${today}" mesic="${data.mesic}" />`
 
-  const vetaP = `<VetaP c_ufo="${escapeXml(tax.c_ufo)}" c_pracufo="${escapeXml(tax.c_pracufo)}" dic="${escapeXml(dic)}" typ_ds="${escapeXml(tax.typ_ds)}" prijmeni="${escapeXml(prijmeni)}" jmeno="${escapeXml(jmeno)}" naz_obce="${escapeXml(supplier.city)}" ulice="${escapeXml(ulice)}" c_pop="${escapeXml(c_pop)}" psc="${escapeXml(supplier.zip.replace(/\s/g, ""))}" sest_prijmeni="${escapeXml(sest_prijmeni)}" sest_jmeno="${escapeXml(sest_jmeno)}" sest_telef="${escapeXml(sest_telef)}" />`
+  const vetaP = `<VetaP c_ufo="${escapeXml(tax.c_ufo)}" c_pracufo="${escapeXml(tax.c_pracufo)}" dic="${escapeXml(dic)}" typ_ds="${escapeXml(tax.typ_ds)}" prijmeni="${escapeXml(prijmeni)}" jmeno="${escapeXml(jmeno)}" naz_obce="${escapeXml(supplier.city)}" ulice="${escapeXml(ulice)}" c_pop="${escapeXml(c_pop)}"${c_orient ? ` c_orient="${escapeXml(c_orient)}"` : ""} psc="${escapeXml(supplier.zip.replace(/\s/g, ""))}" stat="ČESKÁ REPUBLIKA" sest_prijmeni="${escapeXml(sest_prijmeni)}" sest_jmeno="${escapeXml(sest_jmeno)}" sest_telef="${escapeXml(sest_telef)}" />`
 
   const vetaRLines = data.rows.map(
     (row, idx) =>

@@ -42,6 +42,7 @@ const TaxConfigSchema = z.object({
   prijmeni: z.string().default(""),
   jmeno: z.string().default(""),
   sest_telef: z.string().default(""),
+  accountant_email: z.string().email("Neplatný e-mail").or(z.literal("")).default(""),
 })
 
 export const AppConfigSchema = z.object({
@@ -50,7 +51,7 @@ export const AppConfigSchema = z.object({
   banking: BankingConfigSchema,
   invoice: InvoiceConfigSchema,
   footer: FooterConfigSchema,
-  tax: TaxConfigSchema.default({ c_ufo: "", c_pracufo: "", typ_ds: "F", prijmeni: "", jmeno: "", sest_telef: "" }),
+  tax: TaxConfigSchema.default({ c_ufo: "", c_pracufo: "", typ_ds: "F", prijmeni: "", jmeno: "", sest_telef: "", accountant_email: "" }),
   updated_at: z.string().optional(),
 })
 

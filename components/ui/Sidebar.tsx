@@ -3,10 +3,11 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  FileText, Settings, Contact, Plus, ReceiptText,
+  FileText, Settings, Contact, ReceiptText,
   Moon, Sun, ChevronLeft, BadgeEuro, Receipt, Truck, LogOut,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import MetalLinkButton from "@/components/ui/MetalLinkButton"
 import YearSelect from "@/components/year-filter/YearSelect"
 import { useEffect, useState } from "react"
 import { useRole } from "@/components/auth/RoleProvider"
@@ -148,17 +149,7 @@ export default function Sidebar() {
 
       {isAdmin && (
         <div className={cn("pb-2 shrink-0", collapsed ? "px-2 pt-3" : "px-3 pt-4")}>
-          <Link
-            href="/invoice/new"
-            title={collapsed ? "Nová faktura" : undefined}
-            className={cn(
-              "flex items-center justify-center w-full bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-colors",
-              collapsed ? "aspect-square rounded-full" : "h-9 rounded-lg gap-2"
-            )}
-          >
-            <Plus className="w-4 h-4 shrink-0" />
-            {!collapsed && <span className="whitespace-nowrap">Nová faktura</span>}
-          </Link>
+          <MetalLinkButton href="/invoice/new" label="Nová faktura" collapsed={collapsed} />
         </div>
       )}
 

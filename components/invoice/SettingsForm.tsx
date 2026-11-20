@@ -59,6 +59,7 @@ const DEFAULT_CONFIG: Omit<AppConfig, "id" | "updated_at"> = {
     prijmeni: "",
     jmeno: "",
     sest_telef: "",
+    accountant_email: "",
   },
 }
 
@@ -292,6 +293,7 @@ export default function SettingsForm({
       </Card>
         )}
         {tab === "tax" && (
+      <>
       <Card>
         <CardHeader>
           <CardTitle>Souhrnné hlášení (EPO)</CardTitle>
@@ -346,6 +348,25 @@ export default function SettingsForm({
           </div>
         </CardContent>
       </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Účetní</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted mb-4">
+            Na tento e-mail se odesílají podklady z přehledu souhrnného hlášení.
+          </p>
+          <Field label="E-mail účetní">
+            <Input
+              type="email"
+              value={form.tax.accountant_email}
+              onChange={(e) => setNested("tax", "accountant_email", e.target.value)}
+              placeholder="ucetni@firma.cz"
+            />
+          </Field>
+        </CardContent>
+      </Card>
+      </>
         )}
 
         <div className="flex items-center gap-4 pt-2">

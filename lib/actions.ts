@@ -22,6 +22,7 @@ import {
   type VatRecapStatementData,
 } from "@/lib/vat-recapitulative-statement"
 import { createClient } from "@/lib/supabase/server"
+import type { VatReportSend } from "@/lib/vat-report-sends"
 import { costYearFromFields, yearFromDate } from "@/lib/year-filter"
 import { revalidatePath } from "next/cache"
 import { Resend } from "resend"
@@ -311,6 +312,86 @@ export async function exportVatRecapStatementXml(
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Chyba při generování XML" }
   }
+}
+
+export async function getVatReportSends(): Promise<VatReportSend[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("vat_report_sends")
+    .select("rok, mesic, sent_at, sent_to")
+  if (error) {
+    // Tabulka nemusí existovat, dokud není spuštěna migrace 20260920_vat_report_sends.sql —
+    // přehled musí fungovat dál, jen se nepamatuje stav "odesláno".
+    console.warn(`getVatReportSends: ${error.code ?? ""} ${error.message}`)
+    return []
+  }
+  return (data ?? []) as VatReportSend[]
+}
+
+export async function sendVatRecapToAccountant(params: {
+  rok: number
+  mesic: number
+  to: string
+  subject: string
+  body: string
+  /** PDF faktur vystavených do EU za měsíc (base64), generované v prohlížeči. */
+  attachments: { filename: string; pdfBase64: string }[]
+}): Promise<{ error?: string; send?: VatReportSend }> {
+  try {
+    await requireAdmin()
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nemáte oprávnění." }
+  }
+
+  const { rok, mesic, to, subject, body, attachments } = params
+
+  const apiKey = process.env.RESEND_API_KEY
+  const fromAddress = process.env.RESEND_FROM
+  if (!apiKey) return { error: "Chybí RESEND_API_KEY v nastavení serveru." }
+  if (!fromAddress) return { error: "Chybí RESEND_FROM v nastavení serveru." }
+  if (!to.trim()) return { error: "Chybí e-mail příjemce." }
+  if (attachments.length === 0) return { error: "Za tento měsíc není co odeslat." }
+
+  const config = await getConfig()
+  if (!config) return { error: "Chybí konfigurace" }
+
+  const supplierEmail = config.supplier.email || undefined
+  const from = config.supplier.name ? `${config.supplier.name} <${fromAddress}>` : fromAddress
+
+  try {
+    const resend = new Resend(apiKey)
+    const { error } = await resend.emails.send({
+      from,
+      to: to.trim(),
+      subject,
+      text: body,
+      replyTo: supplierEmail,
+      bcc: supplierEmail,
+      attachments: attachments.map((a) => ({
+        filename: a.filename,
+        content: Buffer.from(a.pdfBase64, "base64"),
+      })),
+    })
+    if (error) return { error: error.message }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Nepodařilo se odeslat e-mail." }
+  }
+
+  const send: VatReportSend = {
+    rok,
+    mesic,
+    sent_at: new Date().toISOString(),
+    sent_to: to.trim(),
+  }
+  const supabase = await createClient()
+  const { error: saveError } = await supabase.from("vat_report_sends").upsert(send)
+  if (saveError) {
+    // E-mail už odešel — nehlásíme chybu odeslání, jen nepůjde dohledat v evidenci.
+    console.error("vat_report_sends upsert failed", saveError)
+  }
+
+  revalidatePath("/vat-recapitulative-statement")
+  return { send }
 }
 
 export async function duplicateInvoice(id: string): Promise<{ data?: Invoice; error?: string }> {
