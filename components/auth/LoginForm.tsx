@@ -1,8 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { Eye, EyeOff, Lock, Mail } from "lucide-react"
+import { Eye, EyeOff } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+
+const FIELD_CLASS =
+  "auth-field h-12 w-full rounded-[18px] [corner-shape:squircle] pl-4 pr-12 text-base sm:text-[15px]"
+
+const FOCUS_RING = "auth-focus"
 
 export default function LoginForm() {
   const [email, setEmail] = useState("")
@@ -41,32 +46,28 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={handlePasswordLogin} className="space-y-5">
-      <div className="space-y-1.5">
-        <label htmlFor="email" className="auth-label block">
+    <form onSubmit={handlePasswordLogin} className="space-y-4">
+      <div className="space-y-2">
+        <label htmlFor="email" className="block text-[13px] font-medium">
           E-mail
         </label>
-        <div className="relative">
-          <Mail className="auth-icon absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" />
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="vy@example.com"
-            className="auth-input"
-          />
-        </div>
+        <input
+          id="email"
+          type="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="vy@example.com"
+          className={FIELD_CLASS}
+        />
       </div>
 
-      <div className="space-y-1.5">
-        <label htmlFor="password" className="auth-label block">
+      <div className="space-y-2">
+        <label htmlFor="password" className="block text-[13px] font-medium">
           Heslo
         </label>
         <div className="relative">
-          <Lock className="auth-icon absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" />
           <input
             id="password"
             type={showPassword ? "text" : "password"}
@@ -75,21 +76,21 @@ export default function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="auth-input"
+            className={FIELD_CLASS}
           />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            className="auth-icon absolute right-3.5 top-1/2 -translate-y-1/2 hover:opacity-70 transition-opacity"
+            className={`absolute right-1.5 top-1.5 flex size-9 items-center justify-center rounded-xl [corner-shape:squircle] text-[var(--auth-muted)] transition-colors hover:bg-[var(--auth-field-hover)] ${FOCUS_RING}`}
             aria-label={showPassword ? "Skrýt heslo" : "Zobrazit heslo"}
           >
-            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            {showPassword ? <EyeOff className="size-[17px]" /> : <Eye className="size-[17px]" />}
           </button>
         </div>
       </div>
 
       {error && (
-        <p className="auth-error text-sm font-medium" role="alert">
+        <p className="text-sm font-medium text-[var(--auth-danger)]" role="alert">
           {error}
         </p>
       )}
@@ -97,25 +98,25 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="auth-btn-primary w-full h-11 text-sm font-semibold flex items-center justify-center"
+        className={`mt-3 flex h-12 w-full items-center justify-center rounded-[20px] [corner-shape:squircle] auth-btn-primary text-[15px] font-semibold disabled:pointer-events-none disabled:opacity-60 ${FOCUS_RING}`}
       >
         {loading ? "Přihlašuji…" : "Přihlásit se"}
       </button>
 
-      <div className="flex items-center gap-3 text-xs auth-muted">
-        <span className="auth-divider-line flex-1 h-px" />
-        nebo pokračovat přes
-        <span className="auth-divider-line flex-1 h-px" />
+      <div className="flex items-center gap-3.5 text-[13px] text-[var(--auth-muted)]">
+        <span className="h-px flex-1 bg-[var(--auth-border)]" />
+        nebo
+        <span className="h-px flex-1 bg-[var(--auth-border)]" />
       </div>
 
       <button
         type="button"
         onClick={handleGoogleLogin}
         disabled={loading}
-        className="auth-btn-google w-full h-11 text-sm font-semibold flex items-center justify-center gap-2.5"
+        className={`flex h-12 w-full items-center justify-center gap-2.5 rounded-[20px] [corner-shape:squircle] auth-btn-secondary text-[15px] font-medium disabled:pointer-events-none disabled:opacity-60 ${FOCUS_RING}`}
       >
         <GoogleIcon />
-        Google
+        Pokračovat přes Google
       </button>
     </form>
   )
@@ -123,7 +124,7 @@ export default function LoginForm() {
 
 function GoogleIcon() {
   return (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
+    <svg className="size-[17px]" viewBox="0 0 24 24" aria-hidden="true">
       <path
         fill="#4285F4"
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z"
