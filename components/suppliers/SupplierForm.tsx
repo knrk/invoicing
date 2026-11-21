@@ -2,6 +2,7 @@
 
 import { AresLookupButton } from "@/components/invoice/AresLookupButton"
 import { Button } from "@/components/ui/button"
+import { DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -172,14 +173,14 @@ export default function SupplierForm({ existing, onDone }: Props) {
         />
       </div>
 
-      <div className="flex justify-end gap-2 pt-2">
+      <DialogFooter>
         <Button variant="outline" onClick={onDone}>
           Zrušit
         </Button>
         <Button variant="dark" onClick={handleSave} disabled={saving}>
           {saving ? "Ukládám…" : existing ? "Uložit změny" : "Přidat dodavatele"}
         </Button>
-      </div>
+      </DialogFooter>
     </div>
   )
 }

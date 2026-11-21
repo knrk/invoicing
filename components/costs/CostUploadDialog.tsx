@@ -100,7 +100,7 @@ export default function CostUploadDialog({ open, onOpenChange, onSaved }: Props)
           <CostForm value={form} onChange={setForm} />
         </div>
 
-        <DialogFooter className="mt-0 shrink-0 border-t border-border px-6 py-4">
+        <DialogFooter className="mx-0 mb-0 mt-0 shrink-0 border-t border-border px-6 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Zrušit
           </Button>

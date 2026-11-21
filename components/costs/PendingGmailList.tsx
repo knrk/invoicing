@@ -154,7 +154,7 @@ export default function PendingGmailList({ pending }: Props) {
               {form && <CostForm value={form} onChange={setForm} />}
             </div>
           </div>
-          <DialogFooter className="mt-0 shrink-0 items-center border-t border-border px-6 py-4">
+          <DialogFooter className="mx-0 mb-0 mt-0 shrink-0 items-center border-t border-border px-6 py-4">
             <Button
               variant="ghost"
               disabled={busy || !active}

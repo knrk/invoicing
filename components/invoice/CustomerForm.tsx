@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -185,14 +186,14 @@ export default function CustomerForm({ existing, onDone }: Props) {
         />
       </div>
 
-      <div className="flex justify-end gap-2 pt-2">
+      <DialogFooter>
         <Button variant="outline" onClick={onDone}>
           Zrušit
         </Button>
         <Button variant="dark" onClick={handleSave} disabled={saving}>
           {saving ? "Ukládám…" : existing ? "Uložit změny" : "Přidat odběratele"}
         </Button>
-      </div>
+      </DialogFooter>
     </div>
   )
 }

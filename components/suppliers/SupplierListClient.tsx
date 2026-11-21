@@ -61,7 +61,7 @@ export default function SupplierListClient({ suppliers }: Props) {
         {isAdmin && (
           <button
             onClick={() => setAddOpen(true)}
-            className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-transparent px-4 py-8 text-text-secondary hover:border-ring/50 hover:text-text hover:bg-subtle transition-colors cursor-pointer min-h-[110px]"
+            className="flex flex-col items-center justify-center gap-2 rounded-xl [corner-shape:squircle] border-2 border-dashed border-border bg-transparent px-4 py-8 text-text-secondary hover:border-ring/50 hover:text-text hover:bg-subtle transition-colors cursor-pointer min-h-[110px]"
           >
             <Plus className="h-5 w-5" />
             <span className="text-xs font-medium">Přidat dodavatele</span>
@@ -81,7 +81,7 @@ export default function SupplierListClient({ suppliers }: Props) {
             }
             onMouseLeave={() => hideMenu(s.id)}
             className={cn(
-              "group relative flex flex-col gap-3 rounded-xl border border-border bg-surface px-4 py-4 transition-colors",
+              "group relative flex flex-col gap-3 rounded-xl [corner-shape:squircle] border border-border bg-surface px-4 py-4 transition-colors",
               isAdmin && "cursor-pointer hover:border-ring/50 hover:bg-subtle"
             )}
           >
@@ -98,7 +98,7 @@ export default function SupplierListClient({ suppliers }: Props) {
                     e.stopPropagation()
                     positionMenu(s.id)
                   }}
-                  className="p-1 rounded text-text-secondary hover:text-text hover:bg-border transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                  className="p-1 rounded text-text-secondary hover:text-text hover:bg-border transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 group-has-[:popover-open]:opacity-100 shrink-0"
                 >
                   <MoreVertical className="h-3.5 w-3.5" />
                 </button>
